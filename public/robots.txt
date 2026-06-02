@@ -1,0 +1,11 @@
+User-agent: *
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /tracker
+Disallow: /settings
+Disallow: /profile
+Disallow: /admin
+Allow: /
+Allow: /explore
+Allow: /catalog
+Sitemap: https://example.com/sitemap.xml

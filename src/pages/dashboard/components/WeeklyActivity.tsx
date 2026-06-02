@@ -1,0 +1,40 @@
+import { MOCK_WEEKLY_ACTIVITY } from '@/mocks/dashboard';
+
+const MAX = Math.max(...MOCK_WEEKLY_ACTIVITY.map(d => d.count));
+
+export default function WeeklyActivity() {
+  return (
+    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <i className="ri-calendar-check-line text-zinc-400"></i>
+          <h3 className="font-semibold text-zinc-900 dark:text-white text-sm">Actividad esta semana</h3>
+        </div>
+        <span className="text-xs text-zinc-400">
+          {MOCK_WEEKLY_ACTIVITY.reduce((a, b) => a + b.count, 0)} acciones
+        </span>
+      </div>
+      <div className="flex items-end justify-between gap-2 h-24">
+        {MOCK_WEEKLY_ACTIVITY.map(day => {
+          const heightPct = MAX > 0 ? (day.count / MAX) * 100 : 0;
+          return (
+            <div key={day.day} className="flex flex-col items-center gap-2 flex-1">
+              <div className="w-full flex items-end justify-center" style={{ height: '80px' }}>
+                <div
+                  className="w-full rounded-t-lg transition-all duration-500"
+                  style={{
+                    height: `${heightPct}%`,
+                    minHeight: day.count > 0 ? '6px' : '0',
+                    background: 'linear-gradient(to top, #8b5cf6, #f43f5e)',
+                    opacity: day.count > 0 ? 1 : 0.15,
+                  }}
+                ></div>
+              </div>
+              <span className="text-xs text-zinc-400 font-medium">{day.day}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
