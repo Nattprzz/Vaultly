@@ -6,7 +6,7 @@ type RoleFilter = 'all' | AdminUserRole;
 
 const STATUS_BADGE: Record<AdminUserStatus, string> = {
   active: 'bg-emerald-500/20 text-emerald-400',
-  suspended: 'bg-rose-500/20 text-rose-400',
+  suspended: 'bg-red-500/20 text-red-400',
   pending: 'bg-amber-500/20 text-amber-400',
 };
 
@@ -47,9 +47,9 @@ export default function AdminUsers() {
   return (
     <div className="flex flex-col gap-5">
       {error && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3">
-          <p className="text-sm text-rose-300">{error}</p>
-          <button onClick={() => void refresh()} className="text-xs font-semibold text-rose-200 hover:text-white">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
+          <p className="text-sm text-red-300">{error}</p>
+          <button onClick={() => void refresh()} className="text-xs font-semibold text-red-200 hover:text-white">
             Reintentar
           </button>
         </div>
@@ -62,7 +62,7 @@ export default function AdminUsers() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por nombre, usuario o email..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand/30"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -93,7 +93,7 @@ export default function AdminUsers() {
         <span>·</span>
         <span className="text-emerald-400">{stats.active} activos</span>
         <span>·</span>
-        <span className="text-rose-400">{stats.suspended} suspendidos</span>
+        <span className="text-red-400">{stats.suspended} suspendidos</span>
         <span>·</span>
         <span className="text-amber-400">{stats.pending} pendientes</span>
       </div>
@@ -129,7 +129,7 @@ export default function AdminUsers() {
               </div>
 
               <div className="col-span-2 hidden md:block">
-                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${user.role === 'admin' ? 'bg-violet-500/20 text-violet-400' : 'bg-zinc-700 text-zinc-400'}`}>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${user.role === 'admin' ? 'bg-brand/15 text-brand dark:text-brand-dark' : 'bg-zinc-700 text-zinc-400'}`}>
                   {user.role === 'admin' ? 'Admin' : 'Usuario'}
                 </span>
               </div>
@@ -164,12 +164,12 @@ export default function AdminUsers() {
                       onClick={() => toggleRole(user)}
                       className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-zinc-300 transition-colors hover:bg-zinc-700"
                     >
-                      <i className="ri-shield-user-line text-violet-400"></i>
+                      <i className="ri-shield-user-line text-brand dark:text-brand-dark"></i>
                       {user.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}
                     </button>
                     <button
                       onClick={() => toggleSuspend(user)}
-                      className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors hover:bg-zinc-700 ${user.status === 'suspended' ? 'text-emerald-400' : 'text-rose-400'}`}
+                      className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors hover:bg-zinc-700 ${user.status === 'suspended' ? 'text-emerald-400' : 'text-red-400'}`}
                     >
                       <i className={user.status === 'suspended' ? 'ri-user-follow-line' : 'ri-user-forbid-line'}></i>
                       {user.status === 'suspended' ? 'Reactivar' : 'Suspender'}

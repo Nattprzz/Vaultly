@@ -139,7 +139,7 @@ function LinkedEntityChip({
       {/* Remove */}
       <button
         onClick={onUnlink}
-        className="w-6 h-6 flex items-center justify-center rounded-md text-zinc-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 flex-shrink-0"
+        className="w-6 h-6 flex items-center justify-center rounded-md text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 flex-shrink-0"
         title="Desvincular"
       >
         <i className="ri-close-line text-xs"></i>
@@ -249,7 +249,7 @@ export default function ItemEntitiesEditor({ itemId }: Props) {
         <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
           toast.type === 'ok'
             ? 'bg-emerald-900/50 border border-emerald-800 text-emerald-300'
-            : 'bg-rose-900/50 border border-rose-800 text-rose-300'
+            : 'bg-red-900/50 border border-red-800 text-red-300'
         }`}>
           <i className={toast.type === 'ok' ? 'ri-checkbox-circle-line' : 'ri-error-warning-line'}></i>
           {toast.msg}

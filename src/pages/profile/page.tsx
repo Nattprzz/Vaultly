@@ -1,8 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Navbar from '@/components/feature/Navbar';
+import { useState } from 'react';
+import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
-import { useAuth } from '@/hooks/useAuth';
 import ProfileHero from './components/ProfileHero';
 import ProfileStats from './components/ProfileStats';
 import ProfileShowcase from './components/ProfileShowcase';
@@ -11,39 +9,31 @@ import ProfileReviews from './components/ProfileReviews';
 type Tab = 'showcase' | 'stats' | 'reviews';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'showcase', label: 'Highlights',  icon: 'ri-trophy-line' },
+  { id: 'showcase', label: 'Destacados',  icon: 'ri-trophy-line' },
   { id: 'stats',    label: 'Estadísticas', icon: 'ri-bar-chart-box-line' },
   { id: 'reviews',  label: 'Reseñas',     icon: 'ri-quill-pen-line' },
 ];
 
 export default function ProfilePage() {
-  const { isLoggedIn } = useAuth();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('showcase');
 
-  useEffect(() => {
-    if (!isLoggedIn) navigate('/');
-  }, [isLoggedIn, navigate]);
-
-  if (!isLoggedIn) return null;
-
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)]">
       <SeoHead
         title="Mi Perfil — Vaultly"
         description="Tu perfil público en Vaultly. Muestra tus highlights, estadísticas y reseñas culturales."
         canonical="/profile"
         noIndex
       />
-      <Navbar />
-      <main className="pt-16">
+      <Sidebar />
+      <main className="pt-14 md:pt-0 md:pl-64">
         {/* Hero section — full width with banner */}
-        <div className="bg-white dark:bg-zinc-950 pb-0">
+        <div className="bg-[var(--surface)] dark:bg-[var(--bg)] pb-0">
           <ProfileHero isOwn />
         </div>
 
         {/* Tabs */}
-        <div className="bg-white dark:bg-zinc-950 border-b border-zinc-100 dark:border-zinc-800 sticky top-16 z-30">
+        <div className="bg-[var(--surface)] dark:bg-[var(--bg)] border-b border-zinc-100 dark:border-zinc-800 sticky top-16 z-30">
           <div className="max-w-screen-xl mx-auto px-4 md:px-8">
             <div className="flex items-center gap-1">
               {TABS.map(tab => (

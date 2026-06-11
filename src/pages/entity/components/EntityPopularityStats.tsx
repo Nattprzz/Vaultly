@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { EntityItem } from '@/hooks/useEntity';
-import { CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
 import { toAppCategory } from '@/lib/categories';
 
 interface Props {
@@ -22,6 +22,7 @@ function getItemGenre(item: EntityItem): string {
 }
 
 export default function EntityPopularityStats({ items }: Props) {
+  const CATEGORIES = useCategories();
   const ratedItems = useMemo(() => items.filter(i => getItemRating(i) != null), [items]);
 
   // ── Rating distribution (0-10 buckets of 1) ──
@@ -86,7 +87,7 @@ export default function EntityPopularityStats({ items }: Props) {
         const cat = CATEGORIES.find(c => c.id === catId);
         return { catId, count, cat };
       });
-  }, [items]);
+  }, [items, CATEGORIES]);
 
   const totalItems = items.length;
   const avgRating = ratedItems.length > 0
@@ -335,3 +336,4 @@ export default function EntityPopularityStats({ items }: Props) {
     </div>
   );
 }
+

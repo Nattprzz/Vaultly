@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTracker } from '@/hooks/useTracker';
-import { CATALOG_MOCK, CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
+import type { CategoryConfig } from '@/lib/categoryConfig';
 
 interface EnrichedItem {
   itemId: string;
@@ -15,23 +16,26 @@ interface EnrichedItem {
   catIcon: string;
 }
 
-function enrichItem(itemId: string, category: string, rating: number | null, status: string): EnrichedItem | null {
-  const catItems = CATALOG_MOCK[category] ?? [];
-  const item = catItems.find(i => i.id === itemId);
-  const cat = CATEGORIES.find(c => c.id === category);
-  if (!item || !cat) return null;
+function enrichItem(entry: ReturnType<typeof useTracker>['entries'][string], categories: CategoryConfig[]): EnrichedItem | null {
+  const category = entry.category;
+  const cat = categories.find(c => c.id === category);
+  if (!cat) return null;
   return {
-    itemId, category, rating, status,
-    title: item.title,
-    cover: item.cover,
-    year: item.year,
-    genre: item.genre,
+    itemId: entry.itemId,
+    category,
+    rating: entry.rating,
+    status: entry.status,
+    title: entry.title,
+    cover: entry.cover,
+    year: entry.year,
+    genre: entry.genre,
     catAccent: cat.accent,
     catIcon: cat.icon,
   };
 }
 
 export default function ProfileShowcase() {
+  const categories = useCategories();
   const { entries } = useTracker();
   const all = Object.values(entries);
 
@@ -40,7 +44,7 @@ export default function ProfileShowcase() {
     .filter(e => e.rating !== null && e.status === 'completed')
     .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
     .slice(0, 6)
-    .map(e => enrichItem(e.itemId, e.category, e.rating, e.status))
+    .map(e => enrichItem(e, categories))
     .filter(Boolean) as EnrichedItem[];
 
   // Recently completed
@@ -48,7 +52,7 @@ export default function ProfileShowcase() {
     .filter(e => e.status === 'completed')
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 4)
-    .map(e => enrichItem(e.itemId, e.category, e.rating, e.status))
+    .map(e => enrichItem(e, categories))
     .filter(Boolean) as EnrichedItem[];
 
   return (
@@ -107,7 +111,7 @@ export default function ProfileShowcase() {
                   <img src={item.cover} alt={item.title} className="w-full h-full object-cover object-top" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors line-clamp-1">
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-white group-hover:text-brand dark:group-hover:text-brand-dark transition-colors line-clamp-1">
                     {item.title}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
@@ -134,3 +138,4 @@ export default function ProfileShowcase() {
     </div>
   );
 }
+

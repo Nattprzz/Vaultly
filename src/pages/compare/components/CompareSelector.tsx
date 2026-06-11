@@ -5,12 +5,12 @@ const ALL_ENTITIES = Object.values(PEOPLE_MOCK);
 
 const ROLE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
   actor: { bg: 'bg-amber-100', text: 'text-amber-700', icon: 'ri-user-smile-line' },
-  actriz: { bg: 'bg-rose-100', text: 'text-rose-700', icon: 'ri-user-heart-line' },
-  'actor/actriz': { bg: 'bg-rose-100', text: 'text-rose-700', icon: 'ri-user-heart-line' },
+  actriz: { bg: 'bg-teal-100', text: 'text-teal-700', icon: 'ri-user-heart-line' },
+  'actor/actriz': { bg: 'bg-teal-100', text: 'text-teal-700', icon: 'ri-user-heart-line' },
   director: { bg: 'bg-orange-100', text: 'text-orange-700', icon: 'ri-movie-2-line' },
   autor: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: 'ri-quill-pen-line' },
   desarrollador: { bg: 'bg-cyan-100', text: 'text-cyan-700', icon: 'ri-gamepad-line' },
-  publisher: { bg: 'bg-violet-100', text: 'text-violet-700', icon: 'ri-building-2-line' },
+  publisher: { bg: 'bg-slate-100', text: 'text-slate-700', icon: 'ri-building-2-line' },
   artista: { bg: 'bg-pink-100', text: 'text-pink-700', icon: 'ri-music-2-line' },
 };
 

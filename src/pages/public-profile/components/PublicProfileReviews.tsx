@@ -1,14 +1,16 @@
 import { Link } from 'react-router-dom';
 import { usePublicReviews, formatDate } from '@/hooks/useReviews';
+import type { PublicPrivacyFlags } from '@/types/privacy';
 
 interface Props {
   userId: string | null;
   displayName: string;
   initials: string;
+  privacy: PublicPrivacyFlags;
 }
 
-export default function PublicProfileReviews({ userId, displayName, initials }: Props) {
-  const { reviews, loading } = usePublicReviews(userId);
+export default function PublicProfileReviews({ userId, displayName, initials, privacy }: Props) {
+  const { reviews, loading, hidden } = usePublicReviews(userId, privacy);
 
   if (loading) {
     return (
@@ -29,6 +31,18 @@ export default function PublicProfileReviews({ userId, displayName, initials }: 
     );
   }
 
+  if (hidden) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-800 mb-4">
+          <i className="ri-lock-line text-2xl text-zinc-400"></i>
+        </div>
+        <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-2">Reseñas privadas</h3>
+        <p className="text-sm text-zinc-500 max-w-xs">Este usuario ha ocultado sus reseñas públicas.</p>
+      </div>
+    );
+  }
+
   if (reviews.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -44,21 +58,25 @@ export default function PublicProfileReviews({ userId, displayName, initials }: 
   return (
     <div className="flex flex-col gap-4">
       {reviews.map(entry => {
-        const title = entry.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const title = entry.title || entry.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         return (
           <div key={entry.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-5">
             <div className="flex items-center gap-3 mb-4">
               <Link to={`/catalog/${entry.category}/${entry.item_slug}`} className="flex-shrink-0 cursor-pointer">
-                <div
-                  className="w-12 h-16 rounded-lg flex items-center justify-center"
-                  style={{ background: `${entry.categoryAccent}15` }}
-                >
-                  <i className={`${entry.categoryIcon} text-2xl`} style={{ color: entry.categoryAccent }}></i>
-                </div>
+                {entry.cover ? (
+                  <img src={entry.cover} alt={title} className="w-12 h-16 rounded-lg object-cover object-top" />
+                ) : (
+                  <div
+                    className="w-12 h-16 rounded-lg flex items-center justify-center"
+                    style={{ background: `${entry.categoryAccent}15` }}
+                  >
+                    <i className={`${entry.categoryIcon} text-2xl`} style={{ color: entry.categoryAccent }}></i>
+                  </div>
+                )}
               </Link>
               <div className="flex-1 min-w-0">
                 <Link to={`/catalog/${entry.category}/${entry.item_slug}`} className="cursor-pointer">
-                  <h4 className="text-sm font-bold text-zinc-900 dark:text-white hover:text-rose-500 transition-colors line-clamp-1">
+                  <h4 className="text-sm font-bold text-zinc-900 dark:text-white hover:text-brand dark:hover:text-brand-dark transition-colors line-clamp-1">
                     {title}
                   </h4>
                 </Link>
@@ -72,15 +90,17 @@ export default function PublicProfileReviews({ userId, displayName, initials }: 
                   </span>
                 </div>
               </div>
-              <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
-                <div className="flex items-center gap-1">
-                  <i className="ri-star-fill text-amber-400 text-base"></i>
-                  <span className="text-lg font-black text-zinc-900 dark:text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    {entry.rating}
-                  </span>
+              {entry.rating !== null && (
+                <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+                  <div className="flex items-center gap-1">
+                    <i className="ri-star-fill text-amber-400 text-base"></i>
+                    <span className="text-lg font-black text-zinc-900 dark:text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      {entry.rating}
+                    </span>
+                  </div>
+                  <span className="text-xs text-zinc-400">/10</span>
                 </div>
-                <span className="text-xs text-zinc-400">/10</span>
-              </div>
+              )}
             </div>
 
             <blockquote className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed italic border-l-2 border-zinc-200 dark:border-zinc-700 pl-4">
@@ -89,7 +109,7 @@ export default function PublicProfileReviews({ userId, displayName, initials }: 
 
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-50 dark:border-zinc-800">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-6 h-6 rounded-full bg-brand dark:bg-brand-dark flex items-center justify-center text-white text-xs font-bold">
                   {initials}
                 </div>
                 <span className="text-xs text-zinc-500">{displayName}</span>

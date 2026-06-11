@@ -38,7 +38,7 @@ export default function RecentActivity({ items, loading }: Props) {
             <i className="ri-history-line text-zinc-400 text-xl"></i>
           </div>
           <p className="text-sm text-zinc-500">Aún no hay actividad. ¡Añade algo al tracker!</p>
-          <Link to="/catalog" className="text-xs text-violet-500 hover:text-violet-600 font-medium cursor-pointer">
+          <Link to="/catalog" className="text-xs text-brand hover:text-brand-hover dark:text-brand-dark dark:hover:text-brand-dark-hover font-medium cursor-pointer">
             Explorar catálogo →
           </Link>
         </div>
@@ -57,7 +57,7 @@ export default function RecentActivity({ items, loading }: Props) {
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-zinc-900 dark:text-white font-medium truncate">
-                  {item.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  {item.title}
                 </p>
                 <p className="text-xs text-zinc-500 mt-0.5">
                   {statusLabel(item.status_en)}

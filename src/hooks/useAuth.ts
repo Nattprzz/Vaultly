@@ -83,12 +83,14 @@ export function useAuth(): AuthState & {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setLoading(true);
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
-        fetchProfile(s.user.id, s.user.email ?? '');
+        fetchProfile(s.user.id, s.user.email ?? '').finally(() => setLoading(false));
       } else {
         setProfile(null);
+        setLoading(false);
       }
     });
 
@@ -96,10 +98,12 @@ export function useAuth(): AuthState & {
   }, []);
 
   const logout = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
     setSession(null);
+    setLoading(false);
   };
 
   const refreshProfile = async () => {

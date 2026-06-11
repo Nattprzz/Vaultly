@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import Navbar from '@/components/feature/Navbar';
+import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
 import PersonHero from './components/PersonHero';
 import PersonBio from './components/PersonBio';
@@ -20,12 +20,12 @@ export default function PersonPage() {
 
   if (!person) {
     return (
-      <div className="min-h-screen bg-white dark:bg-zinc-950 flex flex-col">
-        <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-zinc-400 pt-16">
+      <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--bg)] flex flex-col">
+        <Sidebar />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-zinc-400 pt-14 md:pt-0 md:pl-64">
           <i className="ri-user-unfollow-line text-5xl"></i>
           <p className="text-lg font-semibold">Persona no encontrada</p>
-          <Link to="/catalog" className="text-sm text-violet-500 hover:underline cursor-pointer">
+          <Link to="/catalog" className="text-sm text-brand dark:text-brand-dark hover:underline cursor-pointer">
             Volver a Explorar
           </Link>
         </div>
@@ -51,7 +51,7 @@ export default function PersonPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)]">
       <SeoHead
         title={`${person.name} — ${person.role} | Vaultly`}
         description={`${person.name} es ${person.role.toLowerCase()} ${person.nationality.toLowerCase()}. Conocido/a por: ${person.known_for.join(', ')}. ${person.works.length} obras${avgRating ? ` con una media de ${avgRating}` : ''}.`}
@@ -60,9 +60,9 @@ export default function PersonPage() {
         ogImage={person.photo}
         jsonLd={jsonLd}
       />
-      <Navbar />
+      <Sidebar />
 
-      <div className="pt-16">
+      <div className="pt-14 md:pt-0 md:pl-64">
         {/* Hero — has its own internal reveal */}
         <PersonHero person={person} />
 

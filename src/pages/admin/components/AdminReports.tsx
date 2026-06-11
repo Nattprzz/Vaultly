@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { type ReportStatus } from '@/mocks/admin';
+import { type ReportStatus } from '@/types/admin';
 import { useAdminReports, type AdminReport } from '@/hooks/useAdminReports';
 
 const STATUS_CONFIG: Record<ReportStatus, { label: string; icon: string; bg: string; text: string; dot: string }> = {
@@ -20,7 +20,7 @@ const REASON_ICONS: Record<string, string> = {
 
 const CATEGORY_LABELS: Record<string, string> = {
   videojuegos: 'Videojuegos',
-  películas:   'Películas',
+  peliculas:   'Películas',
   series:      'Series',
   libros:      'Libros',
   conciertos:  'Conciertos',
@@ -135,14 +135,14 @@ function ReportRow({ report, isNew, onAction }: ReportRowProps) {
   return (
     <div className={`border rounded-2xl overflow-hidden transition-all duration-700 ${
       highlight
-        ? 'bg-rose-950/30 border-rose-800/60'
+        ? 'bg-red-950/30 border-red-800/60'
         : 'bg-zinc-900 border-zinc-800'
     }`}>
       {/* New badge */}
       {highlight && (
         <div className="flex items-center gap-1.5 px-5 pt-3 pb-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-          <span className="text-xs font-semibold text-rose-400">Nuevo reporte</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+          <span className="text-xs font-semibold text-red-400">Nuevo reporte</span>
         </div>
       )}
 
@@ -282,8 +282,8 @@ export default function AdminReports() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
-        <div className="w-12 h-12 flex items-center justify-center rounded-2xl bg-rose-950/30">
-          <i className="ri-error-warning-line text-rose-400 text-2xl"></i>
+        <div className="w-12 h-12 flex items-center justify-center rounded-2xl bg-red-950/30">
+          <i className="ri-error-warning-line text-red-400 text-2xl"></i>
         </div>
         <p className="text-sm font-semibold text-zinc-300">Error al cargar reportes</p>
         <p className="text-xs text-zinc-500">{error}</p>
@@ -311,10 +311,10 @@ export default function AdminReports() {
     <div className="flex flex-col gap-6">
       {/* New reports banner */}
       {newCount > 0 && (
-        <div className="flex items-center justify-between gap-4 px-5 py-3.5 rounded-2xl bg-rose-950/40 border border-rose-800/60">
+        <div className="flex items-center justify-between gap-4 px-5 py-3.5 rounded-2xl bg-red-950/40 border border-red-800/60">
           <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping flex-shrink-0"></span>
-            <p className="text-sm font-semibold text-rose-300">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping flex-shrink-0"></span>
+            <p className="text-sm font-semibold text-red-300">
               {newCount} reporte{newCount > 1 ? 's' : ''} nuevo{newCount > 1 ? 's' : ''} desde tu última visita
             </p>
           </div>

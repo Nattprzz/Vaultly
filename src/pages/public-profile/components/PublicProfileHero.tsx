@@ -1,23 +1,30 @@
 import { useState } from 'react';
 import { usePublicTracker } from '@/hooks/usePublicTracker';
+import type { PublicPrivacyFlags } from '@/types/privacy';
 
 interface Props {
   username: string;
   userId: string | null;
   displayName: string;
   initials: string;
+  privacy: PublicPrivacyFlags;
 }
 
-export default function PublicProfileHero({ username, userId, displayName, initials }: Props) {
+export default function PublicProfileHero({ username, userId, displayName, initials, privacy }: Props) {
   const [copied, setCopied] = useState(false);
-  const { entries } = usePublicTracker(userId);
+  const { entries, hidden } = usePublicTracker(userId, privacy);
 
-  const completed = entries.filter(e => e.status === 'completed').length;
+  const completed = privacy.show_item_status === false ? '—' : entries.filter(e => e.status === 'completed').length;
   const rated = entries.filter(e => e.rating !== null);
   const avgRating = rated.length > 0
     ? (rated.reduce((s, e) => s + (e.rating ?? 0), 0) / rated.length).toFixed(1)
     : '—';
-  const reviews = entries.filter(e => e.review && e.review.trim().length > 0).length;
+  const reviews = privacy.show_reviews ? entries.filter(e => e.review && e.review.trim().length > 0).length : '—';
+
+  const trackerCountDisplay = hidden ? 'â€”' : entries.length;
+  const completedDisplay = hidden ? 'â€”' : completed;
+  const avgRatingDisplay = hidden ? 'â€”' : avgRating;
+  const reviewsDisplay = hidden ? 'â€”' : reviews;
 
   const profileUrl = `${window.location.origin}/u/${username}`;
 
@@ -43,7 +50,7 @@ export default function PublicProfileHero({ username, userId, displayName, initi
       <div className="max-w-screen-xl mx-auto px-4 md:px-8 -mt-16 relative z-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="flex items-end gap-5">
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center text-white text-3xl font-black border-4 border-zinc-50 dark:border-zinc-950 flex-shrink-0">
+            <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-brand dark:bg-brand-dark flex items-center justify-center text-white text-3xl font-black border-4 border-zinc-50 dark:border-zinc-950 flex-shrink-0">
               {initials}
             </div>
             <div className="pb-1">
@@ -78,11 +85,18 @@ export default function PublicProfileHero({ username, userId, displayName, initi
         {/* Quick stats */}
         <div className="flex flex-wrap items-center gap-6 mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800">
           {[
-            { label: 'En tracker', value: entries.length, icon: 'ri-stack-line', color: 'text-violet-500' },
-            { label: 'Completados', value: completed, icon: 'ri-checkbox-circle-line', color: 'text-emerald-500' },
+            { label: 'En tracker', value: trackerCountDisplay, icon: 'ri-stack-line', color: 'text-brand dark:text-brand-dark' },
+            { label: 'Completados', value: completedDisplay, icon: 'ri-checkbox-circle-line', color: 'text-emerald-500' },
             { label: 'Puntuación media', value: avgRating, icon: 'ri-star-line', color: 'text-amber-500' },
-            { label: 'Reseñas', value: reviews, icon: 'ri-quill-pen-line', color: 'text-rose-500' },
-          ].map(stat => (
+            { label: 'Reseñas', value: reviews, icon: 'ri-quill-pen-line', color: 'text-brand dark:text-brand-dark' },
+          ].map(stat => ({
+            ...stat,
+            value: stat.icon === 'ri-star-line'
+              ? avgRatingDisplay
+              : stat.icon === 'ri-quill-pen-line'
+                ? reviewsDisplay
+                : stat.value,
+          })).map(stat => (
             <div key={stat.label} className="flex items-center gap-2">
               <i className={`${stat.icon} ${stat.color} text-lg`}></i>
               <div>

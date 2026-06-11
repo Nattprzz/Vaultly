@@ -110,7 +110,7 @@ export default function ItemReportHistory({ itemId }: Props) {
     return (
       <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800">
         <p className="text-xs text-zinc-400 flex items-center gap-1.5">
-          <i className="ri-error-warning-line text-rose-400"></i>
+          <i className="ri-error-warning-line text-red-400"></i>
           No se pudo cargar el historial
         </p>
       </div>

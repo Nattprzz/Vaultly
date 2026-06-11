@@ -9,7 +9,7 @@ const STATUS_BADGE: Record<TrackerStatus, { label: string; cls: string; dot: str
   pending:     { label: 'Pendiente',    cls: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500',                              dot: 'bg-zinc-400' },
   in_progress: { label: 'En progreso', cls: 'bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400',    dot: 'bg-amber-400' },
   completed:   { label: 'Completado',  cls: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-400' },
-  dropped:     { label: 'Abandonado',  cls: 'bg-rose-100 dark:bg-rose-950/40 text-rose-500',                           dot: 'bg-rose-400' },
+  dropped:     { label: 'Abandonado',  cls: 'bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400',                  dot: 'bg-red-400' },
 };
 
 interface Props {
@@ -42,7 +42,7 @@ export default function TrackerList({ enriched }: Props) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-2 mb-1">
                   <Link to={`/catalog/${item.category}/${item.itemId}`} className="cursor-pointer">
-                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-white leading-tight hover:text-violet-600 dark:hover:text-violet-400 transition-colors line-clamp-1">
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-white leading-tight hover:text-brand dark:hover:text-brand-dark transition-colors line-clamp-1">
                       {item.title}
                     </h3>
                   </Link>

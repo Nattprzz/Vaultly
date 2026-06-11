@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
 
     if (req.method === 'POST') {
       const body = await req.json();
-      const { item_id, item_title, item_category, item_cover, reason, details, reported_by } = body;
+      const { item_id, item_title, item_category, item_cover, reason, details } = body;
 
       if (!item_id || !item_title || !reason) {
         return jsonResponse({ error: 'Missing required fields: item_id, item_title, reason' }, 400);
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
           item_cover: item_cover ?? '',
           reason,
           details: details ?? null,
-          user_id: requester.userId ?? reported_by ?? null,
+          user_id: requester.userId ?? null,
           status: 'pending',
         })
         .select()

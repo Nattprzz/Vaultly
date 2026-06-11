@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import Navbar from '@/components/feature/Navbar';
+import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
-import { CATEGORIES, CATALOG_MOCK } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
 import { useCatalogSearch, type CatalogItem } from '@/hooks/useCatalogSearch';
@@ -10,6 +10,7 @@ import { useCatalogFilters, applyFilters, extractGenres, DEFAULT_FILTERS } from 
 import CatalogFilters from './components/CatalogFilters';
 import { ALL_CATEGORY_ID, isAppCategory, toApiCategory } from '@/lib/categories';
 import { getSiteUrl } from '@/lib/site';
+import { supabase } from '@/lib/supabase';
 
 const siteUrl = getSiteUrl();
 
@@ -17,42 +18,10 @@ const CATALOG_JSONLD = {
   '@context': 'https://schema.org',
   '@type': 'CollectionPage',
   name: 'Catálogo - Vaultly',
-  description: 'Explora el catálogo completo de Vaultly: videojuegos, películas, series, libros, anime y más.',
+  description: 'Explora el catálogo completo de Vaultly: videojuegos, películas, series, libros y conciertos.',
   url: `${siteUrl}/catalog`,
   isPartOf: { '@type': 'WebSite', name: 'Vaultly', url: siteUrl },
 };
-
-function mockToCatalogItem(item: {
-  id: string; title: string; cover: string; rating: number; year: number; genre: string;
-}, categoryId: string): CatalogItem {
-  const metadataByCategory: Record<string, Record<string, unknown>> = {
-    videojuegos: {
-      platforms: item.id.endsWith('1') || item.id.endsWith('2') ? ['PC', 'PlayStation', 'Xbox'] : ['Nintendo Switch', 'PC'],
-    },
-    peliculas: {
-      runtime: item.year >= 2020 ? 155 : 118,
-      original_language: item.title === 'Parasite' ? 'ko' : 'en',
-    },
-    series: {
-      status: item.year >= 2023 ? 'Returning Series' : 'Ended',
-      original_language: item.title === 'Shogun' ? 'ja' : 'en',
-    },
-    libros: {
-      page_count: item.year < 1980 ? 650 : 420,
-      language: 'es',
-    },
-    conciertos: {
-      city: item.title.includes('Taylor') || item.title.includes('Coldplay') ? 'Madrid' : 'Barcelona',
-    },
-  };
-
-  return {
-    id: item.id, slug: item.id, title: item.title, description: null,
-    image_url: item.cover, release_date: `${item.year}-01-01`,
-    source: 'mock', source_item_id: item.id,
-    metadata: { app_category: categoryId, rating: item.rating, genre: item.genre, ...(metadataByCategory[categoryId] ?? {}) },
-  };
-}
 
 function getRating(item: CatalogItem): number | null {
   if (item.metadata?.rating != null) return Number(item.metadata.rating);
@@ -120,7 +89,7 @@ function ItemCard({ item, categoryId, catIcon }: { item: CatalogItem; categoryId
   const rating = getRating(item);
   const year = getYear(item);
   const genre = getGenre(item);
-  const targetCategory = categoryId === ALL_CATEGORY_ID ? String(item.metadata?.app_category ?? '') : categoryId;
+  const targetCategory = categoryId === ALL_CATEGORY_ID ? String((item as CatalogItem & { category?: string }).category ?? '') : categoryId;
   const href = targetCategory ? `/catalog/${targetCategory}/${item.slug || item.id}` : '/catalog';
 
   return (
@@ -172,13 +141,16 @@ export default function CatalogPage() {
   const { category: routeCategory } = useParams<{ category?: string }>();
   const { isLoggedIn } = useAuth();
   const { settings } = useSettings();
+  const CATEGORIES = useCategories();
   const [activeCategory, setActiveCategory] = useState(isValidCategory(routeCategory) ? routeCategory : ALL_CATEGORY_ID);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const filterBtnRef = useRef<HTMLDivElement>(null);
+  const [cachedItems, setCachedItems] = useState<CatalogItem[]>([]);
+  const [cachedLoading, setCachedLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const prevRouteCategoryRef = useRef(routeCategory);
 
   const { results, loading, loadingMore, error, source, page, hasMore, search: runSearch, loadMore, clear } = useCatalogSearch();
   const {
@@ -218,6 +190,14 @@ export default function CatalogPage() {
     navigate('/catalog', { replace: true });
   }, [enabledCategoryIds, isLoggedIn, navigate, routeCategory]);
 
+  // Reset search + filters when URL category changes (back/forward nav, direct URL edit)
+  useEffect(() => {
+    if (prevRouteCategoryRef.current === routeCategory) return;
+    prevRouteCategoryRef.current = routeCategory;
+    setSearch('');
+    reset();
+  }, [routeCategory, reset]);
+
   // Debounce input
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -231,6 +211,37 @@ export default function CatalogPage() {
     if (debouncedSearch.length >= 2 && apiCategory) runSearch(apiCategory, debouncedSearch);
     else clear();
   }, [debouncedSearch, activeCategory, runSearch, clear]);
+
+  useEffect(() => {
+    if (debouncedSearch.length >= 2) return;
+
+    let cancelled = false;
+    const loadCachedItems = async () => {
+      setCachedLoading(true);
+      const categoryIds = activeCategory === ALL_CATEGORY_ID
+        ? enabledCategoryIds
+        : [activeCategory];
+
+      let query = supabase
+        .from('catalog_items')
+        .select('id, slug, title, description, image_url, release_date, source, source_item_id, metadata, category')
+        .order('updated_at', { ascending: false })
+        .limit(60);
+
+      if (categoryIds.length > 0) {
+        query = query.in('category', categoryIds);
+      }
+
+      const { data } = await query;
+      if (!cancelled) {
+        setCachedItems((data ?? []) as CatalogItem[]);
+        setCachedLoading(false);
+      }
+    };
+
+    void loadCachedItems();
+    return () => { cancelled = true; };
+  }, [activeCategory, debouncedSearch.length, enabledCategoryIds]);
 
   // Infinite scroll
   const handleLoadMore = useCallback(() => {
@@ -252,22 +263,9 @@ export default function CatalogPage() {
   const isSearching = debouncedSearch.length >= 2;
   const apiCategory = toApiCategory(activeCategory);
 
-  // Raw items before filters
-  const allMockItems = useMemo(
-    () => enabledCategories.flatMap(category => (CATALOG_MOCK[category.id] ?? []).map(item => mockToCatalogItem(item, category.id))),
-    [enabledCategories],
-  );
-
   const rawItems: CatalogItem[] = isSearching && apiCategory
     ? results
-    : activeCategory === ALL_CATEGORY_ID
-      ? allMockItems.filter(item => {
-        const q = search.trim().toLowerCase();
-        if (q.length < 2) return true;
-        const genre = getGenre(item).toLowerCase();
-        return item.title.toLowerCase().includes(q) || genre.includes(q);
-      })
-      : (CATALOG_MOCK[activeCategory] ?? []).map(item => mockToCatalogItem(item, activeCategory));
+    : cachedItems;
 
   // Available genres from current result set
   const availableGenres = useMemo(() => extractGenres(rawItems), [rawItems]);
@@ -298,17 +296,17 @@ export default function CatalogPage() {
   if (filters.seriesStatus !== 'all') activeChips.push({ key: 'status', label: filters.seriesStatus, onRemove: () => setSeriesStatus('all') });
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950">
+    <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--bg)]">
       <SeoHead
-        title="Catálogo - Videojuegos, películas, series, libros y anime | Vaultly"
-        description="Explora el catálogo completo de Vaultly. Encuentra y trackea videojuegos, películas, series, libros, anime y mucho más."
-        keywords="catálogo videojuegos, películas, series, libros, anime, Vaultly"
+        title="Catálogo - Videojuegos, películas, series, libros y conciertos | Vaultly"
+        description="Explora el catálogo completo de Vaultly. Encuentra y trackea videojuegos, películas, series, libros y conciertos."
+        keywords="catálogo videojuegos, películas, series, libros, conciertos, Vaultly"
         canonical="/catalog"
         jsonLd={CATALOG_JSONLD}
       />
-      <Navbar />
+      <Sidebar />
 
-      <div className="pt-16">
+      <div className="pt-14 md:pt-0 md:pl-64">
         {/* ── Header ── */}
         <div className="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 px-4 md:px-6 py-8">
           <div className="max-w-screen-xl mx-auto">
@@ -351,7 +349,7 @@ export default function CatalogPage() {
               </div>
 
               {/* Filter button */}
-              <div ref={filterBtnRef} className="relative flex-shrink-0">
+              <div className="flex-shrink-0">
                 <button
                   onClick={() => setFiltersOpen(p => !p)}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
@@ -361,42 +359,8 @@ export default function CatalogPage() {
                   }`}
                 >
                   <i className="ri-equalizer-2-line"></i>
-                  Filtros
-                  {activeCount > 0 && (
-                    <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${
-                      activeCount > 0 ? 'bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900' : ''
-                    }`}>
-                      {activeCount}
-                    </span>
-                  )}
+                  {activeCount > 0 ? `Filtros (${activeCount})` : 'Filtros'}
                 </button>
-
-                {/* Filter panel */}
-                {filtersOpen && (
-                  <CatalogFilters
-                    filters={filters}
-                    availableGenres={availableGenres}
-                    availablePlatforms={availablePlatforms}
-                    availableLanguages={availableLanguages}
-                    availableCities={availableCities}
-                    availableSeriesStatuses={availableSeriesStatuses}
-                    activeCategory={activeCategory}
-                    activeCount={activeCount}
-                    onYearMin={setYearMin}
-                    onYearMax={setYearMax}
-                    onMinRating={setMinRating}
-                    onSort={setSort}
-                    onDuration={setDuration}
-                    onPageCount={setPageCount}
-                    onSeriesStatus={setSeriesStatus}
-                    onToggleGenre={toggleGenre}
-                    onTogglePlatform={togglePlatform}
-                    onToggleLanguage={toggleLanguage}
-                    onToggleCity={toggleCity}
-                    onReset={reset}
-                    onClose={() => setFiltersOpen(false)}
-                  />
-                )}
               </div>
             </div>
 
@@ -445,12 +409,12 @@ export default function CatalogPage() {
         {/* ── Grid area ── */}
         <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-10">
 
-          {loading && <SkeletonGrid count={12} />}
+          {(loading || cachedLoading) && <SkeletonGrid count={12} />}
 
-          {!loading && error && (
+          {!loading && !cachedLoading && error && (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="w-12 h-12 flex items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30">
-                <i className="ri-error-warning-line text-xl text-rose-500"></i>
+              <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                <i className="ri-error-warning-line text-xl text-red-500"></i>
               </div>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center max-w-xs">
                 No se pudo conectar con la API. Comprueba tu conexión o inténtalo de nuevo.
@@ -462,7 +426,7 @@ export default function CatalogPage() {
             </div>
           )}
 
-          {!loading && !error && displayItems.length > 0 && (
+          {!loading && !cachedLoading && !error && displayItems.length > 0 && (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
                 {displayItems.map(item => (
@@ -499,7 +463,7 @@ export default function CatalogPage() {
           )}
 
           {/* Empty: filters removed everything */}
-          {!loading && !error && displayItems.length === 0 && rawItems.length > 0 && (
+          {!loading && !cachedLoading && !error && displayItems.length === 0 && rawItems.length > 0 && (
             <div className="text-center py-20">
               <div className="w-14 h-14 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 mx-auto mb-4">
                 <i className="ri-equalizer-2-line text-2xl text-zinc-400"></i>
@@ -518,7 +482,7 @@ export default function CatalogPage() {
           )}
 
           {/* Empty: no search results */}
-          {!loading && !error && rawItems.length === 0 && isSearching && (
+          {!loading && !cachedLoading && !error && rawItems.length === 0 && isSearching && (
             <div className="text-center py-20 text-zinc-400">
               <div className="w-14 h-14 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 mx-auto mb-4">
                 <i className="ri-search-line text-2xl"></i>
@@ -533,13 +497,40 @@ export default function CatalogPage() {
           )}
 
           {/* Hint when idle */}
-          {!loading && !isSearching && activeCount === 0 && (
+          {!loading && !cachedLoading && !isSearching && activeCount === 0 && (
             <p className="text-xs text-zinc-400 text-center mt-8">
-              Escribe al menos 2 caracteres para buscar · Los resultados se guardan automáticamente en caché
+              Busca contenido en APIs externas y en tu catálogo guardado. Los elementos se guardan cuando los añades a tu tracker.
             </p>
           )}
         </div>
       </div>
+
+      {/* Filter drawer — fixed, rendered at root level for correct z-index */}
+      {filtersOpen && (
+        <CatalogFilters
+          filters={filters}
+          availableGenres={availableGenres}
+          availablePlatforms={availablePlatforms}
+          availableLanguages={availableLanguages}
+          availableCities={availableCities}
+          availableSeriesStatuses={availableSeriesStatuses}
+          activeCategory={activeCategory}
+          activeCount={activeCount}
+          onYearMin={setYearMin}
+          onYearMax={setYearMax}
+          onMinRating={setMinRating}
+          onSort={setSort}
+          onDuration={setDuration}
+          onPageCount={setPageCount}
+          onSeriesStatus={setSeriesStatus}
+          onToggleGenre={toggleGenre}
+          onTogglePlatform={togglePlatform}
+          onToggleLanguage={toggleLanguage}
+          onToggleCity={toggleCity}
+          onReset={reset}
+          onClose={() => setFiltersOpen(false)}
+        />
+      )}
     </div>
   );
 }

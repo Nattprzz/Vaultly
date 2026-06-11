@@ -4,12 +4,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTracker } from '@/hooks/useTracker';
 import ShareModal from './ShareModal';
 
+function formatMemberSince(isoDate: string | undefined): string {
+  if (!isoDate) return '';
+  return new Date(isoDate).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+}
+
 interface Props {
   isOwn: boolean;
 }
 
 export default function ProfileHero({ isOwn }: Props) {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { entries } = useTracker();
   const [shareOpen, setShareOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -37,12 +42,10 @@ export default function ProfileHero({ isOwn }: Props) {
     <>
       {/* Banner */}
       <div className="relative w-full h-48 md:h-64 overflow-hidden rounded-2xl mb-0">
-        <img
-          src="https://readdy.ai/api/search-image?query=abstract%20dark%20cinematic%20gradient%20background%20bokeh%20lights%20moody%20atmosphere%20deep%20dark%20tones%20artistic%20photography%20ultra%20wide%20panoramic%20minimal&width=1400&height=400&seq=profile-banner-01&orientation=landscape"
-          alt="Banner de perfil"
-          className="w-full h-full object-cover object-top"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-zinc-950 via-transparent to-transparent"></div>
+        <div className="absolute inset-0 bg-zinc-900 dark:bg-zinc-950" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_80%_at_10%_50%,rgba(59,130,246,0.12),transparent)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_80%_30%,rgba(139,92,246,0.09),transparent)]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-zinc-950 via-transparent to-transparent" />
         {isOwn && (
           <Link
             to="/settings"
@@ -59,7 +62,7 @@ export default function ProfileHero({ isOwn }: Props) {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="flex items-end gap-5">
             {/* Avatar */}
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center text-white text-3xl font-black border-4 border-white dark:border-zinc-950 flex-shrink-0">
+            <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-brand dark:bg-brand-dark flex items-center justify-center text-white text-3xl font-black border-4 border-white dark:border-zinc-950 flex-shrink-0">
               {initials}
             </div>
             {/* Name + meta */}
@@ -120,10 +123,10 @@ export default function ProfileHero({ isOwn }: Props) {
         {/* Quick stats row */}
         <div className="flex flex-wrap items-center gap-6 mt-6 pt-6 border-t border-zinc-100 dark:border-zinc-800">
           {[
-            { label: 'En tracker', value: all.length, icon: 'ri-stack-line', color: 'text-violet-500' },
+            { label: 'En tracker', value: all.length, icon: 'ri-stack-line', color: 'text-brand dark:text-brand-dark' },
             { label: 'Completados', value: completed, icon: 'ri-checkbox-circle-line', color: 'text-emerald-500' },
             { label: 'Puntuación media', value: avgRating, icon: 'ri-star-line', color: 'text-amber-500' },
-            { label: 'Reseñas', value: reviews, icon: 'ri-quill-pen-line', color: 'text-rose-500' },
+            { label: 'Reseñas', value: reviews, icon: 'ri-quill-pen-line', color: 'text-brand dark:text-brand-dark' },
           ].map(stat => (
             <div key={stat.label} className="flex items-center gap-2">
               <i className={`${stat.icon} ${stat.color} text-lg`}></i>
@@ -135,10 +138,14 @@ export default function ProfileHero({ isOwn }: Props) {
               </div>
             </div>
           ))}
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs text-zinc-400">Miembro desde</span>
-            <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Enero 2024</span>
-          </div>
+          {user?.created_at && (
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-zinc-400">Miembro desde</span>
+              <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                {formatMemberSince(user.created_at)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

@@ -13,7 +13,7 @@ const SECTIONS = [
       },
       {
         subtitle: 'Información generada por tu actividad',
-        text: 'Registramos los ítems que añades a tu tracker (películas, series, libros, videojuegos, anime, etc.), las valoraciones y reseñas que publicas, las listas que creas y compartes, y tus interacciones con otros usuarios de la plataforma.',
+        text: 'Registramos los ítems que añades a tu tracker (películas, series, libros, videojuegos, conciertos, etc.), las valoraciones y reseñas que publicas, las listas que creas y compartes, y tus interacciones con otros usuarios de la plataforma.',
       },
       {
         subtitle: 'Información técnica',
@@ -143,7 +143,7 @@ export default function PrivacyPage() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950">
+    <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--bg)]">
       <SeoHead
         title="Política de Privacidad — Vaultly"
         description="Conoce cómo Vaultly recopila, usa y protege tu información personal. Tu privacidad es nuestra prioridad."
@@ -155,7 +155,7 @@ export default function PrivacyPage() {
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800">
         <div className="max-w-screen-xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 cursor-pointer">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-brand dark:bg-brand-dark flex items-center justify-center">
               <i className="ri-archive-2-line text-white text-sm"></i>
             </div>
             <span className="font-bold text-zinc-900 dark:text-white text-base" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -182,9 +182,9 @@ export default function PrivacyPage() {
       {/* Hero */}
       <section className="border-b border-zinc-100 dark:border-zinc-800 py-14 md:py-20 px-4 md:px-6">
         <div className="max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900/40 mb-6">
-            <i className="ri-shield-check-line text-violet-500 text-sm"></i>
-            <span className="text-violet-600 dark:text-violet-400 text-xs font-medium">Tu privacidad importa</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand/10 dark:bg-brand-dark/15 border border-brand/20 dark:border-brand-dark/25 mb-6">
+            <i className="ri-shield-check-line text-brand dark:text-brand-dark text-sm"></i>
+            <span className="text-brand dark:text-brand-dark text-xs font-medium">Tu privacidad importa</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-zinc-900 dark:text-white mb-4 leading-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             Política de Privacidad
@@ -233,7 +233,7 @@ export default function PrivacyPage() {
             {SECTIONS.map(section => (
               <section key={section.id} id={section.id} className="scroll-mt-24">
                 <h4 className="text-xl font-bold text-zinc-900 dark:text-white mb-6" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  <a href={`#${section.id}`} className="hover:text-violet-500 transition-colors">{section.title}</a>
+                  <a href={`#${section.id}`} className="hover:text-brand dark:hover:text-brand-dark transition-colors">{section.title}</a>
                 </h4>
                 <div className="flex flex-col gap-5">
                   {section.content.map((item, i) => (
@@ -247,8 +247,8 @@ export default function PrivacyPage() {
             ))}
 
             {/* Contact CTA */}
-            <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-rose-50 dark:from-violet-950/20 dark:to-rose-950/20 border border-violet-100 dark:border-violet-900/30 p-8 text-center">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center mx-auto mb-4">
+            <div className="rounded-2xl bg-[var(--surface-sunken)] border border-[var(--border)] p-8 text-center">
+              <div className="w-12 h-12 rounded-full bg-brand dark:bg-brand-dark flex items-center justify-center mx-auto mb-4">
                 <i className="ri-mail-line text-white text-lg"></i>
               </div>
               <h4 className="text-lg font-bold text-zinc-900 dark:text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -273,14 +273,14 @@ export default function PrivacyPage() {
       <footer className="border-t border-zinc-100 dark:border-zinc-800 py-8 px-4 md:px-6 mt-4">
         <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-brand dark:bg-brand-dark flex items-center justify-center">
               <i className="ri-archive-2-line text-white text-xs"></i>
             </div>
             <span className="font-semibold text-zinc-900 dark:text-white text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Vaultly</span>
           </div>
           <p className="text-zinc-400 text-xs">© 2026 Vaultly. Todos los derechos reservados.</p>
           <div className="flex items-center gap-4 text-zinc-400 text-xs">
-            <Link to="/privacy" className="text-violet-500 font-medium">Privacidad</Link>
+            <Link to="/privacy" className="text-brand dark:text-brand-dark font-medium">Privacidad</Link>
             <Link to="/terms" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Términos</Link>
             <Link to="/contact" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Contacto</Link>
             <Link to="/" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Inicio</Link>

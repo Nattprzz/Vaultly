@@ -9,6 +9,7 @@ interface PrivacyState {
   share_tracker: boolean;
   show_ratings: boolean;
   show_reviews: boolean;
+  show_item_status: boolean;
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -21,18 +22,34 @@ export default function PrivacySection() {
     share_tracker: true,
     show_ratings: true,
     show_reviews: true,
+    show_item_status: true,
   });
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
 
   useEffect(() => {
-    if (profile) {
-      setPriv({
-        is_public: profile.is_public ?? true,
-        share_tracker: profile.share_tracker ?? true,
-        show_ratings: profile.show_ratings ?? true,
-        show_reviews: profile.show_reviews ?? true,
+    if (!profile) return;
+
+    setPriv(prev => ({
+      ...prev,
+      is_public: profile.is_public ?? true,
+      share_tracker: profile.share_tracker ?? true,
+      show_ratings: profile.show_ratings ?? true,
+      show_reviews: profile.show_reviews ?? true,
+    }));
+
+    // show_item_status is stored in user_tracker_settings, not profiles
+    supabase
+      .from('user_tracker_settings')
+      .select('show_item_status')
+      .eq('user_id', profile.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) return; // column missing or RLS error — keep default true
+        setPriv(prev => ({
+          ...prev,
+          show_item_status: data?.show_item_status ?? true,
+        }));
       });
-    }
   }, [profile]);
 
   const update = (key: keyof PrivacyState, value: boolean) => {
@@ -43,6 +60,7 @@ export default function PrivacySection() {
         next.share_tracker = false;
         next.show_ratings = false;
         next.show_reviews = false;
+        next.show_item_status = false;
       }
       return next;
     });
@@ -52,16 +70,23 @@ export default function PrivacySection() {
     if (!profile) return;
     setSaveStatus('saving');
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        is_public: priv.is_public,
-        share_tracker: priv.share_tracker,
-        show_ratings: priv.show_ratings,
-        show_reviews: priv.show_reviews,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', profile.id);
+    const [{ error: profileError }, { error: settingsError }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .update({
+          is_public: priv.is_public,
+          share_tracker: priv.share_tracker,
+          show_ratings: priv.show_ratings,
+          show_reviews: priv.show_reviews,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', profile.id),
+      supabase
+        .from('user_tracker_settings')
+        .upsert({ user_id: profile.id, show_item_status: priv.show_item_status }, { onConflict: 'user_id' }),
+    ]);
+
+    const error = profileError ?? settingsError;
 
     if (error) {
       setSaveStatus('error');
@@ -111,6 +136,13 @@ export default function PrivacySection() {
             onChange={v => update('show_reviews', v)}
             disabled={!priv.is_public}
           />
+          <ToggleRow
+            label="Mostrar estado de los ítems"
+            description="El estado de cada ítem es visible en tu perfil público."
+            checked={priv.show_item_status}
+            onChange={v => update('show_item_status', v)}
+            disabled={!priv.is_public}
+          />
         </div>
 
         {/* Status banner */}
@@ -125,9 +157,9 @@ export default function PrivacySection() {
 
         {/* Error */}
         {saveStatus === 'error' && (
-          <div className="mt-4 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800">
-            <i className="ri-error-warning-line text-rose-500 text-sm flex-shrink-0"></i>
-            <p className="text-xs text-rose-600 dark:text-rose-400">Error al guardar. Inténtalo de nuevo.</p>
+          <div className="mt-4 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+            <i className="ri-error-warning-line text-red-500 text-sm flex-shrink-0"></i>
+            <p className="text-xs text-red-600 dark:text-red-400">Error al guardar. Inténtalo de nuevo.</p>
           </div>
         )}
 
@@ -152,7 +184,7 @@ export default function PrivacySection() {
       {/* Share link */}
       <SettingsCard
         title="Enlace de tu perfil público"
-        description="Comparte tu perfil con amigos o en redes sociales."
+        description="Comparte tu perfil público o en redes sociales."
       >
         <div className={`transition-opacity ${!priv.is_public ? 'opacity-40 pointer-events-none select-none' : ''}`}>
           <div className="flex items-center gap-2">
@@ -217,12 +249,12 @@ export default function PrivacySection() {
             {
               to: '/privacy',
               icon: 'ri-shield-check-line',
-              iconColor: 'text-violet-500',
-              iconBg: 'bg-violet-50 dark:bg-violet-950/30',
+              iconColor: 'text-brand dark:text-brand-dark',
+              iconBg: 'bg-brand/10 dark:bg-brand-dark/15',
               title: 'Política de Privacidad',
               desc: 'Cómo recopilamos, usamos y protegemos tus datos personales.',
               badge: 'Actualizado abr. 2026',
-              badgeColor: 'bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400',
+              badgeColor: 'bg-brand/10 dark:bg-brand-dark/15 text-brand dark:text-brand-dark',
             },
             {
               to: '/terms',
@@ -237,12 +269,12 @@ export default function PrivacySection() {
             {
               to: '/contact',
               icon: 'ri-customer-service-2-line',
-              iconColor: 'text-rose-500',
-              iconBg: 'bg-rose-50 dark:bg-rose-950/30',
+              iconColor: 'text-sky-500',
+              iconBg: 'bg-sky-50 dark:bg-sky-950/30',
               title: 'Contacto y soporte',
               desc: 'Envíanos una consulta, reporta un bug o comparte una sugerencia.',
               badge: 'Respuesta &lt; 48h',
-              badgeColor: 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400',
+              badgeColor: 'bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400',
             },
           ].map(item => (
             <Link

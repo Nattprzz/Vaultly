@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { CATEGORIES } from '@/mocks/catalog';
+import { CATEGORIES } from '@/lib/categoryConfig';
 import { SETTINGS_STORAGE_KEY } from '@/hooks/useSettings';
 
 interface RegisterFormProps {
@@ -24,7 +24,7 @@ function validateEmail(val: string): string {
 }
 
 function validateUsername(val: string): string {
-  if (!/^[a-z0-9_]*$/.test(val)) return 'Solo letras, nÃºmeros y guiones bajos.';
+  if (!/^[a-z0-9_]*$/.test(val)) return 'Solo letras, números y guiones bajos.';
   if (!val) return 'El nombre de usuario es obligatorio.';
   if (val.length < 3) return 'Mínimo 3 caracteres.';
   return '';
@@ -37,11 +37,6 @@ function validatePassword(val: string): string {
 }
 
 
-
-const STEPS = [
-  { num: 1, label: 'Tu cuenta', icon: 'ri-user-line' },
-  { num: 2, label: 'Intereses', icon: 'ri-heart-line' },
-];
 
 const DEFAULT_SELECTED_CATEGORIES = ['videojuegos', 'peliculas', 'series', 'libros'];
 
@@ -120,7 +115,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
 
       if (usernameCheckError) throw usernameCheckError;
       if (usernameAvailable === false) {
-        setServerError('Este nombre de usuario ya estÃ¡ en uso.');
+        setServerError('Este nombre de usuario ya está en uso.');
         return;
       }
 
@@ -180,11 +175,11 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
 
   const strength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
   const strengthLabel = ['', 'Débil', 'Media', 'Fuerte'];
-  const strengthColor = ['', 'bg-rose-400', 'bg-amber-400', 'bg-emerald-400'];
+  const strengthColor = ['', 'bg-red-400', 'bg-amber-400', 'bg-emerald-400'];
 
-  const inputBase = 'w-full py-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none transition-colors';
-  const inputNormal = 'border-zinc-200 dark:border-zinc-700 focus:border-violet-400 dark:focus:border-violet-500';
-  const inputError = 'border-rose-400 dark:border-rose-500 focus:border-rose-400 dark:focus:border-rose-500 bg-rose-50/40 dark:bg-rose-950/10';
+  const inputBase = 'w-full py-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none transition-colors';
+  const inputNormal = 'border-zinc-200 dark:border-zinc-700 focus:border-brand dark:focus:border-brand-dark';
+  const inputError = 'border-red-400 dark:border-red-500 focus:border-red-400 dark:focus:border-red-500 bg-red-50/40 dark:bg-red-950/10';
   const inputSuccess = 'border-emerald-400 dark:border-emerald-500 focus:border-emerald-400 dark:focus:border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/10';
 
   const getUsernameClass = () => {
@@ -225,7 +220,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
         <button
           type="button"
           onClick={onSwitch}
-          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-rose-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
+          className="px-6 py-2.5 rounded-xl bg-brand dark:bg-brand-dark text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
         >
           Ir a iniciar sesión
         </button>
@@ -234,7 +229,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <style>{`
         @keyframes regStepForward {
           from { opacity: 0; transform: translateX(22px); }
@@ -248,63 +243,15 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
         .reg-step-back    { animation: regStepBack    0.28s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
 
-      {/* ── Progress indicator ── */}
-      <div className="flex flex-col gap-3">
-        {/* Step nodes + connector */}
-        <div className="flex items-center gap-0">
-          {STEPS.map((s, idx) => {
-            const done = step > s.num;
-            const active = step === s.num;
-            return (
-              <div key={s.num} className="flex items-center flex-1 last:flex-none">
-                {/* Node */}
-                <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    done
-                      ? 'bg-gradient-to-br from-violet-500 to-rose-500'
-                      : active
-                      ? 'bg-gradient-to-br from-violet-500 to-rose-500 ring-4 ring-violet-100 dark:ring-violet-950/50'
-                      : 'bg-zinc-100 dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700'
-                  }`}>
-                    {done ? (
-                      <i className="ri-check-line text-white text-sm"></i>
-                    ) : (
-                      <i className={`${s.icon} text-sm ${active ? 'text-white' : 'text-zinc-400 dark:text-zinc-500'}`}></i>
-                    )}
-                  </div>
-                  <span className={`text-xs font-medium whitespace-nowrap transition-colors duration-300 ${
-                    active ? 'text-zinc-900 dark:text-white' : done ? 'text-violet-500' : 'text-zinc-400'
-                  }`}>
-                    {s.label}
-                  </span>
-                </div>
-
-                {/* Connector line (not after last) */}
-                {idx < STEPS.length - 1 && (
-                  <div className="flex-1 mx-3 mb-5 h-0.5 rounded-full overflow-hidden bg-zinc-200 dark:bg-zinc-700">
-                    <div
-                      className="h-full bg-gradient-to-r from-violet-500 to-rose-500 transition-all duration-500 ease-out"
-                      style={{ width: done || step > s.num ? '100%' : '0%' }}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
+      {/* ── Step indicator — minimal ── */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-zinc-500">
+          Paso {step} de 2 · {step === 1 ? 'Cuenta' : 'Preferencias'}
+        </span>
+        <div className="flex gap-1">
+          <div className={`h-0.5 w-6 rounded-full transition-all duration-300 ${step >= 1 ? 'bg-blue-500' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
+          <div className={`h-0.5 w-6 rounded-full transition-all duration-300 ${step >= 2 ? 'bg-blue-500' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
         </div>
-
-        {/* Progress bar */}
-        <div className="h-1 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-violet-500 to-rose-500 rounded-full transition-all duration-500 ease-out"
-            style={{ width: step === 1 ? '50%' : '100%' }}
-          />
-        </div>
-
-        {/* Step label */}
-        <p className="text-xs text-zinc-400 text-right">
-          Paso <span className="font-semibold text-zinc-600 dark:text-zinc-300">{step}</span> de <span className="font-semibold text-zinc-600 dark:text-zinc-300">2</span>
-        </p>
       </div>
 
       {/* ── Animated step content ── */}
@@ -314,10 +261,10 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
             {/* Username */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                Nombre de usuario <span className="text-rose-500">*</span>
+                Nombre de usuario <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${usernameHasError ? 'text-rose-400' : 'text-zinc-400'}`}>
+                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${usernameHasError ? 'text-red-400' : 'text-zinc-400'}`}>
                   <i className="ri-at-line text-sm"></i>
                 </div>
                 <input
@@ -340,7 +287,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
               </div>
 
               {touched.username && usernameError && (
-                <p className="flex items-center gap-1.5 text-xs text-rose-500">
+                <p className="flex items-center gap-1.5 text-xs text-red-500">
                   <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                   {usernameError}
                 </p>
@@ -350,10 +297,10 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
             {/* Email */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                Correo electrónico <span className="text-rose-500">*</span>
+                Correo electrónico <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${touched.email && emailError ? 'text-rose-400' : 'text-zinc-400'}`}>
+                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${touched.email && emailError ? 'text-red-400' : 'text-zinc-400'}`}>
                   <i className="ri-mail-line text-sm"></i>
                 </div>
                 <input
@@ -376,7 +323,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                 )}
               </div>
               {touched.email && emailError && (
-                <p className="flex items-center gap-1.5 text-xs text-rose-500">
+                <p className="flex items-center gap-1.5 text-xs text-red-500">
                   <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                   {emailError}
                 </p>
@@ -386,10 +333,10 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
             {/* Password */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                Contraseña <span className="text-rose-500">*</span>
+                Contraseña <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${touched.password && passwordError ? 'text-rose-400' : 'text-zinc-400'}`}>
+                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${touched.password && passwordError ? 'text-red-400' : 'text-zinc-400'}`}>
                   <i className="ri-lock-line text-sm"></i>
                 </div>
                 <input
@@ -418,7 +365,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                 </button>
               </div>
               {touched.password && passwordError && (
-                <p className="flex items-center gap-1.5 text-xs text-rose-500">
+                <p className="flex items-center gap-1.5 text-xs text-red-500">
                   <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                   {passwordError}
                 </p>
@@ -433,7 +380,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                       />
                     ))}
                   </div>
-                  <span className={`text-xs font-medium ${strength === 1 ? 'text-rose-400' : strength === 2 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  <span className={`text-xs font-medium ${strength === 1 ? 'text-red-400' : strength === 2 ? 'text-amber-400' : 'text-emerald-400'}`}>
                     {strengthLabel[strength]}
                   </span>
                 </div>
@@ -445,7 +392,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
               <label
                 className={`flex items-start gap-3 cursor-pointer group rounded-xl px-3.5 py-3 border transition-colors ${
                   termsTouched && !termsAccepted
-                    ? 'border-rose-300 dark:border-rose-700 bg-rose-50/40 dark:bg-rose-950/10'
+                    ? 'border-red-300 dark:border-red-700 bg-red-50/40 dark:bg-red-950/10'
                     : termsAccepted
                     ? 'border-emerald-300 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/10'
                     : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/40 hover:border-zinc-300 dark:hover:border-zinc-600'
@@ -463,10 +410,10 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                   />
                   <div className={`w-4.5 h-4.5 w-[18px] h-[18px] rounded-md border-2 flex items-center justify-center transition-all ${
                     termsAccepted
-                      ? 'bg-gradient-to-br from-violet-500 to-rose-500 border-transparent'
+                      ? 'bg-brand dark:bg-brand-dark border-transparent'
                       : termsTouched && !termsAccepted
-                      ? 'border-rose-400 bg-white dark:bg-zinc-800'
-                      : 'border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 group-hover:border-violet-400'
+                      ? 'border-red-400 bg-white dark:bg-zinc-800'
+                      : 'border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 group-hover:border-brand dark:group-hover:border-brand-dark'
                   }`}>
                     {termsAccepted && (
                       <i className="ri-check-line text-white" style={{ fontSize: '10px' }}></i>
@@ -480,7 +427,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
-                    className="text-violet-500 font-semibold hover:text-violet-600 transition-colors underline underline-offset-2"
+                    className="text-brand dark:text-brand-dark font-semibold hover:text-brand-hover dark:hover:text-brand-dark-hover transition-colors underline underline-offset-2"
                   >
                     Términos de Uso
                   </Link>
@@ -490,7 +437,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
-                    className="text-violet-500 font-semibold hover:text-violet-600 transition-colors underline underline-offset-2"
+                    className="text-brand dark:text-brand-dark font-semibold hover:text-brand-hover dark:hover:text-brand-dark-hover transition-colors underline underline-offset-2"
                   >
                     Política de Privacidad
                   </Link>
@@ -498,7 +445,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                 </span>
               </label>
               {termsTouched && !termsAccepted && (
-                <p className="flex items-center gap-1.5 text-xs text-rose-500">
+                <p className="flex items-center gap-1.5 text-xs text-red-500">
                   <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                   Debes aceptar los términos para continuar.
                 </p>
@@ -506,15 +453,15 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
             </div>
 
             {serverError && (
-              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800">
-                <i className="ri-error-warning-line text-rose-500 text-sm flex-shrink-0"></i>
-                <p className="text-xs text-rose-600 dark:text-rose-400">{serverError}</p>
+              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                <i className="ri-error-warning-line text-red-500 text-sm flex-shrink-0"></i>
+                <p className="text-xs text-red-600 dark:text-red-400">{serverError}</p>
               </div>
             )}
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-500 to-rose-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-brand dark:bg-brand-dark text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
             >
               Continuar
               <i className="ri-arrow-right-line"></i>
@@ -529,16 +476,20 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/60 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors cursor-pointer whitespace-nowrap"
+                disabled
+                title="Próximamente disponible"
+                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/60 text-sm text-zinc-400 dark:text-zinc-500 opacity-50 cursor-not-allowed whitespace-nowrap"
               >
-                <i className="ri-google-fill text-base text-rose-500"></i>
+                <i className="ri-google-fill text-base"></i>
                 Google
               </button>
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/60 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors cursor-pointer whitespace-nowrap"
+                disabled
+                title="Próximamente disponible"
+                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/60 text-sm text-zinc-400 dark:text-zinc-500 opacity-50 cursor-not-allowed whitespace-nowrap"
               >
-                <i className="ri-discord-fill text-base text-indigo-400"></i>
+                <i className="ri-discord-fill text-base"></i>
                 Discord
               </button>
             </div>
@@ -548,9 +499,9 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
               <button
                 type="button"
                 onClick={onSwitch}
-                className="text-violet-500 font-semibold hover:text-violet-600 transition-colors cursor-pointer"
+                className="text-brand dark:text-brand-dark font-semibold hover:text-brand-hover dark:hover:text-brand-dark-hover transition-colors cursor-pointer"
               >
-                Inicia sesión
+                Entra aquí
               </button>
             </p>
           </form>
@@ -558,7 +509,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
-                Elige las categorías que quieres trackear. Puedes cambiarlas después en Configuración.
+                ¿Qué vas a rastrear? Empieza con todo — puedes ajustarlo después.
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {CATEGORIES.map(cat => {
@@ -570,7 +521,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                       onClick={() => toggleCat(cat.id)}
                       className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-all cursor-pointer ${
                         active
-                          ? 'border-violet-400 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300'
+                          ? 'border-brand bg-brand/10 dark:bg-brand-dark/15 text-brand dark:text-brand-dark'
                           : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600'
                     }`}
                     >
@@ -580,7 +531,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                       {cat.label}
                       {active && (
                         <div className="ml-auto w-4 h-4 flex items-center justify-center">
-                          <i className="ri-check-line text-xs text-violet-500"></i>
+                          <i className="ri-check-line text-xs text-brand dark:text-brand-dark"></i>
                         </div>
                       )}
                     </button>
@@ -593,9 +544,9 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
             </div>
 
             {serverError && (
-              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800">
-                <i className="ri-error-warning-line text-rose-500 text-sm flex-shrink-0"></i>
-                <p className="text-xs text-rose-600 dark:text-rose-400">{serverError}</p>
+              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                <i className="ri-error-warning-line text-red-500 text-sm flex-shrink-0"></i>
+                <p className="text-xs text-red-600 dark:text-red-400">{serverError}</p>
               </div>
             )}
 
@@ -611,7 +562,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-[2] py-3 rounded-xl bg-gradient-to-r from-violet-500 to-rose-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2"
+                className="flex-[2] py-3 rounded-xl bg-brand dark:bg-brand-dark text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -621,7 +572,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                 ) : (
                   <>
                     <i className="ri-check-line"></i>
-                    Crear mi cuenta
+                    Crear cuenta
                   </>
                 )}
               </button>
@@ -632,3 +583,4 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
     </div>
   );
 }
+

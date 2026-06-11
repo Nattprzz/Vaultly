@@ -16,7 +16,7 @@ const STATUS_OPTIONS: { value: TrackerStatus; label: string; icon: string; color
   { value: 'pending',     label: 'Pendiente',    icon: 'ri-bookmark-line',       color: 'text-zinc-500' },
   { value: 'in_progress', label: 'En progreso',  icon: 'ri-loader-4-line',       color: 'text-amber-500' },
   { value: 'completed',   label: 'Completado',   icon: 'ri-checkbox-circle-line', color: 'text-emerald-500' },
-  { value: 'dropped',     label: 'Abandonado',   icon: 'ri-close-circle-line',   color: 'text-rose-500' },
+  { value: 'dropped',     label: 'Abandonado',   icon: 'ri-close-circle-line',   color: 'text-red-500' },
 ];
 
 export default function AddToTrackerModal({ itemId, category, title, cover, existing, onSave, onRemove, onClose }: Props) {
@@ -122,7 +122,7 @@ export default function AddToTrackerModal({ itemId, category, title, cover, exis
               onChange={e => setReview(e.target.value.slice(0, 500))}
               placeholder="¿Qué te pareció? Escribe tu opinión..."
               rows={3}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
             />
             <p className="text-right text-xs text-zinc-400 mt-1">{review.length}/500</p>
           </div>
@@ -133,7 +133,7 @@ export default function AddToTrackerModal({ itemId, category, title, cover, exis
           {existing && (
             <button
               onClick={() => { onRemove(); onClose(); }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-rose-200 dark:border-rose-900 text-rose-500 text-sm font-medium hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer whitespace-nowrap"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 dark:border-red-900 text-red-500 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer whitespace-nowrap"
             >
               <i className="ri-delete-bin-line"></i>
               Eliminar

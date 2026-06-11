@@ -35,7 +35,7 @@ export default function ProfileReviews() {
         <p className="text-sm text-zinc-500 max-w-xs">
           Cuando escribas reseñas en el catálogo, aparecerán aquí.
         </p>
-        <Link to="/catalog" className="mt-4 text-sm text-violet-500 hover:text-violet-600 font-medium cursor-pointer">
+        <Link to="/catalog" className="mt-4 text-sm text-brand hover:text-brand-hover dark:text-brand-dark dark:hover:text-brand-dark-hover font-medium cursor-pointer">
           Explorar catálogo →
         </Link>
       </div>
@@ -48,22 +48,26 @@ export default function ProfileReviews() {
   return (
     <div className="flex flex-col gap-4">
       {reviews.map(entry => {
-        const title = entry.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const title = entry.title || entry.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         return (
           <div key={entry.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-5">
             <div className="flex items-center gap-3 mb-4">
               {/* Category icon as cover */}
               <Link to={`/catalog/${entry.category}/${entry.item_slug}`} className="flex-shrink-0 cursor-pointer">
-                <div
-                  className="w-12 h-16 rounded-lg flex items-center justify-center"
-                  style={{ background: `${entry.categoryAccent}15` }}
-                >
-                  <i className={`${entry.categoryIcon} text-2xl`} style={{ color: entry.categoryAccent }}></i>
-                </div>
+                {entry.cover ? (
+                  <img src={entry.cover} alt={title} className="w-12 h-16 rounded-lg object-cover object-top" />
+                ) : (
+                  <div
+                    className="w-12 h-16 rounded-lg flex items-center justify-center"
+                    style={{ background: `${entry.categoryAccent}15` }}
+                  >
+                    <i className={`${entry.categoryIcon} text-2xl`} style={{ color: entry.categoryAccent }}></i>
+                  </div>
+                )}
               </Link>
               <div className="flex-1 min-w-0">
                 <Link to={`/catalog/${entry.category}/${entry.item_slug}`} className="cursor-pointer">
-                  <h4 className="text-sm font-bold text-zinc-900 dark:text-white hover:text-violet-600 dark:hover:text-violet-400 transition-colors line-clamp-1">
+                  <h4 className="text-sm font-bold text-zinc-900 dark:text-white hover:text-brand dark:hover:text-brand-dark transition-colors line-clamp-1">
                     {title}
                   </h4>
                 </Link>
@@ -94,7 +98,7 @@ export default function ProfileReviews() {
 
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-50 dark:border-zinc-800">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-6 h-6 rounded-full bg-brand dark:bg-brand-dark flex items-center justify-center text-white text-xs font-bold">
                   {initials}
                 </div>
                 <span className="text-xs text-zinc-500">{displayName}</span>

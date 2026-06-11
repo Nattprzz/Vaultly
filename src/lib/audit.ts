@@ -12,6 +12,7 @@ export type AuditEntity =
   | 'catalog_items'
   | 'entities'
   | 'item_entities'
+  | 'item_reports'
   | 'reviews';
 
 /**
@@ -22,18 +23,18 @@ export async function auditLog(
   action: AuditAction,
   entity: AuditEntity,
   entityId: string,
-  payload?: Record<string, unknown>,
+  metadata?: Record<string, unknown>,
 ): Promise<void> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
-    const actorId = sessionData?.session?.user?.id ?? null;
+    const userId = sessionData?.session?.user?.id ?? null;
 
     await supabase.from('admin_audit_logs').insert({
-      actor_id: actorId,
+      user_id: userId,
       action,
       entity,
       entity_id: entityId,
-      payload: payload ?? null,
+      metadata: metadata ?? {},
     });
   } catch {
     // Intentionally silent — audit failures must never break the main operation

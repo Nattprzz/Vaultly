@@ -25,7 +25,7 @@ export const SETTINGS_STORAGE_KEY = 'vaultly-settings';
 
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'es',
-  activeCategories: ['videojuegos', 'peliculas', 'series', 'libros'],
+  activeCategories: ['videojuegos', 'peliculas', 'series', 'libros', 'conciertos'],
   notifications: {
     newReleases: true,
     communityActivity: false,

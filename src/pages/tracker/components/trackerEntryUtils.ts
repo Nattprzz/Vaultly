@@ -1,30 +1,35 @@
 import { TrackerEntry } from '@/hooks/useTracker';
-import { CATALOG_MOCK, CATEGORIES } from '@/mocks/catalog';
+import type { CategoryConfig } from '@/lib/categoryConfig';
 
 export interface EnrichedEntry extends TrackerEntry {
-  title: string;
-  cover: string;
-  year: number;
-  genre: string;
   catAccent: string;
   catIcon: string;
   catLabel: string;
 }
 
-export function enrichEntries(entries: Record<string, TrackerEntry>): EnrichedEntry[] {
+function safeTitle(entry: TrackerEntry): string {
+  const raw = entry.title?.trim() ?? '';
+  // Guard against "Category 123456" pattern produced by external IDs
+  if (!raw || /^[a-z]+ \d{4,}$/i.test(raw)) {
+    const fromSlug = entry.itemId.replace(/-/g, ' ').trim();
+    if (/^[a-z]+ \d{4,}$/i.test(fromSlug)) return 'Elemento sin título';
+    return fromSlug.replace(/\b\w/g, c => c.toUpperCase());
+  }
+  return raw;
+}
+
+export function enrichEntries(entries: Record<string, TrackerEntry>, categories: CategoryConfig[]): EnrichedEntry[] {
   return Object.values(entries).map(entry => {
-    const catItems = CATALOG_MOCK[entry.category] ?? [];
-    const catalogItem = catItems.find(i => i.id === entry.itemId);
-    const cat = CATEGORIES.find(c => c.id === entry.category);
+    const cat = categories.find(c => c.id === entry.category);
     return {
       ...entry,
-      title: catalogItem?.title ?? 'Ítem desconocido',
-      cover: catalogItem?.cover ?? '',
-      year: catalogItem?.year ?? 0,
-      genre: catalogItem?.genre ?? '',
+      title:     safeTitle(entry),
+      cover:     entry.cover,
+      year:      entry.year,
+      genre:     entry.genre,
       catAccent: cat?.accent ?? '#8b5cf6',
-      catIcon: cat?.icon ?? 'ri-star-line',
-      catLabel: cat?.label ?? '',
+      catIcon:   cat?.icon   ?? 'ri-star-line',
+      catLabel:  cat?.label  ?? entry.category,
     };
   });
 }

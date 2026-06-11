@@ -83,7 +83,7 @@ export default function SeoHead({
 
     return () => {
       // Restore default title on unmount
-      document.title = 'Vaultly - Trackea películas, series, libros, videojuegos y anime';
+      document.title = 'Vaultly - Trackea películas, series, libros, videojuegos y conciertos';
     };
   }, [title, description, keywords, resolvedCanonical, ogType, resolvedImage, noIndex, jsonLd]);
 

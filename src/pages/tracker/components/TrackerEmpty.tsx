@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
 
 interface Props {
   category: string;
@@ -7,6 +7,7 @@ interface Props {
 }
 
 export default function TrackerEmpty({ category, statusFilter }: Props) {
+  const CATEGORIES = useCategories();
   const cat = CATEGORIES.find(c => c.id === category);
 
   const isFiltered = statusFilter !== 'all';
@@ -38,3 +39,4 @@ export default function TrackerEmpty({ category, statusFilter }: Props) {
     </div>
   );
 }
+

@@ -104,7 +104,7 @@ export function useAdminCatalog() {
         throw new Error(body.error ?? `HTTP ${res.status}`);
       }
       const created = await res.json().catch(() => ({}));
-      await auditLog('create', 'catalog_items', created?.id ?? 'unknown', {
+      await auditLog('create', 'catalog_items', created?.data?.id ?? 'unknown', {
         title: form.title,
         category: form.category,
       });

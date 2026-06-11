@@ -1,23 +1,21 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Navbar from '@/components/feature/Navbar';
+import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
-import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
 import { useTracker, TrackerStatus } from '@/hooks/useTracker';
-import TrackerHeader from './components/TrackerHeader';
-import CategoryTabs from './components/CategoryTabs';
-import StatusFilters from './components/StatusFilters';
-import TrackerGrid from './components/TrackerGrid';
-import { enrichEntries, type EnrichedEntry } from './components/trackerEntryUtils';
-import TrackerList from './components/TrackerList';
-import TrackerEmpty from './components/TrackerEmpty';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
-import { CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
 import { isAppCategory } from '@/lib/categories';
+import { enrichEntries, type EnrichedEntry } from './components/trackerEntryUtils';
+import TrackerHero from './components/TrackerHero';
+import TrackerStats from './components/TrackerStats';
+import TrackerFilters from './components/TrackerFilters';
+import TrackerCardGrid from './components/TrackerCardGrid';
+import TrackerTimeline from './components/TrackerTimeline';
+import TrackerEmpty from './components/TrackerEmpty';
 
 type SortOption = 'updated' | 'added' | 'rating' | 'title';
-type ViewMode = 'grid' | 'list';
 
 function sortEntries(items: EnrichedEntry[], sortBy: SortOption): EnrichedEntry[] {
   return [...items].sort((a, b) => {
@@ -32,135 +30,163 @@ function sortEntries(items: EnrichedEntry[], sortBy: SortOption): EnrichedEntry[
 }
 
 export default function TrackerPage() {
-  const { isLoggedIn, profile } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
   const { category: paramCategory } = useParams<{ category?: string }>();
   const { entries, loading } = useTracker();
+  const CATEGORIES = useCategories();
 
   const [activeCategory, setActiveCategory] = useState(paramCategory ?? 'all');
-  const [statusFilter, setStatusFilter] = useState<TrackerStatus | 'all'>('all');
-  const [sortBy, setSortBy] = useState<SortOption>('updated');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [statusFilter, setStatusFilter]     = useState<TrackerStatus | 'all'>('all');
+  const [sortBy, setSortBy]                 = useState<SortOption>('updated');
+  const [searchQuery, setSearchQuery]       = useState('');
 
-  // Scroll reveal refs
-  const headerRef = useScrollReveal<HTMLDivElement>({ rootMargin: '0px' });
-  const tabsRef = useScrollReveal<HTMLDivElement>({ rootMargin: '0px' });
+  // Scroll reveal
+  const heroRef    = useScrollReveal<HTMLDivElement>({ rootMargin: '0px' });
+  const statsRef   = useScrollReveal<HTMLDivElement>({ rootMargin: '0px' });
   const filtersRef = useScrollReveal<HTMLDivElement>({ rootMargin: '0px' });
-  const gridRef = useScrollReveal<HTMLDivElement>();
+  const mainRef    = useScrollReveal<HTMLDivElement>();
 
-  useEffect(() => {
-    if (!isLoggedIn) navigate('/');
-  }, [isLoggedIn, navigate]);
-
-  const activeCategories = useMemo(
+  const activeCategories = useMemo<string[]>(
     () => CATEGORIES
-      .filter(category => settings.activeCategories.includes(category.id))
-      .map(category => category.id),
-    [settings.activeCategories],
+      .filter(c => settings.activeCategories.includes(c.id))
+      .map(c => c.id),
+    [settings.activeCategories, CATEGORIES],
   );
 
   useEffect(() => {
-    if (!paramCategory) {
-      setActiveCategory('all');
-      return;
-    }
-
-    if (isAppCategory(paramCategory) && activeCategories.includes(paramCategory)) {
+    if (!paramCategory) { setActiveCategory('all'); return; }
+    if (isAppCategory(paramCategory)) {
       setActiveCategory(paramCategory);
       return;
     }
-
     navigate('/tracker', { replace: true });
-  }, [activeCategories, navigate, paramCategory]);
+  }, [navigate, paramCategory]);
 
-  const handleCategorySelect = (id: string) => {
+  const handleCategoryChange = (id: string) => {
     setActiveCategory(id);
     setStatusFilter('all');
+    setSearchQuery('');
     if (id === 'all') navigate('/tracker');
     else navigate(`/tracker/${id}`);
   };
 
+  // Filter chain: enrich → by category → by search → counts → by status → sort
   const allEnriched = useMemo(
-    () => enrichEntries(entries).filter(entry => activeCategories.includes(entry.category)),
-    [activeCategories, entries],
+    () => enrichEntries(entries, CATEGORIES),
+    [entries, CATEGORIES],
   );
 
-  const byCat = useMemo(() =>
-    activeCategory === 'all'
-      ? allEnriched
+  const byCat = useMemo(
+    () => activeCategory === 'all'
+      ? allEnriched.filter(e => activeCategories.includes(e.category))
       : allEnriched.filter(e => e.category === activeCategory),
-    [allEnriched, activeCategory],
+    [allEnriched, activeCategory, activeCategories],
+  );
+
+  const searched = useMemo(
+    () => searchQuery.trim() === ''
+      ? byCat
+      : byCat.filter(e => e.title.toLowerCase().includes(searchQuery.toLowerCase().trim())),
+    [byCat, searchQuery],
   );
 
   const statusCounts = useMemo(() => ({
-    all:         byCat.length,
-    in_progress: byCat.filter(e => e.status === 'in_progress').length,
-    pending:     byCat.filter(e => e.status === 'pending').length,
-    completed:   byCat.filter(e => e.status === 'completed').length,
-    dropped:     byCat.filter(e => e.status === 'dropped').length,
-  }), [byCat]);
+    all:         searched.length,
+    in_progress: searched.filter(e => e.status === 'in_progress').length,
+    pending:     searched.filter(e => e.status === 'pending').length,
+    completed:   searched.filter(e => e.status === 'completed').length,
+    dropped:     searched.filter(e => e.status === 'dropped').length,
+  }), [searched]);
 
-  const filtered = useMemo(() =>
-    statusFilter === 'all' ? byCat : byCat.filter(e => e.status === statusFilter),
-    [byCat, statusFilter],
+  const filtered = useMemo(
+    () => statusFilter === 'all' ? searched : searched.filter(e => e.status === statusFilter),
+    [searched, statusFilter],
   );
 
   const sorted = useMemo(() => sortEntries(filtered, sortBy), [filtered, sortBy]);
 
-  if (!isLoggedIn) return null;
-
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen bg-[var(--bg)]">
       <SeoHead
-        title="Mi Tracker — Vaultly"
-        description="Gestiona tu lista de seguimiento personal en Vaultly."
+        title="Mi tracker — Vaultly"
+        description="Gestiona tu colección personal en Vaultly. Todo lo que has visto, leído, jugado o escuchado."
         canonical="/tracker"
         noIndex
       />
-      <Navbar />
-      <main className="pt-16">
-        <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-10">
+      <Sidebar />
 
-          <div ref={headerRef} className="sr-item">
-            <TrackerHeader entries={entries} />
+      <main className="pt-14 md:pt-0 md:pl-64">
+        <div className="mx-auto max-w-screen-xl px-4 py-10 md:px-6">
+
+          {/* 1 · Hero */}
+          <div ref={heroRef} className="sr-item">
+            <TrackerHero entries={entries} activeCategory={activeCategory} />
           </div>
 
-          <div ref={tabsRef} className="sr-item">
-            <CategoryTabs
+          {/* 2 · Stats */}
+          <div ref={statsRef} className="sr-item sr-delay-100">
+            <TrackerStats entries={entries} activeCategory={activeCategory} />
+          </div>
+
+          {/* 3 · Filters */}
+          <div ref={filtersRef} className="sr-item sr-delay-200">
+            <TrackerFilters
               activeCategory={activeCategory}
-              onSelect={handleCategorySelect}
-              entries={entries}
-              activeCategories={activeCategories}
-            />
-          </div>
-
-          <div ref={filtersRef} className="sr-item">
-            <StatusFilters
+              onCategoryChange={handleCategoryChange}
               activeStatus={statusFilter}
               onStatusChange={setStatusFilter}
               sortBy={sortBy}
               onSortChange={setSortBy}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              entries={entries}
+              activeCategories={activeCategories}
               counts={statusCounts}
             />
           </div>
 
-          <div ref={gridRef} className="sr-item">
+          {/* 4 · Main grid + 5 · Timeline sidebar */}
+          <div ref={mainRef} className="sr-item sr-delay-300">
             {loading ? (
-              <div className="flex items-center justify-center py-24">
+              <div className="flex items-center justify-center py-28">
                 <div className="flex flex-col items-center gap-3">
-                  <i className="ri-loader-4-line text-3xl text-zinc-400 animate-spin"></i>
-                  <p className="text-sm text-zinc-400">Cargando tu tracker...</p>
+                  <i className="ri-loader-4-line animate-spin text-3xl text-[var(--text-tertiary)]" />
+                  <p className="text-sm text-[var(--text-tertiary)]">Cargando tu tracker…</p>
                 </div>
               </div>
-            ) : sorted.length === 0 ? (
-              <TrackerEmpty category={activeCategory} statusFilter={statusFilter} />
-            ) : viewMode === 'grid' ? (
-              <TrackerGrid enriched={sorted} />
             ) : (
-              <TrackerList enriched={sorted} />
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+
+                {/* Grid — takes 3/4 on large screens */}
+                <div className="lg:col-span-3">
+                  {sorted.length === 0 ? (
+                    <TrackerEmpty
+                      category={activeCategory}
+                      statusFilter={statusFilter}
+                    />
+                  ) : (
+                    <>
+                      {/* Result count */}
+                      <p className="mb-4 text-xs text-[var(--text-tertiary)]">
+                        {sorted.length} {sorted.length === 1 ? 'elemento' : 'elementos'}
+                        {searchQuery.trim() && (
+                          <span> para &ldquo;{searchQuery.trim()}&rdquo;</span>
+                        )}
+                      </p>
+                      <TrackerCardGrid enriched={sorted} />
+                    </>
+                  )}
+                </div>
+
+                {/* Timeline — sidebar 1/4 */}
+                <div className="lg:col-span-1">
+                  <div className="sticky top-20">
+                    <TrackerTimeline />
+                  </div>
+                </div>
+
+              </div>
             )}
           </div>
 

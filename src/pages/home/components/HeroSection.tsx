@@ -1,100 +1,203 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
+const TRACKER_ENTRIES = [
+  {
+    id: '1',
+    title: 'Cyberpunk 2077',
+    type: 'Videojuego',
+    year: '2023',
+    status: 'completed' as const,
+    rating: 9,
+    detail: '100 / 100 logros',
+    gradient: 'from-blue-950 to-cyan-950',
+    accent: '#3b82f6',
+    icon: 'ri-gamepad-line',
+  },
+  {
+    id: '2',
+    title: 'Breaking Bad',
+    type: 'Serie',
+    year: '2008',
+    status: 'in_progress' as const,
+    rating: null,
+    detail: 'T6 · E10 de 62',
+    gradient: 'from-amber-950 to-orange-950',
+    accent: '#f59e0b',
+    icon: 'ri-tv-2-line',
+  },
+  {
+    id: '3',
+    title: 'Dune: Parte Dos',
+    type: 'Película',
+    year: '2024',
+    status: 'pending' as const,
+    rating: null,
+    detail: 'Sin puntuar',
+    gradient: 'from-orange-950 to-red-950',
+    accent: '#f97316',
+    icon: 'ri-film-line',
+  },
+  {
+    id: '4',
+    title: 'Interstellar',
+    type: 'Película',
+    year: '2014',
+    status: 'completed' as const,
+    rating: 10,
+    detail: '♥ Favorita',
+    gradient: 'from-slate-800 to-zinc-900',
+    accent: '#94a3b8',
+    icon: 'ri-film-line',
+  },
+  {
+    id: '5',
+    title: 'The Witcher 3',
+    type: 'Videojuego',
+    year: '2015',
+    status: 'completed' as const,
+    rating: 10,
+    detail: '100% logros',
+    gradient: 'from-emerald-950 to-green-950',
+    accent: '#22c55e',
+    icon: 'ri-gamepad-line',
+  },
+] as const;
+
+type Status = 'completed' | 'in_progress' | 'pending';
+const STATUS: Record<Status, { label: string; dot: string }> = {
+  completed:   { label: 'Completado',  dot: 'bg-emerald-500' },
+  in_progress: { label: 'En progreso', dot: 'bg-orange-500' },
+  pending:     { label: 'Pendiente',   dot: 'bg-zinc-600' },
+};
+
 export default function HeroSection() {
   const { isLoggedIn } = useAuth();
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background image */}
-      <div className="absolute inset-0">
-        <img
-          src="https://readdy.ai/api/search-image?query=abstract%20dark%20cinematic%20background%20bokeh%20lights%20film%20grain%20moody%20atmosphere%20deep%20dark%20tones%20artistic%20photography%20ultra%20wide%20panoramic&width=1920&height=1080&seq=hero-bg-01&orientation=landscape"
-          alt="Vaultly hero background"
-          className="w-full h-full object-cover object-top"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/80"></div>
-      </div>
+    <section className="relative overflow-hidden bg-zinc-950 pt-16">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_40%_at_50%_-5%,rgba(37,99,235,0.10),transparent)]" />
 
-      {/* Floating cards decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-8 md:left-16 w-28 h-40 rounded-xl overflow-hidden opacity-30 rotate-[-8deg] hidden lg:block">
-          <img src="https://readdy.ai/api/search-image?query=epic%20video%20game%20controller%20neon%20glow%20dark%20background%20cinematic%20lighting%20purple%20tones%20ultra%20detailed%20artistic%20render&width=112&height=160&seq=deco-g1&orientation=portrait" alt="" className="w-full h-full object-cover object-top" />
-        </div>
-        <div className="absolute top-1/3 right-8 md:right-16 w-24 h-36 rounded-xl overflow-hidden opacity-25 rotate-[6deg] hidden lg:block">
-          <img src="https://readdy.ai/api/search-image?query=cinematic%20movie%20reel%20film%20strip%20dramatic%20lighting%20dark%20moody%20atmosphere%20red%20tones%20artistic%20photography&width=96&height=144&seq=deco-m1&orientation=portrait" alt="" className="w-full h-full object-cover object-top" />
-        </div>
-        <div className="absolute bottom-1/3 left-24 w-20 h-32 rounded-xl overflow-hidden opacity-20 rotate-[4deg] hidden lg:block">
-          <img src="https://readdy.ai/api/search-image?query=stack%20of%20books%20library%20warm%20lighting%20cozy%20atmosphere%20green%20tones%20bokeh%20background%20artistic%20photography&width=80&height=128&seq=deco-b1&orientation=portrait" alt="" className="w-full h-full object-cover object-top" />
-        </div>
-      </div>
+      <div className="relative mx-auto max-w-screen-xl px-4 md:px-6">
+        {/* Fixed height — does not consume full viewport */}
+        <div className="grid grid-cols-1 items-center gap-12 py-14 md:py-20 lg:grid-cols-[1fr_460px] lg:gap-20">
 
-      {/* Content */}
-      <div className="relative z-10 w-full text-center px-4 md:px-6 flex flex-col items-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/80 text-xs font-medium mb-8">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          Tu catálogo personal de cultura y entretenimiento
-        </div>
-
-        <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-          Todo lo que<br />
-          <span className="bg-gradient-to-r from-violet-400 via-rose-400 to-amber-400 bg-clip-text text-transparent">
-            consumes,
-          </span>
-          <br />organizado.
-        </h1>
-
-        <p className="text-lg md:text-xl text-white/70 max-w-2xl mb-10 leading-relaxed">
-          Videojuegos, películas, series, libros y conciertos. Lleva el control de todo lo que has visto, jugado, leído y vivido en un solo lugar.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          {isLoggedIn ? (
-            <Link
-              to="/dashboard"
-              className="px-8 py-3.5 rounded-xl bg-white text-zinc-900 font-semibold text-base hover:bg-zinc-100 transition-colors cursor-pointer whitespace-nowrap"
+          {/* Copy */}
+          <div>
+            <p className="mb-5 text-[12px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+              Tu historial cultural personal
+            </p>
+            <h1
+              className="mb-5 text-[clamp(2.4rem,5vw,3.4rem)] font-black leading-[1.04] tracking-[-0.02em] text-white"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
-              Ir a mi Dashboard
-            </Link>
-          ) : (
-            <Link
-              to="/auth"
-              className="px-8 py-3.5 rounded-xl bg-white text-zinc-900 font-semibold text-base hover:bg-zinc-100 transition-colors cursor-pointer whitespace-nowrap"
-            >
-              Empieza gratis
-            </Link>
-          )}
-          <Link
-            to="/catalog"
-            className="px-8 py-3.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold text-base hover:bg-white/20 transition-colors cursor-pointer whitespace-nowrap"
-          >
-            Explorar catálogo
-          </Link>
-        </div>
-
-        {/* Category pills */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mt-12">
-          {[
-            { icon: 'ri-gamepad-line', label: 'Videojuegos', color: '#8b5cf6' },
-            { icon: 'ri-film-line', label: 'Películas', color: '#f43f5e' },
-            { icon: 'ri-tv-2-line', label: 'Series', color: '#f59e0b' },
-            { icon: 'ri-book-open-line', label: 'Libros', color: '#10b981' },
-            { icon: 'ri-music-2-line', label: 'Conciertos', color: '#0ea5e9' },
-          ].map(cat => (
-            <div
-              key={cat.label}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white/80 text-sm"
-            >
-              <i className={cat.icon} style={{ color: cat.color }}></i>
-              {cat.label}
+              Todo lo que has visto,
+              <br />jugado, leído
+              <br />
+              <span className="text-blue-400">y escuchado.</span>
+            </h1>
+            <p className="mb-8 max-w-[380px] text-[17px] leading-[1.65] text-zinc-400">
+              Tu historial cultural completo en un único lugar.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              {isLoggedIn ? (
+                <Link
+                  to="/tracker"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-[14px] font-bold text-white transition-colors hover:bg-blue-500"
+                >
+                  Ir a mi Tracker <i className="ri-arrow-right-line" />
+                </Link>
+              ) : (
+                <Link
+                  to="/auth"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-[14px] font-bold text-white transition-colors hover:bg-blue-500"
+                >
+                  Crear cuenta gratis <i className="ri-arrow-right-line" />
+                </Link>
+              )}
+              <Link
+                to="/catalog"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 px-6 py-3 text-[14px] font-semibold text-zinc-400 transition-colors hover:border-white/20 hover:text-white"
+              >
+                Explorar catálogo
+              </Link>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/40 animate-bounce">
-        <i className="ri-arrow-down-line text-xl"></i>
+          {/* Tracker panel */}
+          <div className="relative">
+            <div className="pointer-events-none absolute -inset-8 rounded-3xl bg-blue-600/5 blur-3xl" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-[#0d1117] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9)]">
+
+              {/* Panel header */}
+              <div className="flex items-center justify-between border-b border-white/6 bg-[#0d1117] px-5 py-3.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-600">
+                    <i className="ri-archive-2-line text-[9px] text-white" />
+                  </div>
+                  <span className="text-[13px] font-semibold text-white">Mi Tracker</span>
+                  <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] font-medium text-white/40">
+                    5 ítems
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] text-white/35">
+                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                  1 en progreso
+                </div>
+              </div>
+
+              {/* List */}
+              <div className="divide-y divide-white/[0.04]">
+                {TRACKER_ENTRIES.map(entry => {
+                  const s = STATUS[entry.status];
+                  return (
+                    <div key={entry.id} className="flex items-start gap-4 px-5 py-4 transition-colors hover:bg-white/[0.025]">
+                      <div className={`relative h-[52px] w-[36px] flex-shrink-0 overflow-hidden rounded-lg bg-gradient-to-br ${entry.gradient}`} />
+                      <div className="min-w-0 flex-1 pt-0.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-[13px] font-semibold leading-tight text-white">{entry.title}</p>
+                            <p className="mt-0.5 text-[11px] text-zinc-600">{entry.type} · {entry.year}</p>
+                          </div>
+                          <div className={`flex flex-shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${
+                            entry.status === 'completed'   ? 'border-emerald-500/20 bg-emerald-500/8 text-emerald-400'  :
+                            entry.status === 'in_progress' ? 'border-orange-500/20 bg-orange-500/8 text-orange-400'     :
+                                                             'border-zinc-700 bg-zinc-800 text-zinc-500'
+                          }`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+                            {s.label}
+                          </div>
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-2">
+                          {entry.rating !== null && (
+                            <div className="flex items-center gap-1">
+                              <i className="ri-star-fill text-[10px] text-amber-400" />
+                              <span className="text-[11px] font-bold text-amber-400">{entry.rating}/10</span>
+                            </div>
+                          )}
+                          {entry.detail && (
+                            <>
+                              {entry.rating !== null && <span className="text-[10px] text-zinc-700">·</span>}
+                              <span className="text-[11px] text-zinc-600">{entry.detail}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="border-t border-white/6 bg-[#0a0e14] px-5 py-3">
+                <p className="text-[11px] text-zinc-600">
+                  3 completados · 1 en progreso · 1 pendiente
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </section>
   );

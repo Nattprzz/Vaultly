@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
 
 export default function CategoriesSection() {
+  const CATEGORIES = useCategories();
   const sectionRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const [visibleCards, setVisibleCards] = useState<boolean[]>(
@@ -49,11 +50,11 @@ export default function CategoriesSection() {
   }, []);
 
   return (
-    <section className="py-24 px-4 md:px-6 bg-white dark:bg-zinc-950">
+    <section className="py-24 px-4 md:px-6 bg-[var(--surface)] dark:bg-[var(--bg)]">
       <div className="max-w-screen-xl mx-auto">
         <div ref={headerRef} className="text-center mb-14">
           <p
-            className="text-xs font-semibold text-violet-500 uppercase tracking-widest mb-3"
+            className="text-xs font-semibold text-brand dark:text-brand-dark uppercase tracking-widest mb-3"
             style={{
               transition: 'opacity 500ms ease-out, transform 500ms ease-out',
               opacity: visibleHeader ? 1 : 0,
@@ -71,7 +72,7 @@ export default function CategoriesSection() {
               transform: visibleHeader ? 'translateY(0)' : 'translateY(-20px)',
             }}
           >
-            Un tracker para cada pasión
+            Cubre todo tu consumo cultural
           </h2>
           <p
             className="text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto text-base"
@@ -81,7 +82,7 @@ export default function CategoriesSection() {
               transform: visibleHeader ? 'translateY(0)' : 'translateY(-20px)',
             }}
           >
-            Elige las categorías que más te interesan y personaliza tu experiencia en Vaultly.
+            Activa las categorías que uses. Cada una con su propio catálogo y su propio tracker.
           </p>
         </div>
 
@@ -138,3 +139,4 @@ export default function CategoriesSection() {
     </section>
   );
 }
+

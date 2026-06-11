@@ -15,8 +15,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  games: 'bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400',
-  movies: 'bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400',
+  games: 'bg-brand/10 dark:bg-brand-dark/15 text-brand dark:text-brand-dark',
+  movies: 'bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-400',
   series: 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400',
   books: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400',
   concerts: 'bg-sky-100 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400',

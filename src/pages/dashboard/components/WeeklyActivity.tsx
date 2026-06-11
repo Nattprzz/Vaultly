@@ -1,8 +1,14 @@
-import { MOCK_WEEKLY_ACTIVITY } from '@/mocks/dashboard';
+import type { WeeklyActivityPoint } from '@/hooks/useDashboardStats';
 
-const MAX = Math.max(...MOCK_WEEKLY_ACTIVITY.map(d => d.count));
+interface Props {
+  data: WeeklyActivityPoint[];
+  loading: boolean;
+}
 
-export default function WeeklyActivity() {
+export default function WeeklyActivity({ data, loading }: Props) {
+  const max = Math.max(...data.map(d => d.count), 1);
+  const total = data.reduce((a, b) => a + b.count, 0);
+
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
       <div className="flex items-center justify-between mb-6">
@@ -11,12 +17,12 @@ export default function WeeklyActivity() {
           <h3 className="font-semibold text-zinc-900 dark:text-white text-sm">Actividad esta semana</h3>
         </div>
         <span className="text-xs text-zinc-400">
-          {MOCK_WEEKLY_ACTIVITY.reduce((a, b) => a + b.count, 0)} acciones
+          {loading ? '...' : `${total} acciones`}
         </span>
       </div>
       <div className="flex items-end justify-between gap-2 h-24">
-        {MOCK_WEEKLY_ACTIVITY.map(day => {
-          const heightPct = MAX > 0 ? (day.count / MAX) * 100 : 0;
+        {(data.length > 0 ? data : Array.from({ length: 7 }, (_, index) => ({ day: ['L', 'M', 'X', 'J', 'V', 'S', 'D'][index], count: 0 }))).map(day => {
+          const heightPct = max > 0 ? (day.count / max) * 100 : 0;
           return (
             <div key={day.day} className="flex flex-col items-center gap-2 flex-1">
               <div className="w-full flex items-end justify-center" style={{ height: '80px' }}>
@@ -25,7 +31,7 @@ export default function WeeklyActivity() {
                   style={{
                     height: `${heightPct}%`,
                     minHeight: day.count > 0 ? '6px' : '0',
-                    background: 'linear-gradient(to top, #8b5cf6, #f43f5e)',
+                    background: 'var(--brand-accent)',
                     opacity: day.count > 0 ? 1 : 0.15,
                   }}
                 ></div>

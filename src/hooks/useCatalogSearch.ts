@@ -1,5 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { edgeFunctionUrl } from '@/lib/edgeFunctions';
+import { supabase } from '@/lib/supabase';
+import { SUPABASE_ANON_KEY } from '@/lib/supabaseConfig';
+import type { CatalogItemMetadata } from '@/types/metadata';
 
 export interface CatalogItem {
   id: string;
@@ -10,7 +13,7 @@ export interface CatalogItem {
   release_date: string | null;
   source: string;
   source_item_id: string;
-  metadata: Record<string, unknown>;
+  metadata: CatalogItemMetadata;
 }
 
 export type CacheSource = 'cache' | 'external' | 'external_cached';
@@ -77,7 +80,13 @@ export function useCatalogSearch() {
           query: query.trim(),
           page: String(pageNum),
         });
+        const { data: sessionData } = await supabase.auth.getSession();
+        const bearerToken = sessionData.session?.access_token ?? SUPABASE_ANON_KEY;
         const res = await fetch(`${EDGE_FN_URL}?${params}`, {
+          headers: {
+            Authorization: `Bearer ${bearerToken}`,
+            apikey: SUPABASE_ANON_KEY,
+          },
           signal: append ? undefined : abortRef.current?.signal,
         });
 

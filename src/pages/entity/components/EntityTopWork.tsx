@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { EntityItem } from '@/hooks/useEntity';
-import { CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
 import { toAppCategory } from '@/lib/categories';
 
 interface Props {
@@ -13,6 +13,7 @@ function getItemRating(item: EntityItem): number | null {
 }
 
 export default function EntityTopWork({ items }: Props) {
+  const CATEGORIES = useCategories();
   const rated = items.filter(i => getItemRating(i) != null);
   if (rated.length < 2) return null;
 

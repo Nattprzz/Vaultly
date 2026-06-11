@@ -57,7 +57,33 @@ function releaseDate(timestamp?: number | null) {
   return timestamp ? new Date(timestamp * 1000).toISOString().slice(0, 10) : null;
 }
 
+function companyNames(game: any, flag: 'developer' | 'publisher') {
+  return compact((game.involved_companies ?? [])
+    .filter((item: any) => item?.[flag])
+    .map((item: any) => item.company?.name));
+}
+
+function regionalReleaseDates(game: any) {
+  const out = {
+    north_america: null as string | null,
+    europe: null as string | null,
+    japan: null as string | null,
+  };
+
+  (game.release_dates ?? []).forEach((item: any) => {
+    const date = releaseDate(item.date);
+    if (!date) return;
+    if (item.region === 2 && !out.north_america) out.north_america = date;
+    if (item.region === 1 && !out.europe) out.europe = date;
+    if (item.region === 5 && !out.japan) out.japan = date;
+  });
+
+  return out;
+}
+
 function normalizeGame(game: any): NormalizedCatalogItem {
+  const ratingCount = game.total_rating_count ?? null;
+
   return {
     source: 'igdb',
     source_item_id: String(game.id),
@@ -68,12 +94,16 @@ function normalizeGame(game: any): NormalizedCatalogItem {
     release_date: releaseDate(game.first_release_date),
     metadata: {
       rating: game.total_rating != null ? Math.round(Number(game.total_rating) / 10) : null,
-      ratings_count: game.total_rating_count ?? null,
+      rating_count: ratingCount,
       genres: compact((game.genres ?? []).map((genre: any) => genre.name)),
       platforms: compact((game.platforms ?? []).map((platform: any) => platform.name)),
-      developers: [],
-      publishers: [],
+      developers: companyNames(game, 'developer'),
+      publishers: companyNames(game, 'publisher'),
+      game_modes: compact((game.game_modes ?? []).map((mode: any) => mode.name)),
+      release_dates: regionalReleaseDates(game),
+      achievements_count: null,
       igdb_slug: game.slug ?? null,
+      language: 'original',
     },
   };
 }
@@ -83,7 +113,7 @@ export async function searchIgdbGames(query: string, page = 1, limit = 20): Prom
   const offset = Math.max(page - 1, 0) * limit;
   const body = `
     search "${query.replace(/"/g, '\\"')}";
-    fields name,slug,summary,cover.image_id,genres.name,platforms.name,first_release_date,total_rating,total_rating_count;
+    fields name,slug,summary,cover.image_id,genres.name,platforms.name,game_modes.name,involved_companies.developer,involved_companies.publisher,involved_companies.company.name,release_dates.region,release_dates.date,first_release_date,total_rating,total_rating_count;
     limit ${limit};
     offset ${offset};
   `;
@@ -93,7 +123,7 @@ export async function searchIgdbGames(query: string, page = 1, limit = 20): Prom
 
 export async function getIgdbGame(sourceId: string): Promise<NormalizedCatalogItem | null> {
   const body = `
-    fields name,slug,summary,cover.image_id,genres.name,platforms.name,first_release_date,total_rating,total_rating_count;
+    fields name,slug,summary,cover.image_id,genres.name,platforms.name,game_modes.name,involved_companies.developer,involved_companies.publisher,involved_companies.company.name,release_dates.region,release_dates.date,first_release_date,total_rating,total_rating_count;
     where id = ${Number(sourceId)};
     limit 1;
   `;

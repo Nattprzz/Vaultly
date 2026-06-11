@@ -1,41 +1,40 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import type { FilterState, SortOption } from '@/hooks/useCatalogFilters';
 import { DEFAULT_FILTERS } from '@/hooks/useCatalogFilters';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: 'relevance', label: 'Relevancia' },
+  { value: 'relevance',   label: 'Relevancia' },
   { value: 'rating_desc', label: 'Mejor valorados' },
-  { value: 'rating_asc', label: 'Peor valorados' },
-  { value: 'year_desc', label: 'Más recientes' },
-  { value: 'year_asc', label: 'Más antiguos' },
-  { value: 'title_asc', label: 'A-Z' },
+  { value: 'year_desc',   label: 'Más recientes' },
+  { value: 'year_asc',    label: 'Más antiguos' },
+  { value: 'title_asc',   label: 'A → Z' },
 ];
 
-const RATING_OPTIONS = [0, 6, 7, 8, 9];
-
-const YEAR_PRESETS = [
-  { label: 'Todo', min: DEFAULT_FILTERS.yearMin, max: DEFAULT_FILTERS.yearMax },
-  { label: '2020s', min: 2020, max: CURRENT_YEAR },
-  { label: '2010s', min: 2010, max: 2019 },
-  { label: '2000s', min: 2000, max: 2009 },
-  { label: 'Clásicos', min: 1970, max: 1999 },
+const RATING_CHIPS = [
+  { value: 0, label: 'Cualquiera' },
+  { value: 6, label: '6+' },
+  { value: 7, label: '7+' },
+  { value: 8, label: '8+' },
+  { value: 9, label: '9+' },
 ];
 
-const DURATION_OPTIONS: { value: FilterState['duration']; label: string }[] = [
-  { value: 'all', label: 'Todas' },
-  { value: 'short', label: '< 90 min' },
-  { value: 'medium', label: '90-139 min' },
-  { value: 'long', label: '140+ min' },
+const DURATION_CHIPS: { value: FilterState['duration']; label: string }[] = [
+  { value: 'all',    label: 'Todas' },
+  { value: 'short',  label: '< 90 min' },
+  { value: 'medium', label: '90–139 min' },
+  { value: 'long',   label: '140+ min' },
 ];
 
-const PAGE_OPTIONS: { value: FilterState['pageCount']; label: string }[] = [
-  { value: 'all', label: 'Todas' },
-  { value: 'short', label: '< 250' },
-  { value: 'medium', label: '250-499' },
-  { value: 'long', label: '500+' },
+const PAGE_CHIPS: { value: FilterState['pageCount']; label: string }[] = [
+  { value: 'all',    label: 'Todas' },
+  { value: 'short',  label: '< 250 pág.' },
+  { value: 'medium', label: '250–499 pág.' },
+  { value: 'long',   label: '500+ pág.' },
 ];
+
+const VISIBLE_LIMIT = 8;
 
 interface Props {
   filters: FilterState;
@@ -61,6 +60,25 @@ interface Props {
   onClose: () => void;
 }
 
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+        active
+          ? 'bg-blue-600 text-white'
+          : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Label({ text }: { text: string }) {
+  return <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">{text}</p>;
+}
+
 export default function CatalogFilters({
   filters,
   availableGenres,
@@ -84,276 +102,340 @@ export default function CatalogFilters({
   onReset,
   onClose,
 }: Props) {
-  const panelRef = useRef<HTMLDivElement>(null);
+  const [genreSearch, setGenreSearch]         = useState('');
+  const [genresExpanded, setGenresExpanded]   = useState(false);
+  const [platformSearch, setPlatformSearch]   = useState('');
+  const [platformsExpanded, setPlatformsExpanded] = useState(false);
 
+  // Local year state so user can type freely; syncs to filter on blur/reset
+  const [localYearMin, setLocalYearMin] = useState(String(filters.yearMin));
+  const [localYearMax, setLocalYearMax] = useState(String(filters.yearMax));
+  useEffect(() => { setLocalYearMin(String(filters.yearMin)); }, [filters.yearMin]);
+  useEffect(() => { setLocalYearMax(String(filters.yearMax)); }, [filters.yearMax]);
+
+  // Esc to close
   useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node)) onClose();
-    };
-    document.addEventListener('mousedown', handlePointerDown);
-    return () => document.removeEventListener('mousedown', handlePointerDown);
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
   }, [onClose]);
 
+  // Lock body scroll
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
 
-  const activeYearPreset = YEAR_PRESETS.find(
-    preset => filters.yearMin === preset.min && filters.yearMax === preset.max,
-  )?.label ?? 'custom';
+  const filteredGenres  = availableGenres.filter(g => !genreSearch || g.toLowerCase().includes(genreSearch.toLowerCase()));
+  const visibleGenres   = genresExpanded ? filteredGenres : filteredGenres.slice(0, VISIBLE_LIMIT);
+  const moreGenres      = filteredGenres.length - VISIBLE_LIMIT;
 
-  const setYearPreset = (label: string) => {
-    const preset = YEAR_PRESETS.find(item => item.label === label);
-    if (!preset) return;
-    onYearMin(preset.min);
-    onYearMax(preset.max);
+  const filteredPlatforms = availablePlatforms.filter(p => !platformSearch || p.toLowerCase().includes(platformSearch.toLowerCase()));
+  const visiblePlatforms  = platformsExpanded ? filteredPlatforms : filteredPlatforms.slice(0, VISIBLE_LIMIT);
+  const morePlatforms     = filteredPlatforms.length - VISIBLE_LIMIT;
+
+  const yearIsDefault = filters.yearMin === DEFAULT_FILTERS.yearMin && filters.yearMax === DEFAULT_FILTERS.yearMax;
+
+  const commitYearMin = (raw: string) => {
+    const v = parseInt(raw, 10);
+    if (!isNaN(v) && v >= 1970 && v < filters.yearMax) { onYearMin(v); }
+    else { setLocalYearMin(String(filters.yearMin)); }
+  };
+  const commitYearMax = (raw: string) => {
+    const v = parseInt(raw, 10);
+    if (!isNaN(v) && v > filters.yearMin && v <= CURRENT_YEAR) { onYearMax(v); }
+    else { setLocalYearMax(String(filters.yearMax)); }
   };
 
   return (
-    <div
-      ref={panelRef}
-      className="absolute right-0 top-full z-40 mt-2 w-[min(92vw,980px)] overflow-hidden rounded-xl border border-zinc-100 bg-white shadow-xl shadow-zinc-900/10 dark:border-zinc-800 dark:bg-zinc-900"
-    >
-      <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
-        <div>
-          <p className="text-sm font-semibold text-zinc-900 dark:text-white">Filtros</p>
-          <p className="text-xs text-zinc-400">{activeCount > 0 ? `${activeCount} activos` : 'Sin filtros activos'}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {activeCount > 0 && (
-            <button onClick={onReset} className="text-xs font-medium text-zinc-400 hover:text-rose-500">
-              Limpiar
-            </button>
-          )}
-          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-            <i className="ri-close-line"></i>
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Panel — bottom sheet on mobile, right drawer on sm+ */}
+      <div className="fixed inset-x-0 bottom-0 z-50 flex max-h-[90vh] flex-col rounded-t-2xl bg-zinc-950 border-t border-zinc-800 shadow-2xl sm:inset-y-0 sm:bottom-auto sm:right-0 sm:left-auto sm:w-[420px] sm:max-h-full sm:rounded-none sm:border-t-0 sm:border-l">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="text-base font-bold text-white">Filtros</span>
+            {activeCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-xs font-bold leading-none">
+                {activeCount} activos
+              </span>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
+            aria-label="Cerrar filtros"
+          >
+            <i className="ri-close-line text-lg"></i>
           </button>
         </div>
-      </div>
 
-      <div className="grid max-h-[68vh] grid-cols-1 gap-4 overflow-y-auto p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-4">
-          <SelectSection label="Orden" value={filters.sort} onChange={value => onSort(value as SortOption)} options={SORT_OPTIONS} />
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-7">
 
-          <section className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Puntuación</label>
-            <div className="grid grid-cols-5 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
-              {RATING_OPTIONS.map(rating => (
-                <button
-                  key={rating}
-                  onClick={() => onMinRating(rating)}
-                  className={`rounded-md px-2 py-1.5 text-xs font-semibold transition-colors ${
-                    filters.minRating === rating
-                      ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white'
-                      : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-                  }`}
-                >
-                  {rating === 0 ? 'Todo' : `${rating}+`}
-                </button>
+          {/* Ordenar por */}
+          <section>
+            <Label text="Ordenar por" />
+            <div className="flex flex-wrap gap-2">
+              {SORT_OPTIONS.map(opt => (
+                <Chip key={opt.value} active={filters.sort === opt.value} onClick={() => onSort(opt.value)}>
+                  {opt.label}
+                </Chip>
               ))}
             </div>
           </section>
-        </div>
 
-        <div className="space-y-4">
-          <SelectSection
-            label="Año"
-            value={activeYearPreset}
-            onChange={setYearPreset}
-            options={[
-              ...YEAR_PRESETS.map(preset => ({ value: preset.label, label: preset.label })),
-              { value: 'custom', label: `${filters.yearMin}-${filters.yearMax}`, disabled: true },
-            ]}
-          />
-          <div className="space-y-2">
-            <RangeRow label="Desde" value={filters.yearMin} min={1970} max={CURRENT_YEAR} onChange={value => onYearMin(Math.min(value, filters.yearMax - 1))} />
-            <RangeRow label="Hasta" value={filters.yearMax} min={1970} max={CURRENT_YEAR} onChange={value => onYearMax(Math.max(value, filters.yearMin + 1))} />
-          </div>
-        </div>
+          {/* Puntuación mínima */}
+          <section>
+            <Label text="Puntuación mínima" />
+            <div className="flex gap-2">
+              {RATING_CHIPS.map(chip => (
+                <Chip key={chip.value} active={filters.minRating === chip.value} onClick={() => onMinRating(chip.value)}>
+                  {chip.label}
+                </Chip>
+              ))}
+            </div>
+          </section>
 
-        <ChecklistSection
-          label="Géneros"
-          values={availableGenres}
-          selected={filters.genres}
-          onToggle={onToggleGenre}
-        />
+          {/* Año */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Año</p>
+              {!yearIsDefault && (
+                <button
+                  onClick={() => { onYearMin(DEFAULT_FILTERS.yearMin); onYearMax(DEFAULT_FILTERS.yearMax); }}
+                  className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                >
+                  Resetear
+                </button>
+              )}
+            </div>
+            <div className="flex items-end gap-3">
+              <div className="flex-1">
+                <p className="text-xs text-zinc-500 mb-1.5">Desde</p>
+                <input
+                  type="number"
+                  value={localYearMin}
+                  min={1970}
+                  max={CURRENT_YEAR}
+                  onChange={e => setLocalYearMin(e.target.value)}
+                  onBlur={e => commitYearMin(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && commitYearMin(localYearMin)}
+                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700 text-white text-sm text-center focus:outline-none focus:border-zinc-500 transition-colors"
+                />
+              </div>
+              <span className="text-zinc-600 pb-3 text-sm">–</span>
+              <div className="flex-1">
+                <p className="text-xs text-zinc-500 mb-1.5">Hasta</p>
+                <input
+                  type="number"
+                  value={localYearMax}
+                  min={1970}
+                  max={CURRENT_YEAR}
+                  onChange={e => setLocalYearMax(e.target.value)}
+                  onBlur={e => commitYearMax(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && commitYearMax(localYearMax)}
+                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700 text-white text-sm text-center focus:outline-none focus:border-zinc-500 transition-colors"
+                />
+              </div>
+            </div>
+          </section>
 
-        <div className="space-y-4">
-          {activeCategory === 'videojuegos' && (
-            <ChecklistSection
-              label="Plataformas"
-              values={availablePlatforms}
-              selected={filters.platforms}
-              onToggle={onTogglePlatform}
-            />
+          {/* Géneros */}
+          {availableGenres.length > 0 && (
+            <section>
+              <Label text="Géneros" />
+              {availableGenres.length > 4 && (
+                <div className="relative mb-3">
+                  <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm pointer-events-none"></i>
+                  <input
+                    value={genreSearch}
+                    onChange={e => setGenreSearch(e.target.value)}
+                    placeholder="Buscar género..."
+                    className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors"
+                  />
+                </div>
+              )}
+              {visibleGenres.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {visibleGenres.map(g => (
+                    <Chip key={g} active={filters.genres.includes(g)} onClick={() => onToggleGenre(g)}>
+                      {g}
+                    </Chip>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-600">Sin géneros para "{genreSearch}"</p>
+              )}
+              {!genresExpanded && moreGenres > 0 && (
+                <button onClick={() => setGenresExpanded(true)} className="mt-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer">
+                  Ver más ({moreGenres} más)
+                </button>
+              )}
+              {genresExpanded && filteredGenres.length > VISIBLE_LIMIT && (
+                <button onClick={() => setGenresExpanded(false)} className="mt-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer">
+                  Ver menos
+                </button>
+              )}
+            </section>
           )}
 
+          {/* Videojuegos: Plataformas */}
+          {activeCategory === 'videojuegos' && availablePlatforms.length > 0 && (
+            <section>
+              <Label text="Plataformas" />
+              {availablePlatforms.length > 4 && (
+                <div className="relative mb-3">
+                  <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm pointer-events-none"></i>
+                  <input
+                    value={platformSearch}
+                    onChange={e => setPlatformSearch(e.target.value)}
+                    placeholder="Buscar plataforma..."
+                    className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors"
+                  />
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {visiblePlatforms.map(p => (
+                  <Chip key={p} active={filters.platforms.includes(p)} onClick={() => onTogglePlatform(p)}>
+                    {p}
+                  </Chip>
+                ))}
+              </div>
+              {!platformsExpanded && morePlatforms > 0 && (
+                <button onClick={() => setPlatformsExpanded(true)} className="mt-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer">
+                  Ver más ({morePlatforms} más)
+                </button>
+              )}
+            </section>
+          )}
+
+          {/* Películas: Duración + Idioma */}
           {activeCategory === 'peliculas' && (
             <>
-              <SelectSection label="Duración" value={filters.duration} onChange={value => onDuration(value as FilterState['duration'])} options={DURATION_OPTIONS} />
-              <ChecklistSection label="Idioma original" values={availableLanguages} selected={filters.languages} onToggle={onToggleLanguage} />
+              <section>
+                <Label text="Duración" />
+                <div className="flex flex-wrap gap-2">
+                  {DURATION_CHIPS.map(c => (
+                    <Chip key={c.value} active={filters.duration === c.value} onClick={() => onDuration(c.value)}>
+                      {c.label}
+                    </Chip>
+                  ))}
+                </div>
+              </section>
+              {availableLanguages.length > 0 && (
+                <section>
+                  <Label text="Idioma original" />
+                  <div className="flex flex-wrap gap-2">
+                    {availableLanguages.map(l => (
+                      <Chip key={l} active={filters.languages.includes(l)} onClick={() => onToggleLanguage(l)}>
+                        {l.toUpperCase()}
+                      </Chip>
+                    ))}
+                  </div>
+                </section>
+              )}
             </>
           )}
 
+          {/* Series: Estado + Idioma */}
           {activeCategory === 'series' && (
             <>
-              <SelectSection
-                label="Estado"
-                value={filters.seriesStatus}
-                onChange={onSeriesStatus}
-                options={[
-                  { value: 'all', label: 'Todos' },
-                  ...availableSeriesStatuses.map(status => ({ value: status, label: status })),
-                ]}
-              />
-              <ChecklistSection label="Idioma original" values={availableLanguages} selected={filters.languages} onToggle={onToggleLanguage} />
+              {availableSeriesStatuses.length > 0 && (
+                <section>
+                  <Label text="Estado" />
+                  <div className="flex flex-wrap gap-2">
+                    <Chip active={filters.seriesStatus === 'all'} onClick={() => onSeriesStatus('all')}>
+                      Todos
+                    </Chip>
+                    {availableSeriesStatuses.map(s => (
+                      <Chip key={s} active={filters.seriesStatus === s} onClick={() => onSeriesStatus(s)}>
+                        {s}
+                      </Chip>
+                    ))}
+                  </div>
+                </section>
+              )}
+              {availableLanguages.length > 0 && (
+                <section>
+                  <Label text="Idioma original" />
+                  <div className="flex flex-wrap gap-2">
+                    {availableLanguages.map(l => (
+                      <Chip key={l} active={filters.languages.includes(l)} onClick={() => onToggleLanguage(l)}>
+                        {l.toUpperCase()}
+                      </Chip>
+                    ))}
+                  </div>
+                </section>
+              )}
             </>
           )}
 
+          {/* Libros: Extensión + Idioma */}
           {activeCategory === 'libros' && (
             <>
-              <SelectSection label="Páginas" value={filters.pageCount} onChange={value => onPageCount(value as FilterState['pageCount'])} options={PAGE_OPTIONS} />
-              <ChecklistSection label="Idioma" values={availableLanguages} selected={filters.languages} onToggle={onToggleLanguage} />
+              <section>
+                <Label text="Extensión" />
+                <div className="flex flex-wrap gap-2">
+                  {PAGE_CHIPS.map(c => (
+                    <Chip key={c.value} active={filters.pageCount === c.value} onClick={() => onPageCount(c.value)}>
+                      {c.label}
+                    </Chip>
+                  ))}
+                </div>
+              </section>
+              {availableLanguages.length > 0 && (
+                <section>
+                  <Label text="Idioma" />
+                  <div className="flex flex-wrap gap-2">
+                    {availableLanguages.map(l => (
+                      <Chip key={l} active={filters.languages.includes(l)} onClick={() => onToggleLanguage(l)}>
+                        {l.toUpperCase()}
+                      </Chip>
+                    ))}
+                  </div>
+                </section>
+              )}
             </>
           )}
 
-          {activeCategory === 'conciertos' && (
-            <ChecklistSection label="Ciudad" values={availableCities} selected={filters.cities} onToggle={onToggleCity} />
+          {/* Conciertos: Ciudad */}
+          {activeCategory === 'conciertos' && availableCities.length > 0 && (
+            <section>
+              <Label text="Ciudad" />
+              <div className="flex flex-wrap gap-2">
+                {availableCities.map(c => (
+                  <Chip key={c} active={filters.cities.includes(c)} onClick={() => onToggleCity(c)}>
+                    {c}
+                  </Chip>
+                ))}
+              </div>
+            </section>
           )}
 
-          {activeCategory === 'all' && (
-            <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-500 dark:bg-zinc-800/70 dark:text-zinc-400">
-              Elige una categoría para ver filtros específicos como plataforma, duración, idioma o ciudad.
-            </p>
-          )}
         </div>
-      </div>
 
-      <div className="flex items-center justify-end gap-2 border-t border-zinc-100 p-3 dark:border-zinc-800">
-        {activeCount > 0 && (
+        {/* Footer */}
+        <div className="flex items-center justify-between px-5 py-4 border-t border-zinc-800 flex-shrink-0">
           <button
             onClick={onReset}
-            className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            disabled={activeCount === 0}
+            className="text-sm font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
           >
-            Limpiar
+            Limpiar filtros
           </button>
-        )}
-        <button
-          onClick={onClose}
-          className="rounded-lg bg-zinc-900 px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-zinc-900"
-        >
-          Aplicar
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function SelectSection({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: { value: string; label: string; disabled?: boolean }[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <section className="space-y-2">
-      <label className="text-xs font-semibold uppercase tracking-wide text-zinc-400">{label}</label>
-      <select
-        value={value}
-        onChange={event => onChange(event.target.value)}
-        className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-800 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-      >
-        {options.map(option => (
-          <option key={option.value} value={option.value} disabled={option.disabled}>{option.label}</option>
-        ))}
-      </select>
-    </section>
-  );
-}
-
-function RangeRow({
-  label,
-  value,
-  min,
-  max,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="w-10 text-xs text-zinc-400">{label}</span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={event => onChange(Number(event.target.value))}
-        className="h-1.5 flex-1 accent-zinc-900 dark:accent-white"
-      />
-      <span className="w-9 text-right text-xs font-semibold text-zinc-500">{value}</span>
-    </div>
-  );
-}
-
-function ChecklistSection({
-  label,
-  values,
-  selected,
-  onToggle,
-}: {
-  label: string;
-  values: string[];
-  selected: string[];
-  onToggle: (value: string) => void;
-}) {
-  if (values.length === 0) return null;
-
-  return (
-    <section className="space-y-2">
-      <div className="flex items-center justify-between">
-        <label className="text-xs font-semibold uppercase tracking-wide text-zinc-400">{label}</label>
-        {selected.length > 0 && (
           <button
-            onClick={() => selected.forEach(item => onToggle(item))}
-            className="text-xs font-medium text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 transition-colors cursor-pointer whitespace-nowrap"
           >
-            Quitar
+            Aplicar filtros
           </button>
-        )}
+        </div>
       </div>
-      <div className="max-h-40 space-y-1 overflow-y-auto pr-1">
-        {values.map(value => {
-          const active = selected.includes(value);
-          return (
-            <label
-              key={value}
-              className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              <input
-                type="checkbox"
-                checked={active}
-                onChange={() => onToggle(value)}
-                className="h-4 w-4 rounded border-zinc-300 accent-zinc-900 dark:border-zinc-600 dark:accent-white"
-              />
-              <span className="truncate">{value}</span>
-            </label>
-          );
-        })}
-      </div>
-    </section>
+    </>
   );
 }

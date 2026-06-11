@@ -3,13 +3,15 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
 import { useTheme } from '@/hooks/useTheme';
-import { CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
 import NotificationBell from '@/components/feature/NotificationBell';
+import Logo from '@/components/brand/Logo';
 
 export default function Navbar() {
   const { isLoggedIn, profile, logout } = useAuth();
   const { settings } = useSettings();
   const { theme, toggleTheme } = useTheme();
+  const CATEGORIES = useCategories();
   const location = useLocation();
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
@@ -86,13 +88,8 @@ export default function Navbar() {
   return (
     <nav className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${solid ? 'border-b border-zinc-100 bg-white/95 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/95' : 'bg-transparent'}`}>
       <div className="mx-auto flex h-16 max-w-screen-xl items-center justify-between px-4 md:px-6">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-rose-500">
-            <i className="ri-archive-2-line text-sm text-white"></i>
-          </div>
-          <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Vaultly
-          </span>
+        <Link to="/" className="flex items-center">
+          <Logo size={28} />
         </Link>
 
         <div className="hidden items-center gap-1 md:flex">
@@ -132,9 +129,11 @@ export default function Navbar() {
             <i className={theme === 'dark' ? 'ri-sun-line' : 'ri-moon-line'}></i>
           </button>
 
-          <Link to="/settings" className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800" aria-label="Configuración">
-            <i className="ri-settings-3-line"></i>
-          </Link>
+          {isLoggedIn && (
+            <Link to="/settings" className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800" aria-label="Configuración">
+              <i className="ri-settings-3-line"></i>
+            </Link>
+          )}
 
           {isLoggedIn && <NotificationBell />}
 
@@ -144,7 +143,7 @@ export default function Navbar() {
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt="Avatar" className="h-full w-full object-cover object-top" />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-500 to-rose-500 text-sm font-bold text-white">
+                  <div className="flex h-full w-full items-center justify-center bg-brand text-sm font-bold text-white dark:bg-brand-dark">
                     {profile?.initials ?? 'NP'}
                   </div>
                 )}
@@ -163,12 +162,12 @@ export default function Navbar() {
                     <i className="ri-settings-3-line w-4 text-center"></i> Configuración
                   </Link>
                   {profile?.role === 'admin' && (
-                    <Link to="/admin" className="flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800">
+                    <Link to="/admin/catalog" className="flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800">
                       <i className="ri-shield-user-line w-4 text-center"></i> Admin
                     </Link>
                   )}
                   <div className="border-t border-zinc-100 dark:border-zinc-800">
-                    <button onClick={handleLogout} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-rose-500 transition-colors hover:bg-rose-50 dark:hover:bg-rose-950/30">
+                    <button onClick={handleLogout} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30">
                       <i className="ri-logout-box-line w-4 text-center"></i> Cerrar sesión
                     </button>
                   </div>
@@ -176,7 +175,7 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <Link to="/auth" className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-zinc-900">
+            <Link to="/auth" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-hover dark:bg-brand-dark dark:hover:bg-brand-dark-hover">
               Iniciar sesión / Entrar
             </Link>
           )}
@@ -204,20 +203,22 @@ export default function Navbar() {
               <i className={cat.icon}></i> Catálogo: {cat.label}
             </Link>
           ))}
-          <Link to="/settings" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800">
-            <i className="ri-settings-3-line"></i> Configuración
-          </Link>
+          {isLoggedIn && (
+            <Link to="/settings" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800">
+              <i className="ri-settings-3-line"></i> Configuración
+            </Link>
+          )}
           <div className="flex items-center justify-between border-t border-zinc-100 pt-2 dark:border-zinc-800">
             <button onClick={toggleTheme} className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400">
               <i className={theme === 'dark' ? 'ri-sun-line' : 'ri-moon-line'}></i>
               {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
             </button>
             {isLoggedIn ? (
-              <button onClick={handleLogout} className="rounded-lg border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-500 dark:border-rose-900">
+              <button onClick={handleLogout} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 dark:border-red-900 dark:text-red-400">
                 Salir
               </button>
             ) : (
-              <Link to="/auth" className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-zinc-900">
+              <Link to="/auth" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white dark:bg-brand-dark">
                 Entrar
               </Link>
             )}

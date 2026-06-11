@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import SeoHead from '@/components/feature/SeoHead';
 import AdminSidebar from './components/AdminSidebar';
 import AdminOverview from './components/AdminOverview';
@@ -10,10 +9,10 @@ import AdminReviews from './components/AdminReviews';
 import AdminEntities from './components/AdminEntities';
 import AdminAuditLogs from './components/AdminAuditLogs';
 import AdminReports from './components/AdminReports';
-import { ADMIN_STATS } from '@/mocks/admin';
+import AdminSettings from './components/AdminSettings';
 import { useAdminReports } from '@/hooks/useAdminReports';
 
-type AdminSection = 'overview' | 'users' | 'catalog' | 'reviews' | 'entities' | 'audit' | 'reports';
+type AdminSection = 'overview' | 'users' | 'catalog' | 'reviews' | 'entities' | 'audit' | 'reports' | 'settings';
 
 const SECTION_TITLES: Record<AdminSection, { title: string; subtitle: string; icon: string }> = {
   overview:  { title: 'Resumen general',       subtitle: 'KPIs, actividad y estado del sistema.',          icon: 'ri-dashboard-3-line' },
@@ -23,6 +22,7 @@ const SECTION_TITLES: Record<AdminSection, { title: string; subtitle: string; ic
   reviews:   { title: 'Moderación de reseñas', subtitle: 'Aprueba, rechaza o elimina reseñas.',            icon: 'ri-quill-pen-line' },
   reports:   { title: 'Reportes de usuarios',  subtitle: 'Revisa y gestiona los problemas reportados en el catálogo.', icon: 'ri-flag-2-line' },
   audit:     { title: 'Auditoría',             subtitle: 'Historial de acciones administrativas del sistema.', icon: 'ri-shield-check-line' },
+  settings:  { title: 'Configuración',         subtitle: 'Estado de APIs, integraciones y ajustes del sistema.', icon: 'ri-settings-3-line' },
 };
 
 function getSectionFromPath(path: string): AdminSection {
@@ -32,26 +32,17 @@ function getSectionFromPath(path: string): AdminSection {
   if (path.includes('/reviews'))  return 'reviews';
   if (path.includes('/reports'))  return 'reports';
   if (path.includes('/audit'))    return 'audit';
+  if (path.includes('/settings')) return 'settings';
   return 'overview';
 }
 
 export default function AdminPage() {
-  const { isLoggedIn } = useAuth();
-  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { pendingCount, newCount, markAllSeen } = useAdminReports();
 
-  // Derive section from URL
   const path = window.location.pathname;
   const section = getSectionFromPath(path);
   const { title, subtitle, icon } = SECTION_TITLES[section];
-
-  useEffect(() => {
-    // In production this would check is_admin from Supabase
-    if (!isLoggedIn) navigate('/');
-  }, [isLoggedIn, navigate]);
-
-  if (!isLoggedIn) return null;
 
   return (
     <div className="min-h-screen bg-zinc-950 flex">
@@ -105,30 +96,21 @@ export default function AdminPage() {
               <Link
                 to="/admin/reports"
                 onClick={markAllSeen}
-                className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-400 text-xs font-semibold hover:bg-rose-500/30 transition-colors cursor-pointer whitespace-nowrap"
+                className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 transition-colors cursor-pointer whitespace-nowrap"
               >
                 <i className="ri-flag-2-line"></i>
                 {newCount} reporte{newCount > 1 ? 's' : ''} nuevo{newCount > 1 ? 's' : ''}
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500"></span>
               </Link>
             )}
             {/* Reviews alert badge */}
-            {ADMIN_STATS.pending_reviews > 0 && section !== 'reviews' && (
-              <Link
-                to="/admin/reviews"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-xs font-semibold hover:bg-amber-500/30 transition-colors cursor-pointer whitespace-nowrap"
-              >
-                <i className="ri-error-warning-line"></i>
-                {ADMIN_STATS.pending_reviews} reseñas
-              </Link>
-            )}
             {/* Admin badge */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-violet-500/20">
-              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center text-white text-xs font-bold">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand/15">
+              <div className="w-5 h-5 rounded-full bg-brand dark:bg-brand-dark flex items-center justify-center text-white text-xs font-bold">
                 N
               </div>
-              <span className="text-xs font-semibold text-violet-300 hidden sm:block">Admin</span>
+              <span className="text-xs font-semibold text-brand dark:text-brand-dark hidden sm:block">Admin</span>
             </div>
           </div>
         </header>
@@ -142,6 +124,7 @@ export default function AdminPage() {
           {section === 'reviews'   && <AdminReviews />}
           {section === 'reports'   && <AdminReports />}
           {section === 'audit'     && <AdminAuditLogs />}
+          {section === 'settings'  && <AdminSettings />}
         </main>
       </div>
     </div>

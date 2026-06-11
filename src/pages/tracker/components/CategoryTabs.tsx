@@ -1,4 +1,4 @@
-import { CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
 import { TrackerEntry } from '@/hooks/useTracker';
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
 }
 
 export default function CategoryTabs({ activeCategory, onSelect, entries, activeCategories }: Props) {
+  const CATEGORIES = useCategories();
   const allEntries = Object.values(entries);
 
   const getCount = (catId: string) =>
@@ -69,3 +70,4 @@ export default function CategoryTabs({ activeCategory, onSelect, entries, active
     </div>
   );
 }
+

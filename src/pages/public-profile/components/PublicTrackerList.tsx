@@ -1,17 +1,19 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicTracker, PublicEntry } from '@/hooks/usePublicTracker';
-import { CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
+import type { PublicPrivacyFlags } from '@/types/privacy';
 
 interface Props {
   userId: string | null;
+  privacy: PublicPrivacyFlags;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
   completed:   { label: 'Completado',  color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30', icon: 'ri-checkbox-circle-line' },
   in_progress: { label: 'En progreso', color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-50 dark:bg-amber-950/30',     icon: 'ri-loader-4-line' },
   pending:     { label: 'Pendiente',   color: 'text-zinc-500 dark:text-zinc-400',        bg: 'bg-zinc-100 dark:bg-zinc-800',          icon: 'ri-bookmark-line' },
-  dropped:     { label: 'Abandonado',  color: 'text-rose-600 dark:text-rose-400',        bg: 'bg-rose-50 dark:bg-rose-950/30',        icon: 'ri-close-circle-line' },
+  dropped:     { label: 'Abandonado',  color: 'text-red-600 dark:text-red-400',        bg: 'bg-red-50 dark:bg-red-950/30',        icon: 'ri-close-circle-line' },
 };
 
 const STATUS_FILTERS = [
@@ -24,8 +26,10 @@ const STATUS_FILTERS = [
 
 type ViewMode = 'grid' | 'list';
 
-export default function PublicTrackerList({ userId }: Props) {
-  const { entries, loading } = usePublicTracker(userId);
+export default function PublicTrackerList({ userId, privacy }: Props) {
+  const CATEGORIES = useCategories();
+  const { entries, loading, hidden } = usePublicTracker(userId, privacy);
+  const showStatus = privacy.show_item_status !== false;
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeStatus, setActiveStatus] = useState('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -40,15 +44,15 @@ export default function PublicTrackerList({ userId }: Props) {
       return { id: catId, label: meta?.label ?? catId, icon: meta?.icon ?? 'ri-stack-line', accent: meta?.accent ?? '#6b7280' };
     });
     return [...all, ...rest];
-  }, [entries]);
+  }, [entries, CATEGORIES]);
 
   const filtered = useMemo(() => entries.filter(e => {
     const matchCat = activeCategory === 'all' || e.category === activeCategory;
-    const matchStatus = activeStatus === 'all' || e.status === activeStatus;
-    const title = e.item_slug.replace(/-/g, ' ');
+    const matchStatus = !showStatus || activeStatus === 'all' || e.status === activeStatus;
+    const title = e.title || e.item_slug.replace(/-/g, ' ');
     const matchSearch = search.trim() === '' || title.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchStatus && matchSearch;
-  }), [entries, activeCategory, activeStatus, search]);
+  }), [entries, activeCategory, activeStatus, search, showStatus]);
 
   const grouped = useMemo(() => filtered.reduce<Record<string, PublicEntry[]>>((acc, e) => {
     const key = e.categoryLabel;
@@ -66,6 +70,18 @@ export default function PublicTrackerList({ userId }: Props) {
             <div className="h-3 w-3/4 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse"></div>
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (hidden) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-800 mb-4">
+          <i className="ri-lock-line text-2xl text-zinc-400"></i>
+        </div>
+        <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-2">Tracker privado</h3>
+        <p className="text-sm text-zinc-500">Este usuario ha ocultado su lista de seguimiento.</p>
       </div>
     );
   }
@@ -113,19 +129,21 @@ export default function PublicTrackerList({ userId }: Props) {
             className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors"
           />
         </div>
-        <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 overflow-x-auto">
-          {STATUS_FILTERS.map(s => (
-            <button
-              key={s.id}
-              onClick={() => setActiveStatus(s.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
-                activeStatus === s.id ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        {showStatus && (
+          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 overflow-x-auto">
+            {STATUS_FILTERS.map(s => (
+              <button
+                key={s.id}
+                onClick={() => setActiveStatus(s.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
+                  activeStatus === s.id ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 ml-auto">
           {(['grid', 'list'] as ViewMode[]).map(v => (
             <button
@@ -176,17 +194,23 @@ function GridView({ items }: { items: PublicEntry[] }) {
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
       {items.map(item => {
-        const sc = STATUS_CONFIG[item.status] ?? STATUS_CONFIG['pending'];
-        const title = item.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const sc = item.status ? STATUS_CONFIG[item.status] ?? STATUS_CONFIG['pending'] : null;
+        const title = item.title || item.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         return (
           <Link key={item.id} to={`/catalog/${item.category}/${item.item_slug}`} className="group cursor-pointer">
             <div className="relative rounded-xl overflow-hidden mb-2 aspect-[2/3] flex items-center justify-center" style={{ background: `${item.categoryAccent}15` }}>
-              <div className="flex flex-col items-center gap-1 p-2">
-                <i className={`${item.categoryIcon} text-3xl`} style={{ color: item.categoryAccent }}></i>
-              </div>
-              <div className={`absolute top-1.5 left-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md backdrop-blur-sm ${sc.bg}`}>
-                <i className={`${sc.icon} ${sc.color} text-xs`}></i>
-              </div>
+              {item.cover ? (
+                <img src={item.cover} alt={title} className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105" />
+              ) : (
+                <div className="flex flex-col items-center gap-1 p-2">
+                  <i className={`${item.categoryIcon} text-3xl`} style={{ color: item.categoryAccent }}></i>
+                </div>
+              )}
+              {sc && (
+                <div className={`absolute top-1.5 left-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md backdrop-blur-sm ${sc.bg}`}>
+                  <i className={`${sc.icon} ${sc.color} text-xs`}></i>
+                </div>
+              )}
               {item.rating !== null && (
                 <div className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-sm">
                   <i className="ri-star-fill text-amber-400 text-xs"></i>
@@ -207,8 +231,8 @@ function ListView({ items }: { items: PublicEntry[] }) {
   return (
     <div className="flex flex-col gap-2">
       {items.map((item, idx) => {
-        const sc = STATUS_CONFIG[item.status] ?? STATUS_CONFIG['pending'];
-        const title = item.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const sc = item.status ? STATUS_CONFIG[item.status] ?? STATUS_CONFIG['pending'] : null;
+        const title = item.title || item.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         return (
           <Link
             key={item.id}
@@ -216,19 +240,25 @@ function ListView({ items }: { items: PublicEntry[] }) {
             className="group flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 transition-all cursor-pointer"
           >
             <span className="text-sm font-black text-zinc-300 dark:text-zinc-700 w-5 text-center flex-shrink-0">{idx + 1}</span>
-            <div className="w-10 h-14 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${item.categoryAccent}15` }}>
-              <i className={`${item.categoryIcon} text-xl`} style={{ color: item.categoryAccent }}></i>
-            </div>
+            {item.cover ? (
+              <img src={item.cover} alt={title} className="w-10 h-14 rounded-lg object-cover object-top flex-shrink-0" />
+            ) : (
+              <div className="w-10 h-14 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${item.categoryAccent}15` }}>
+                <i className={`${item.categoryIcon} text-xl`} style={{ color: item.categoryAccent }}></i>
+              </div>
+            )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-zinc-900 dark:text-white group-hover:text-rose-500 transition-colors line-clamp-1">{title}</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-white group-hover:text-brand dark:group-hover:text-brand-dark transition-colors line-clamp-1">{title}</p>
               <span className="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block" style={{ background: `${item.categoryAccent}15`, color: item.categoryAccent }}>
                 {item.categoryLabel}
               </span>
             </div>
-            <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${sc.bg} ${sc.color}`}>
-              <i className={sc.icon}></i>
-              {sc.label}
-            </div>
+            {sc ? (
+              <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${sc.bg} ${sc.color}`}>
+                <i className={sc.icon}></i>
+                {sc.label}
+              </div>
+            ) : <div className="hidden sm:block w-24 flex-shrink-0"></div>}
             {item.rating !== null ? (
               <div className="flex items-center gap-1 flex-shrink-0">
                 <i className="ri-star-fill text-amber-400 text-sm"></i>

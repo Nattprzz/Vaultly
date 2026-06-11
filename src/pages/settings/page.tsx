@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useEffect } from 'react';
-import Navbar from '@/components/feature/Navbar';
+import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
 import { useAuth } from '@/hooks/useAuth';
 import SettingsSidebar, { Section } from './components/SettingsSidebar';
@@ -48,15 +48,15 @@ export default function SettingsPage() {
   const { title, subtitle } = SECTION_TITLES[activeSection];
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)]">
       <SeoHead
         title="Configuración — Vaultly"
         description="Personaliza tu experiencia en Vaultly: apariencia, categorías, idioma, notificaciones y privacidad."
         canonical="/settings"
         noIndex
       />
-      <Navbar />
-      <main className="pt-16">
+      <Sidebar />
+      <main className="pt-14 md:pt-0 md:pl-64">
         <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-10">
           {/* Page header */}
           <div className="mb-8">

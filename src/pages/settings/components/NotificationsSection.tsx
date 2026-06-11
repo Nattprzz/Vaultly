@@ -19,14 +19,14 @@ export default function NotificationsSection() {
           onChange={v => updateNested('notifications', 'newReleases', v)}
         />
         <ToggleRow
-          label="Actividad de la comunidad"
-          description="Cuando alguien comenta o valora el mismo contenido que tú."
+          label="Actividad pública"
+          description="Avisos sobre actividad pública relacionada con tu contenido."
           checked={n.communityActivity}
           onChange={v => updateNested('notifications', 'communityActivity', v)}
         />
         <ToggleRow
           label="Resumen semanal"
-          description="Un email cada semana con tu actividad y recomendaciones."
+          description="Un email cada semana con un resumen de tu actividad."
           checked={n.weeklyDigest}
           onChange={v => updateNested('notifications', 'weeklyDigest', v)}
         />

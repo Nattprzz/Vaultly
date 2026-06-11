@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import type { RouteObject } from "react-router-dom";
+import { Navigate, type RouteObject } from "react-router-dom";
 import ProtectedRoute from "../components/feature/ProtectedRoute";
 import ExploreRedirect from "./ExploreRedirect";
 import LazyRoute from "./LazyRoute";
@@ -15,10 +15,6 @@ const SettingsPage = lazy(() => import("../pages/settings/page"));
 const ProfilePage = lazy(() => import("../pages/profile/page"));
 const PublicProfilePage = lazy(() => import("../pages/public-profile/page"));
 const AdminPage = lazy(() => import("../pages/admin/page"));
-const PersonPage = lazy(() => import("../pages/person/page"));
-const EntityPage = lazy(() => import("../pages/entity/page"));
-const EntitiesPage = lazy(() => import("../pages/entities/page"));
-const ComparePage = lazy(() => import("../pages/compare/page"));
 const ResetPasswordPage = lazy(() => import("../pages/auth/reset-password/page"));
 const PrivacyPage = lazy(() => import("../pages/privacy/page"));
 const TermsPage = lazy(() => import("../pages/terms/page"));
@@ -46,7 +42,7 @@ const routes: RouteObject[] = [
     path: "/tracker/:category",
     element: <ProtectedRoute><LazyRoute><TrackerPage /></LazyRoute></ProtectedRoute>,
   },
-  { path: "/settings", element: <LazyRoute><SettingsPage /></LazyRoute> },
+  { path: "/settings", element: <ProtectedRoute><LazyRoute><SettingsPage /></LazyRoute></ProtectedRoute> },
   {
     path: "/profile",
     element: <ProtectedRoute><LazyRoute><ProfilePage /></LazyRoute></ProtectedRoute>,
@@ -79,11 +75,15 @@ const routes: RouteObject[] = [
     path: "/admin/audit",
     element: <ProtectedRoute requireAdmin><LazyRoute><AdminPage /></LazyRoute></ProtectedRoute>,
   },
+  {
+    path: "/admin/settings",
+    element: <ProtectedRoute requireAdmin><LazyRoute><AdminPage /></LazyRoute></ProtectedRoute>,
+  },
   { path: "/u/:username", element: <LazyRoute><PublicProfilePage /></LazyRoute> },
-  { path: "/person/:id", element: <LazyRoute><PersonPage /></LazyRoute> },
-  { path: "/entity/:slug", element: <LazyRoute><EntityPage /></LazyRoute> },
-  { path: "/entities", element: <LazyRoute><EntitiesPage /></LazyRoute> },
-  { path: "/compare", element: <LazyRoute><ComparePage /></LazyRoute> },
+  { path: "/person/:id", element: <Navigate to="/catalog" replace /> },
+  { path: "/entity/:slug", element: <Navigate to="/catalog" replace /> },
+  { path: "/entities", element: <Navigate to="/catalog" replace /> },
+  { path: "/compare", element: <Navigate to="/catalog" replace /> },
   { path: "/privacy", element: <LazyRoute><PrivacyPage /></LazyRoute> },
   { path: "/terms", element: <LazyRoute><TermsPage /></LazyRoute> },
   { path: "/contact", element: <LazyRoute><ContactPage /></LazyRoute> },

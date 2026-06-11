@@ -3,7 +3,7 @@ import { PEOPLE_MOCK, type Person } from '@/mocks/people';
 import EntitiesHero from './components/EntitiesHero';
 import EntitiesFilters, { type EntityTypeFilter, type EntitySortOption } from './components/EntitiesFilters';
 import EntitiesGrid from './components/EntitiesGrid';
-import Navbar from '@/components/feature/Navbar';
+import Sidebar from '@/components/feature/Sidebar';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 const ALL_ENTITIES = Object.values(PEOPLE_MOCK);
@@ -61,13 +61,13 @@ function getTypeStats(entities: Person[]) {
 
 const TYPE_LABELS: Record<string, { label: string; icon: string; color: string }> = {
   actor: { label: 'Actores', icon: 'ri-user-smile-line', color: 'text-amber-500' },
-  actriz: { label: 'Actrices', icon: 'ri-user-heart-line', color: 'text-rose-500' },
-  'actor/actriz': { label: 'Actor/Actriz', icon: 'ri-user-heart-line', color: 'text-rose-500' },
+  actriz: { label: 'Actrices', icon: 'ri-user-heart-line', color: 'text-teal-500' },
+  'actor/actriz': { label: 'Actor/Actriz', icon: 'ri-user-heart-line', color: 'text-teal-500' },
   director: { label: 'Directores', icon: 'ri-movie-2-line', color: 'text-orange-500' },
   autor: { label: 'Autores', icon: 'ri-quill-pen-line', color: 'text-emerald-500' },
   desarrollador: { label: 'Estudios', icon: 'ri-gamepad-line', color: 'text-cyan-500' },
-  publisher: { label: 'Publishers', icon: 'ri-building-2-line', color: 'text-violet-500' },
-  artista: { label: 'Artistas', icon: 'ri-music-2-line', color: 'text-pink-500' },
+  publisher: { label: 'Publishers', icon: 'ri-building-2-line', color: 'text-slate-500' },
+  artista: { label: 'Artistas', icon: 'ri-music-2-line', color: 'text-sky-500' },
 };
 
 export default function EntitiesPage() {
@@ -102,8 +102,8 @@ export default function EntitiesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <Navbar />
+    <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)]">
+      <Sidebar />
 
       <EntitiesHero
         search={search}
@@ -240,7 +240,7 @@ export default function EntitiesPage() {
                     label: 'Obras totales',
                     value: ALL_ENTITIES.flatMap(e => e.works).length,
                     icon: 'ri-film-line',
-                    color: 'text-rose-500',
+                    color: 'text-brand dark:text-brand-dark',
                   },
                   {
                     label: 'Entidades activas',

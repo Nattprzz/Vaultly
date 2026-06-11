@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { PEOPLE_MOCK, type Person } from '@/mocks/people';
-import Navbar from '@/components/feature/Navbar';
+import Sidebar from '@/components/feature/Sidebar';
 import CompareSelector from './components/CompareSelector';
 import CompareChart from './components/CompareChart';
 import CompareStats from './components/CompareStats';
@@ -58,11 +58,11 @@ export default function ComparePage() {
   const bothSelected = entityA && entityB;
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <Navbar />
+    <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)]">
+      <Sidebar />
 
       {/* Hero */}
-      <div className="pt-16 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800">
+      <div className="pt-14 md:pt-0 md:pl-64 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800">
         <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-10">
           <div className="flex items-center gap-3 mb-2">
             <Link
@@ -142,7 +142,7 @@ export default function ComparePage() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-zinc-900 dark:text-white truncate group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
+                      <p className="text-xs font-bold text-zinc-900 dark:text-white truncate group-hover:text-brand dark:group-hover:text-brand-dark transition-colors">
                         {a.name}
                       </p>
                       <p className="text-xs text-zinc-400 truncate">vs {b.name}</p>

@@ -123,8 +123,8 @@ const TOPICS = [
 const CONTACT_CARDS = [
   {
     icon: 'ri-mail-line',
-    color: 'text-violet-500',
-    bg: 'bg-violet-50 dark:bg-violet-950/30',
+    color: 'text-brand dark:text-brand-dark',
+    bg: 'bg-brand/10 dark:bg-brand-dark/15',
     title: 'Email general',
     desc: 'Para consultas generales y soporte',
     value: 'hola@vaultly.app',
@@ -177,8 +177,8 @@ export default function ContactPage() {
   const charsLeft = 500 - message.length;
 
   const inputBase = 'w-full py-3 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none transition-colors';
-  const inputNormal = 'border-zinc-200 dark:border-zinc-700 focus:border-violet-400 dark:focus:border-violet-500';
-  const inputErr = 'border-rose-400 dark:border-rose-500 bg-rose-50/40 dark:bg-rose-950/10 focus:border-rose-400';
+  const inputNormal = 'border-zinc-200 dark:border-zinc-700 focus:border-brand dark:focus:border-brand-dark';
+  const inputErr = 'border-red-400 dark:border-red-500 bg-red-50/40 dark:bg-red-950/10 focus:border-red-400';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,7 +214,7 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950">
+    <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--bg)]">
       <SeoHead
         title="Contacto — Vaultly"
         description="¿Tienes alguna pregunta, sugerencia o problema? Contacta con el equipo de Vaultly. Respondemos en menos de 48 horas."
@@ -226,7 +226,7 @@ export default function ContactPage() {
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800">
         <div className="max-w-screen-xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 cursor-pointer">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-brand dark:bg-brand-dark flex items-center justify-center">
               <i className="ri-archive-2-line text-white text-sm"></i>
             </div>
             <span className="font-bold text-zinc-900 dark:text-white text-base" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -253,9 +253,9 @@ export default function ContactPage() {
       {/* Hero */}
       <section className="border-b border-zinc-100 dark:border-zinc-800 py-14 md:py-20 px-4 md:px-6">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 mb-6">
-            <i className="ri-customer-service-2-line text-rose-500 text-sm"></i>
-            <span className="text-rose-600 dark:text-rose-400 text-xs font-medium">Estamos aquí para ayudarte</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-50 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/40 mb-6">
+            <i className="ri-customer-service-2-line text-sky-500 text-sm"></i>
+            <span className="text-sky-600 dark:text-sky-400 text-xs font-medium">Estamos aquí para ayudarte</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-zinc-900 dark:text-white mb-4 leading-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             Contacta con nosotros
@@ -281,7 +281,7 @@ export default function ContactPage() {
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mb-0.5">{card.title}</p>
                 <p className="text-xs text-zinc-400 mb-1.5 leading-snug">{card.desc}</p>
-                <p className="text-xs font-medium text-violet-500 group-hover:text-violet-600 transition-colors truncate">{card.value}</p>
+                <p className="text-xs font-medium text-brand dark:text-brand-dark group-hover:text-brand-hover dark:group-hover:text-brand-dark-hover transition-colors truncate">{card.value}</p>
               </div>
             </a>
           ))}
@@ -299,7 +299,7 @@ export default function ContactPage() {
             <div className="flex flex-col gap-3">
               {[
                 { label: 'Soporte técnico', time: '&lt; 24h', color: 'text-emerald-500' },
-                { label: 'Bugs críticos', time: '&lt; 4h', color: 'text-rose-500' },
+                { label: 'Bugs críticos', time: '&lt; 4h', color: 'text-red-500' },
                 { label: 'Sugerencias', time: '&lt; 72h', color: 'text-amber-500' },
                 { label: 'Consultas legales', time: '&lt; 30 días', color: 'text-zinc-500' },
               ].map(item => (
@@ -328,7 +328,7 @@ export default function ContactPage() {
                   className="flex items-center gap-2.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors py-1 group"
                 >
                   <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
-                    <i className={`${item.icon} text-sm text-zinc-400 group-hover:text-violet-500 transition-colors`}></i>
+                    <i className={`${item.icon} text-sm text-zinc-400 group-hover:text-brand dark:group-hover:text-brand-dark transition-colors`}></i>
                   </div>
                   {item.text}
                 </Link>
@@ -378,7 +378,7 @@ export default function ContactPage() {
               </div>
               <button
                 onClick={() => setSubmitStatus('idle')}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-rose-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
+                className="px-6 py-2.5 rounded-xl bg-brand dark:bg-brand-dark text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
               >
                 Enviar otro mensaje
               </button>
@@ -402,7 +402,7 @@ export default function ContactPage() {
               {/* Topic selector */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                  Motivo de contacto <span className="text-rose-500">*</span>
+                  Motivo de contacto <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {TOPICS.map(t => (
@@ -412,9 +412,9 @@ export default function ContactPage() {
                       onClick={() => { setTopic(t.value); touch('topic'); }}
                       className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-all cursor-pointer text-left ${
                         topic === t.value
-                          ? 'border-violet-400 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300'
+                          ? 'border-brand bg-brand/10 dark:bg-brand-dark/15 text-brand dark:text-brand-dark'
                           : touched.topic && !topic
-                          ? 'border-rose-300 dark:border-rose-700 bg-rose-50/30 dark:bg-rose-950/10 text-zinc-600 dark:text-zinc-400'
+                          ? 'border-red-300 dark:border-red-700 bg-red-50/30 dark:bg-red-950/10 text-zinc-600 dark:text-zinc-400'
                           : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600'
                       }`}
                     >
@@ -424,14 +424,14 @@ export default function ContactPage() {
                       <span className="truncate">{t.label}</span>
                       {topic === t.value && (
                         <div className="ml-auto w-4 h-4 flex items-center justify-center flex-shrink-0">
-                          <i className="ri-check-line text-xs text-violet-500"></i>
+                          <i className="ri-check-line text-xs text-brand dark:text-brand-dark"></i>
                         </div>
                       )}
                     </button>
                   ))}
                 </div>
                 {touched.topic && errors.topic && (
-                  <p className="flex items-center gap-1.5 text-xs text-rose-500">
+                  <p className="flex items-center gap-1.5 text-xs text-red-500">
                     <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                     {errors.topic}
                   </p>
@@ -443,10 +443,10 @@ export default function ContactPage() {
                 {/* Name */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                    Nombre <span className="text-rose-500">*</span>
+                    Nombre <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center ${touched.name && errors.name ? 'text-rose-400' : 'text-zinc-400'}`}>
+                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center ${touched.name && errors.name ? 'text-red-400' : 'text-zinc-400'}`}>
                       <i className="ri-user-line text-sm"></i>
                     </div>
                     <input
@@ -466,7 +466,7 @@ export default function ContactPage() {
                     )}
                   </div>
                   {touched.name && errors.name && (
-                    <p className="flex items-center gap-1.5 text-xs text-rose-500">
+                    <p className="flex items-center gap-1.5 text-xs text-red-500">
                       <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                       {errors.name}
                     </p>
@@ -476,10 +476,10 @@ export default function ContactPage() {
                 {/* Email */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                    Correo electrónico <span className="text-rose-500">*</span>
+                    Correo electrónico <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center ${touched.email && errors.email ? 'text-rose-400' : 'text-zinc-400'}`}>
+                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center ${touched.email && errors.email ? 'text-red-400' : 'text-zinc-400'}`}>
                       <i className="ri-mail-line text-sm"></i>
                     </div>
                     <input
@@ -499,7 +499,7 @@ export default function ContactPage() {
                     )}
                   </div>
                   {touched.email && errors.email && (
-                    <p className="flex items-center gap-1.5 text-xs text-rose-500">
+                    <p className="flex items-center gap-1.5 text-xs text-red-500">
                       <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                       {errors.email}
                     </p>
@@ -511,9 +511,9 @@ export default function ContactPage() {
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                    Mensaje <span className="text-rose-500">*</span>
+                    Mensaje <span className="text-red-500">*</span>
                   </label>
-                  <span className={`text-xs ${charsLeft < 50 ? charsLeft < 0 ? 'text-rose-500' : 'text-amber-500' : 'text-zinc-400'}`}>
+                  <span className={`text-xs ${charsLeft < 50 ? charsLeft < 0 ? 'text-red-500' : 'text-amber-500' : 'text-zinc-400'}`}>
                     {charsLeft} caracteres restantes
                   </span>
                 </div>
@@ -528,7 +528,7 @@ export default function ContactPage() {
                   className={`${inputBase} resize-none leading-relaxed ${touched.message && errors.message ? inputErr : inputNormal}`}
                 />
                 {touched.message && errors.message && (
-                  <p className="flex items-center gap-1.5 text-xs text-rose-500">
+                  <p className="flex items-center gap-1.5 text-xs text-red-500">
                     <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                     {errors.message}
                   </p>
@@ -537,9 +537,9 @@ export default function ContactPage() {
 
               {/* Error banner */}
               {submitStatus === 'error' && (
-                <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800">
-                  <i className="ri-error-warning-line text-rose-500 flex-shrink-0"></i>
-                  <p className="text-sm text-rose-600 dark:text-rose-400">
+                <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                  <i className="ri-error-warning-line text-red-500 flex-shrink-0"></i>
+                  <p className="text-sm text-red-600 dark:text-red-400">
                     Hubo un error al enviar el mensaje. Inténtalo de nuevo o escríbenos directamente a{' '}
                     <a href="mailto:hola@vaultly.app" className="font-semibold underline">hola@vaultly.app</a>.
                   </p>
@@ -551,7 +551,7 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={submitStatus === 'sending'}
-                  className="flex items-center gap-2 px-7 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-rose-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-7 py-3 rounded-xl bg-brand dark:bg-brand-dark text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {submitStatus === 'sending' ? (
                     <>
@@ -567,7 +567,7 @@ export default function ContactPage() {
                 </button>
                 <p className="text-xs text-zinc-400 leading-relaxed">
                   Al enviar aceptas nuestra{' '}
-                  <Link to="/privacy" className="text-violet-500 hover:text-violet-600 transition-colors">
+                  <Link to="/privacy" className="text-brand dark:text-brand-dark hover:text-brand-hover dark:hover:text-brand-dark-hover transition-colors">
                     Política de Privacidad
                   </Link>.
                 </p>
@@ -583,9 +583,9 @@ export default function ContactPage() {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900/40 mb-4">
-                <i className="ri-question-answer-line text-violet-500 text-sm"></i>
-                <span className="text-violet-600 dark:text-violet-400 text-xs font-medium">Preguntas frecuentes</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand/10 dark:bg-brand-dark/15 border border-brand/20 dark:border-brand-dark/25 mb-4">
+                <i className="ri-question-answer-line text-brand dark:text-brand-dark text-sm"></i>
+                <span className="text-brand dark:text-brand-dark text-xs font-medium">Preguntas frecuentes</span>
               </div>
               <h2 className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 Respuestas rápidas
@@ -627,10 +627,10 @@ export default function ContactPage() {
                     onClick={() => setOpenFaq(isOpen ? null : key)}
                     className="w-full flex items-center justify-between gap-4 py-5 text-left cursor-pointer group"
                   >
-                    <span className={`text-sm font-semibold leading-snug transition-colors ${isOpen ? 'text-violet-600 dark:text-violet-400' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white'}`}>
+                    <span className={`text-sm font-semibold leading-snug transition-colors ${isOpen ? 'text-brand dark:text-brand-dark' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white'}`}>
                       {item.q}
                     </span>
-                    <div className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-all ${isOpen ? 'bg-violet-100 dark:bg-violet-950/40 text-violet-500 rotate-45' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700'}`}>
+                    <div className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg transition-all ${isOpen ? 'bg-brand/15 dark:bg-brand-dark/20 text-brand dark:text-brand-dark rotate-45' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700'}`}>
                       <i className="ri-add-line text-sm"></i>
                     </div>
                   </button>
@@ -647,7 +647,7 @@ export default function ContactPage() {
                       {item.link && (
                         <Link
                           to={item.link.to}
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-500 hover:text-violet-600 transition-colors"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand dark:text-brand-dark hover:text-brand-hover dark:hover:text-brand-dark-hover transition-colors"
                         >
                           <i className="ri-arrow-right-line text-xs"></i>
                           {item.link.text}
@@ -662,8 +662,8 @@ export default function ContactPage() {
 
           {/* Still need help CTA */}
           <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-4 px-5 py-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 max-w-3xl">
-            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center flex-shrink-0">
-              <i className="ri-customer-service-2-line text-rose-500 text-base"></i>
+            <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/30 flex items-center justify-center flex-shrink-0">
+              <i className="ri-customer-service-2-line text-sky-500 text-base"></i>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">¿No encontraste lo que buscabas?</p>
@@ -684,7 +684,7 @@ export default function ContactPage() {
       <footer className="border-t border-zinc-100 dark:border-zinc-800 py-8 px-4 md:px-6 mt-4">
         <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-brand dark:bg-brand-dark flex items-center justify-center">
               <i className="ri-archive-2-line text-white text-xs"></i>
             </div>
             <span className="font-semibold text-zinc-900 dark:text-white text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Vaultly</span>
@@ -693,7 +693,7 @@ export default function ContactPage() {
           <div className="flex items-center gap-4 text-zinc-400 text-xs">
             <Link to="/privacy" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Privacidad</Link>
             <Link to="/terms" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Términos</Link>
-            <Link to="/contact" className="text-rose-500 font-medium">Contacto</Link>
+            <Link to="/contact" className="text-brand dark:text-brand-dark font-medium">Contacto</Link>
           </div>
         </div>
       </footer>

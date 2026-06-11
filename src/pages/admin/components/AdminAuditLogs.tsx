@@ -7,11 +7,11 @@ const ACTION_COLORS: Record<string, string> = {
   insert:  'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
   update:  'bg-amber-500/15  text-amber-400  border border-amber-500/30',
   edit:    'bg-amber-500/15  text-amber-400  border border-amber-500/30',
-  delete:  'bg-rose-500/15   text-rose-400   border border-rose-500/30',
-  remove:  'bg-rose-500/15   text-rose-400   border border-rose-500/30',
+  delete:  'bg-red-500/15   text-red-400   border border-red-500/30',
+  remove:  'bg-red-500/15   text-red-400   border border-red-500/30',
   login:   'bg-sky-500/15    text-sky-400    border border-sky-500/30',
   logout:  'bg-zinc-500/15   text-zinc-400   border border-zinc-500/30',
-  approve: 'bg-violet-500/15 text-violet-400 border border-violet-500/30',
+  approve: 'bg-brand/15 text-brand dark:text-brand-dark border border-brand/30',
   reject:  'bg-orange-500/15 text-orange-400 border border-orange-500/30',
 };
 
@@ -180,7 +180,7 @@ export default function AdminAuditLogs() {
             <i className="ri-equalizer-3-line text-sm"></i>
             Filtros
             {activeFilterCount > 0 && (
-              <span className="w-5 h-5 flex items-center justify-center rounded-full bg-violet-500 text-white text-xs font-bold">
+              <span className="w-5 h-5 flex items-center justify-center rounded-full bg-brand dark:bg-brand-dark text-white text-xs font-bold">
                 {activeFilterCount}
               </span>
             )}
@@ -327,7 +327,7 @@ export default function AdminAuditLogs() {
 
                 {/* Actor */}
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 flex items-center justify-center rounded-full bg-gradient-to-br from-violet-500/30 to-rose-500/30 flex-shrink-0">
+                  <div className="w-6 h-6 flex items-center justify-center rounded-full bg-brand/20 dark:bg-brand-dark/25 flex-shrink-0">
                     <i className="ri-user-line text-xs text-zinc-300"></i>
                   </div>
                   <span className="text-sm text-zinc-300 truncate font-mono">

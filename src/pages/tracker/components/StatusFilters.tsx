@@ -26,7 +26,7 @@ const STATUS_ACTIVE_STYLES: Record<string, string> = {
   in_progress: 'bg-amber-500 text-white',
   pending:     'bg-zinc-500 text-white',
   completed:   'bg-emerald-500 text-white',
-  dropped:     'bg-rose-500 text-white',
+  dropped:     'bg-red-500 text-white',
 };
 
 export default function StatusFilters({

@@ -8,7 +8,7 @@ const STATUS_BADGE: Record<TrackerStatus, { label: string; cls: string }> = {
   pending: { label: 'Pendiente', cls: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500' },
   in_progress: { label: 'En progreso', cls: 'bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400' },
   completed: { label: 'Completado', cls: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400' },
-  dropped: { label: 'Abandonado', cls: 'bg-rose-100 dark:bg-rose-950/40 text-rose-500' },
+  dropped: { label: 'Abandonado', cls: 'bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400' },
 };
 
 interface Props {

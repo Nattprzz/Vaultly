@@ -13,6 +13,16 @@ export interface AuditLog {
   actor_username?: string;
 }
 
+interface AuditLogRow {
+  id: string;
+  user_id: string | null;
+  action: string;
+  entity: string;
+  entity_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
 export interface AuditFilters {
   action: string;
   entity: string;
@@ -75,7 +85,7 @@ export function useAdminAuditLogs() {
 
       if (filters.action) query = query.eq('action', filters.action);
       if (filters.entity) query = query.eq('entity', filters.entity);
-      if (filters.actor_id) query = query.eq('actor_id', filters.actor_id);
+      if (filters.actor_id) query = query.eq('user_id', filters.actor_id);
       if (filters.dateFrom) query = query.gte('created_at', filters.dateFrom);
       if (filters.dateTo) {
         const end = new Date(filters.dateTo);
@@ -87,7 +97,8 @@ export function useAdminAuditLogs() {
       if (error) throw error;
 
       // Enrich with profile data
-      const actorIds = [...new Set((data ?? []).map((l) => l.actor_id).filter(Boolean))] as string[];
+      const rows = (data ?? []) as AuditLogRow[];
+      const actorIds = [...new Set(rows.map((l) => l.user_id).filter(Boolean))] as string[];
       let profileMap: Record<string, { email: string; username: string }> = {};
       if (actorIds.length > 0) {
         const { data: profiles } = await supabase
@@ -101,10 +112,16 @@ export function useAdminAuditLogs() {
         }
       }
 
-      const enriched: AuditLog[] = (data ?? []).map((log) => ({
-        ...log,
-        actor_email: profileMap[log.actor_id]?.email ?? '',
-        actor_username: profileMap[log.actor_id]?.username ?? (log.actor_id ? log.actor_id.slice(0, 8) : 'Sistema'),
+      const enriched: AuditLog[] = rows.map((log) => ({
+        id: log.id,
+        actor_id: log.user_id,
+        action: log.action,
+        entity: log.entity,
+        entity_id: log.entity_id,
+        payload: log.metadata ?? {},
+        created_at: log.created_at,
+        actor_email: log.user_id ? profileMap[log.user_id]?.email ?? '' : '',
+        actor_username: log.user_id ? profileMap[log.user_id]?.username ?? log.user_id.slice(0, 8) : 'Sistema',
       }));
 
       setLogs(enriched);

@@ -43,14 +43,14 @@ export default function ShareModal({ username, displayName, profileUrl, onClose 
         <div className="p-6 flex flex-col gap-5">
           {/* Profile preview card */}
           <div className="flex items-center gap-4 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-brand dark:bg-brand-dark flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
               {displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-zinc-900 dark:text-white">{displayName}</p>
               <p className="text-xs text-zinc-500">@{username} · Vaultly</p>
             </div>
-            <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-rose-500 flex-shrink-0">
+            <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-brand dark:bg-brand-dark flex-shrink-0">
               <i className="ri-archive-2-line text-white text-sm"></i>
             </div>
           </div>
@@ -93,9 +93,9 @@ export default function ShareModal({ username, displayName, profileUrl, onClose 
           </div>
 
           {/* Tracker share note */}
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900">
-            <i className="ri-information-line text-violet-500 text-sm mt-0.5 flex-shrink-0"></i>
-            <p className="text-xs text-violet-700 dark:text-violet-400">
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-brand/10 dark:bg-brand-dark/15 border border-brand/20 dark:border-brand-dark/25">
+            <i className="ri-information-line text-brand dark:text-brand-dark text-sm mt-0.5 flex-shrink-0"></i>
+            <p className="text-xs text-brand dark:text-brand-dark">
               Quien visite tu perfil podrá ver tu tracker completo, estadísticas y reseñas públicas. Puedes cambiar la visibilidad en <strong>Configuración → Privacidad</strong>.
             </p>
           </div>

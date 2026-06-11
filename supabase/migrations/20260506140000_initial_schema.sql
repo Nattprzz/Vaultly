@@ -40,6 +40,7 @@ create table if not exists public.profiles (
   is_public boolean not null default true,
   show_ratings boolean not null default true,
   show_reviews boolean not null default true,
+  show_item_status boolean not null default true,
   share_tracker boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

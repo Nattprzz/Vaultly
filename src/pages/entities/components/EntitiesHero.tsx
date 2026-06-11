@@ -43,7 +43,7 @@ export default function EntitiesHero({ search, onSearchChange, totalCount }: Pro
           backgroundSize: '40px 40px',
         }}
       />
-      <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-rose-500/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-brand/10 blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
 
       <div className="relative max-w-screen-xl mx-auto px-4 md:px-6">
@@ -64,10 +64,10 @@ export default function EntitiesHero({ search, onSearchChange, totalCount }: Pro
               ref={badgeRef as React.RefObject<HTMLDivElement>}
               className="sr-item flex items-center gap-3 mb-3"
             >
-              <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-500/20">
-                <i className="ri-user-star-line text-rose-400 text-lg"></i>
+              <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-brand/15">
+                <i className="ri-user-star-line text-brand dark:text-brand-dark text-lg"></i>
               </div>
-              <span className="text-xs font-semibold text-rose-400 uppercase tracking-widest">Directorio</span>
+              <span className="text-xs font-semibold text-brand dark:text-brand-dark uppercase tracking-widest">Directorio</span>
             </div>
             <h1
               ref={titleRef as React.RefObject<HTMLHeadingElement>}
@@ -113,7 +113,7 @@ export default function EntitiesHero({ search, onSearchChange, totalCount }: Pro
           className="sr-item mt-8 max-w-2xl"
         >
           <div
-            className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus-within:border-rose-400/50 focus-within:bg-white/8 transition-all cursor-text"
+            className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus-within:border-brand/50 dark:focus-within:border-brand-dark/50 focus-within:bg-white/8 transition-all cursor-text"
             onClick={() => inputRef.current?.focus()}
           >
             <i className="ri-search-line text-zinc-400 text-lg flex-shrink-0"></i>

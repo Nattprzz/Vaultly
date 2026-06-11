@@ -9,13 +9,13 @@ interface Props {
 
 const ROLE_COLORS: Record<string, { bg: string; text: string; icon: string; stroke: string }> = {
   actor: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', icon: 'ri-user-smile-line', stroke: '#f59e0b' },
-  actriz: { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-700 dark:text-rose-400', icon: 'ri-user-heart-line', stroke: '#f43f5e' },
-  'actor/actriz': { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-700 dark:text-rose-400', icon: 'ri-user-heart-line', stroke: '#f43f5e' },
+  actriz: { bg: 'bg-teal-100 dark:bg-teal-900/30', text: 'text-teal-700 dark:text-teal-400', icon: 'ri-user-heart-line', stroke: '#14b8a6' },
+  'actor/actriz': { bg: 'bg-teal-100 dark:bg-teal-900/30', text: 'text-teal-700 dark:text-teal-400', icon: 'ri-user-heart-line', stroke: '#14b8a6' },
   director: { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-400', icon: 'ri-movie-2-line', stroke: '#f97316' },
   autor: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', icon: 'ri-quill-pen-line', stroke: '#10b981' },
   desarrollador: { bg: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-700 dark:text-cyan-400', icon: 'ri-gamepad-line', stroke: '#06b6d4' },
-  publisher: { bg: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-700 dark:text-violet-400', icon: 'ri-building-2-line', stroke: '#8b5cf6' },
-  artista: { bg: 'bg-pink-100 dark:bg-pink-900/30', text: 'text-pink-700 dark:text-pink-400', icon: 'ri-music-2-line', stroke: '#ec4899' },
+  publisher: { bg: 'bg-slate-100 dark:bg-slate-800/60', text: 'text-slate-700 dark:text-slate-400', icon: 'ri-building-2-line', stroke: '#64748b' },
+  artista: { bg: 'bg-sky-100 dark:bg-sky-900/30', text: 'text-sky-700 dark:text-sky-400', icon: 'ri-music-2-line', stroke: '#0ea5e9' },
 };
 
 function getRoleStyle(role: string) {
@@ -203,7 +203,7 @@ function SparklineSection({ works, stroke, compact = false }: { works: Person['w
                 <i className="ri-arrow-up-line text-xs"></i>+{trend.toFixed(1)}
               </span>
             ) : trend < 0 ? (
-              <span className="text-xs font-semibold text-rose-500 flex items-center gap-0.5">
+              <span className="text-xs font-semibold text-brand dark:text-brand-dark flex items-center gap-0.5">
                 <i className="ri-arrow-down-line text-xs"></i>{trend.toFixed(1)}
               </span>
             ) : (
@@ -280,7 +280,7 @@ function EntityGridCard({ entity }: { entity: Person }) {
       <div className="p-4 flex-1 flex flex-col gap-2">
         <div>
           <h3
-            className="font-bold text-zinc-900 dark:text-white text-sm leading-tight group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors line-clamp-1"
+            className="font-bold text-zinc-900 dark:text-white text-sm leading-tight group-hover:text-brand dark:group-hover:text-brand-dark transition-colors line-clamp-1"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
             {entity.name}
@@ -349,7 +349,7 @@ function EntityListRow({ entity }: { entity: Person }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <h3
-            className="font-bold text-zinc-900 dark:text-white text-sm group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors"
+            className="font-bold text-zinc-900 dark:text-white text-sm group-hover:text-brand dark:group-hover:text-brand-dark transition-colors"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
             {entity.name}

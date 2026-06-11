@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { type ReportStatus } from '@/mocks/admin';
+import { type ReportStatus } from '@/types/admin';
 import { edgeFunctionUrl } from '@/lib/edgeFunctions';
 import { supabase } from '@/lib/supabase';
+import { auditLog } from '@/lib/audit';
 
 const EDGE_URL = edgeFunctionUrl('item-reports');
 const STORAGE_KEY = 'vaultly_admin_reports_seen';
@@ -104,6 +105,8 @@ export function useAdminReports(): UseAdminReportsReturn {
   }, [reports]);
 
   const resolveReport = useCallback(async (id: string, status: ReportStatus, note?: string) => {
+    const target = reports.find(report => report.id === id);
+
     // Optimistic update
     setReports(prev => prev.map(r =>
       r.id === id
@@ -123,12 +126,21 @@ export function useAdminReports(): UseAdminReportsReturn {
         body: JSON.stringify({ id, status, resolved_note: note }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await auditLog('update', 'item_reports', id, {
+        status,
+        resolved_note: note ?? null,
+        item_id: target?.item_id ?? null,
+        item_slug: target?.item_slug ?? null,
+        item_title: target?.item_title ?? null,
+        item_category: target?.item_category ?? null,
+        reason: target?.reason ?? null,
+      });
     } catch (err) {
       // Revert on failure
       await fetchReports();
       setError(String(err));
     }
-  }, [fetchReports]);
+  }, [fetchReports, reports]);
 
   return {
     reports,

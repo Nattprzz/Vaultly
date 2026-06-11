@@ -2,6 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens ─────────────────────────────────────────────────────────
+   Semantic CSS custom properties layered on top of the existing Tailwind
+   zinc-based palette (kept as-is for backwards compatibility — these vars
+   exist so new/refactored UI has named, theme-aware values to reach for
+   instead of sprinkling `dark:` variants everywhere, and so the category
+   accent colors below can be consumed from plain CSS too).
+   ────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Brand — deep blue is the ONE interface color; categories are accents only */
+    --brand-accent: #2563eb;
+    --brand-accent-hover: #1d4ed8;
+    --brand-accent-soft: rgba(37, 99, 235, 0.12);
+
+    /* Surfaces — light mode */
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --surface-sunken: #f1f5f9;
+    --surface-overlay: rgba(15, 23, 42, 0.5);
+
+    /* Borders */
+    --border: #e2e8f0;
+    --border-subtle: #eef2f7;
+    --border-strong: #cbd5e1;
+
+    /* Text */
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-tertiary: #94a3b8;
+    --text-on-accent: #ffffff;
+
+    /* States */
+    --state-success: #16a34a;
+    --state-warning: #ea580c;
+    --state-danger: #dc2626;
+    --state-info: #2563eb;
+
+    /* Shape & elevation */
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.25rem;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 16px -4px rgba(15, 23, 42, 0.08);
+    --shadow-lg: 0 12px 32px -8px rgba(15, 23, 42, 0.12);
+
+    /* Category accents — overwritten at runtime by CategoryColorsProvider
+       (kept here as defaults so first paint never shows unstyled colors).
+       These are pure accents (badges/chips/icons/active states) — they never
+       define page backgrounds or the interface's primary color (that's brand blue). */
+    --cat-videojuegos: #3b82f6;
+    --cat-peliculas: #f97316;
+    --cat-series: #8b5cf6;
+    --cat-libros: #fbbf24;
+    --cat-conciertos: #ec4899;
+  }
+
+  .dark {
+    /* Brand */
+    --brand-accent: #3b82f6;
+    --brand-accent-hover: #60a5fa;
+    --brand-accent-soft: rgba(59, 130, 246, 0.16);
+
+    /* Surfaces — deep, slightly blue-tinted black (never pure gray/zinc) */
+    --bg: #0b0f14;
+    --surface: #111827;
+    --surface-raised: #161f2e;
+    --surface-sunken: #0b0f14;
+    --surface-overlay: rgba(0, 0, 0, 0.6);
+
+    --border: #334155;
+    --border-subtle: #1f2937;
+    --border-strong: #475569;
+
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-tertiary: #64748b;
+    --text-on-accent: #ffffff;
+
+    --state-success: #22c55e;
+    --state-warning: #f97316;
+    --state-danger: #ef4444;
+    --state-info: #3b82f6;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 20px -4px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 16px 40px -8px rgba(0, 0, 0, 0.55);
+  }
+}
+
 @layer utilities {
   @keyframes fadeIn {
     from { opacity: 0; }

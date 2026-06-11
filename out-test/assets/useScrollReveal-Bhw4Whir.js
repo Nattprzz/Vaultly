@@ -1,0 +1,2 @@
+import{a as e}from"./chunk-BNv3lrIs.js";import{h as t}from"./index-CggXqzVX.js";var n=e(t(),1);function r(e={}){let t=(0,n.useRef)(null),{threshold:r=.1,rootMargin:i=`0px 0px -40px 0px`,once:a=!0}=e;return(0,n.useEffect)(()=>{let e=t.current;if(!e)return;let n=new IntersectionObserver(([t])=>{t.isIntersecting?(e.classList.add(`sr-visible`),a&&n.disconnect()):a||e.classList.remove(`sr-visible`)},{threshold:r,rootMargin:i});return n.observe(e),()=>n.disconnect()},[r,i,a]),t}export{r as t};
+//# sourceMappingURL=useScrollReveal-Bhw4Whir.js.map

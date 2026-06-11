@@ -21,7 +21,7 @@ export default function ItemCommunityStats({ communityRating, totalRatings, tota
 
   return (
     <div className="bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl p-5 border border-zinc-100 dark:border-zinc-800">
-      <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-4">Estadísticas de la comunidad</h3>
+      <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-4">Estadísticas públicas</h3>
 
       <div className="flex gap-6 items-start">
         {/* Big rating */}

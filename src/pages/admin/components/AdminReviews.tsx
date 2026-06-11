@@ -1,20 +1,85 @@
-import { useState } from 'react';
-import { ADMIN_REVIEWS, AdminReview } from '@/mocks/admin';
-import { CATEGORIES } from '@/mocks/catalog';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useCategories } from '@/hooks/useCategoryColors';
+
+interface AdminReview {
+  id: string;
+  user: string;
+  initials: string;
+  userAccent: string;
+  item: string;
+  category: string;
+  rating: number;
+  body: string;
+  status: 'approved' | 'pending' | 'rejected';
+  date: string;
+  reports: number;
+}
 
 const STATUS_BADGE: Record<AdminReview['status'], string> = {
   approved: 'bg-emerald-500/20 text-emerald-400',
   pending:  'bg-amber-500/20 text-amber-400',
-  rejected: 'bg-rose-500/20 text-rose-400',
+  rejected: 'bg-red-500/20 text-red-400',
 };
 const STATUS_LABEL: Record<AdminReview['status'], string> = {
   approved: 'Aprobada', pending: 'Pendiente', rejected: 'Rechazada',
 };
 
+const ACCENTS = ['#8b5cf6', '#f43f5e', '#10b981', '#f59e0b', '#0ea5e9', '#ec4899', '#6366f1', '#14b8a6'];
+
 export default function AdminReviews() {
-  const [reviews, setReviews] = useState(ADMIN_REVIEWS);
+  const CATEGORIES = useCategories();
+  const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [statusFilter, setStatusFilter] = useState<AdminReview['status'] | 'all'>('all');
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from('user_item_tracking')
+        .select('id, user_id, item_slug, category, rating, review, updated_at')
+        .not('review', 'is', null)
+        .neq('review', '')
+        .not('rating', 'is', null)
+        .order('updated_at', { ascending: false })
+        .limit(100);
+
+      if (!data?.length) {
+        setReviews([]);
+        return;
+      }
+
+      const userIds = [...new Set(data.map(row => row.user_id).filter(Boolean))];
+      const slugs = [...new Set(data.map(row => row.item_slug).filter(Boolean))];
+      const [{ data: profiles }, { data: catalogItems }] = await Promise.all([
+        supabase.from('profiles').select('id, display_name, username, initials').in('id', userIds),
+        supabase.from('catalog_items').select('slug, title').in('slug', slugs),
+      ]);
+
+      const profilesById = new Map((profiles ?? []).map(profile => [profile.id, profile]));
+      const titlesBySlug = new Map((catalogItems ?? []).map(item => [item.slug, item.title]));
+
+      setReviews(data.map((row, index) => {
+        const profile = profilesById.get(row.user_id);
+        const user = profile?.display_name ?? profile?.username ?? 'Usuario';
+        return {
+          id: row.id,
+          user,
+          initials: profile?.initials ?? user.slice(0, 2).toUpperCase(),
+          userAccent: ACCENTS[index % ACCENTS.length],
+          item: titlesBySlug.get(row.item_slug) ?? row.item_slug.replace(/-/g, ' '),
+          category: row.category,
+          rating: Number(row.rating),
+          body: row.review,
+          status: 'approved',
+          date: new Date(row.updated_at).toLocaleDateString('es-ES'),
+          reports: 0,
+        };
+      }));
+    };
+
+    void load();
+  }, []);
 
   const filtered = reviews.filter(r => {
     const matchSearch = r.user.toLowerCase().includes(search.toLowerCase()) ||
@@ -36,13 +101,12 @@ export default function AdminReviews() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Alert for pending */}
       {pending > 0 && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
           <i className="ri-error-warning-line text-amber-400 text-xl flex-shrink-0"></i>
           <div>
-            <p className="text-sm font-semibold text-amber-300">{pending} reseña{pending > 1 ? 's' : ''} pendiente{pending > 1 ? 's' : ''} de moderación</p>
-            <p className="text-xs text-amber-500/70">Revisa y aprueba o rechaza las reseñas pendientes.</p>
+            <p className="text-sm font-semibold text-amber-300">{pending} resena{pending > 1 ? 's' : ''} pendiente{pending > 1 ? 's' : ''} de moderacion</p>
+            <p className="text-xs text-amber-500/70">Revisa y aprueba o rechaza las resenas pendientes.</p>
           </div>
           <button
             onClick={() => setStatusFilter('pending')}
@@ -53,15 +117,14 @@ export default function AdminReviews() {
         </div>
       )}
 
-      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por usuario, ítem o contenido..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30"
+            placeholder="Buscar por usuario, item o contenido..."
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand/30"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -84,7 +147,6 @@ export default function AdminReviews() {
         </div>
       </div>
 
-      {/* Reviews list */}
       <div className="flex flex-col gap-3">
         {filtered.map(review => {
           const cat = CATEGORIES.find(c => c.id === review.category);
@@ -95,11 +157,10 @@ export default function AdminReviews() {
                 review.status === 'pending'
                   ? 'border-amber-500/30'
                   : review.status === 'rejected'
-                  ? 'border-rose-500/20'
+                  ? 'border-red-500/20'
                   : 'border-zinc-800'
               }`}
             >
-              {/* Header */}
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3">
                   <div
@@ -123,7 +184,7 @@ export default function AdminReviews() {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {review.reports > 0 && (
-                    <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-500/20 text-rose-400 text-xs font-semibold">
+                    <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold">
                       <i className="ri-flag-line"></i>
                       {review.reports} reportes
                     </span>
@@ -139,14 +200,12 @@ export default function AdminReviews() {
                 </div>
               </div>
 
-              {/* Body */}
               <p className={`text-sm leading-relaxed mb-4 ${
                 review.status === 'rejected' ? 'text-zinc-600 line-through' : 'text-zinc-400'
               }`}>
                 &ldquo;{review.body}&rdquo;
               </p>
 
-              {/* Footer */}
               <div className="flex items-center justify-between">
                 <span className="text-xs text-zinc-600">{review.date}</span>
                 <div className="flex items-center gap-2">
@@ -162,7 +221,7 @@ export default function AdminReviews() {
                   {review.status !== 'rejected' && (
                     <button
                       onClick={() => updateStatus(review.id, 'rejected')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-400 text-xs font-semibold hover:bg-rose-500/30 transition-colors cursor-pointer whitespace-nowrap"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 transition-colors cursor-pointer whitespace-nowrap"
                     >
                       <i className="ri-close-circle-line"></i>
                       Rechazar
@@ -170,7 +229,7 @@ export default function AdminReviews() {
                   )}
                   <button
                     onClick={() => deleteReview(review.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-700 hover:text-rose-400 transition-colors cursor-pointer"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-700 hover:text-red-400 transition-colors cursor-pointer"
                   >
                     <i className="ri-delete-bin-line text-sm"></i>
                   </button>
@@ -183,7 +242,7 @@ export default function AdminReviews() {
         {filtered.length === 0 && (
           <div className="py-16 text-center text-zinc-600">
             <i className="ri-quill-pen-line text-3xl mb-2 block"></i>
-            <p className="text-sm">No se encontraron reseñas</p>
+            <p className="text-sm">No se encontraron resenas</p>
           </div>
         )}
       </div>

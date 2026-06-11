@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { edgeFunctionUrl } from '@/lib/edgeFunctions';
+import { supabase } from '@/lib/supabase';
+import { SUPABASE_ANON_KEY } from '@/lib/supabaseConfig';
+import type { CatalogItemMetadata } from '@/types/metadata';
 
 export interface CatalogItemFull {
   id: string;
@@ -11,7 +14,7 @@ export interface CatalogItemFull {
   description: string | null;
   image_url: string | null;
   release_date: string | null;
-  metadata: Record<string, unknown>;
+  metadata: CatalogItemMetadata;
   created_at?: string;
   updated_at?: string;
 }
@@ -30,7 +33,7 @@ const EDGE_FN_URL = edgeFunctionUrl('catalog-item');
 // Session-level in-memory cache
 const memCache = new Map<string, { item: CatalogItemFull; source: ItemSource }>();
 
-export function useCatalogItem(slug: string): UseCatalogItemResult {
+export function useCatalogItem(slug: string, category?: string): UseCatalogItemResult {
   const [item, setItem] = useState<CatalogItemFull | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +59,15 @@ export function useCatalogItem(slug: string): UseCatalogItemResult {
     (async () => {
       try {
         const params = new URLSearchParams({ slug });
-        const res = await fetch(`${EDGE_FN_URL}?${params}`);
+        if (category) params.set('category', category);
+        const { data: sessionData } = await supabase.auth.getSession();
+        const bearerToken = sessionData.session?.access_token ?? SUPABASE_ANON_KEY;
+        const res = await fetch(`${EDGE_FN_URL}?${params}`, {
+          headers: {
+            Authorization: `Bearer ${bearerToken}`,
+            apikey: SUPABASE_ANON_KEY,
+          },
+        });
 
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
@@ -80,7 +91,7 @@ export function useCatalogItem(slug: string): UseCatalogItemResult {
     })();
 
     return () => { cancelled = true; };
-  }, [slug]);
+  }, [slug, category]);
 
   return { item, loading, error, source };
 }

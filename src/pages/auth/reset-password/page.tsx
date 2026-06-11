@@ -87,14 +87,14 @@ export default function ResetPasswordPage() {
 
   const strength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
   const strengthLabel = ['', 'Débil', 'Media', 'Fuerte'];
-  const strengthColor = ['', 'bg-rose-400', 'bg-amber-400', 'bg-emerald-400'];
+  const strengthColor = ['', 'bg-red-400', 'bg-amber-400', 'bg-emerald-400'];
 
   const inputBase = 'w-full py-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none transition-colors';
-  const inputNormal = 'border-zinc-200 dark:border-zinc-700 focus:border-violet-400 dark:focus:border-violet-500';
-  const inputErr = 'border-rose-400 dark:border-rose-500 focus:border-rose-400 dark:focus:border-rose-500 bg-rose-50/40 dark:bg-rose-950/10';
+  const inputNormal = 'border-zinc-200 dark:border-zinc-700 focus:border-brand dark:focus:border-brand-dark';
+  const inputErr = 'border-red-400 dark:border-red-500 focus:border-red-400 dark:focus:border-red-500 bg-red-50/40 dark:bg-red-950/10';
 
   return (
-    <div className="min-h-screen flex bg-white dark:bg-zinc-950">
+    <div className="min-h-screen flex bg-[var(--surface)] dark:bg-[var(--bg)]">
       <SeoHead
         title="Restablecer contraseña — Vaultly"
         description="Establece una nueva contraseña para tu cuenta de Vaultly."
@@ -104,15 +104,18 @@ export default function ResetPasswordPage() {
 
       {/* Left panel */}
       <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden">
-        <img
-          src="https://readdy.ai/api/search-image?query=abstract%20dark%20cinematic%20collage%20of%20film%20reels%20books%20vinyl%20records%20game%20controllers%20and%20anime%20art%20arranged%20in%20a%20beautiful%20grid%20pattern%20with%20deep%20violet%20and%20rose%20gradient%20overlay%20on%20dark%20background%20moody%20atmospheric%20editorial%20photography%20style&width=800&height=1000&seq=auth-bg-01&orientation=portrait"
-          alt="Vaultly background"
-          className="absolute inset-0 w-full h-full object-cover object-top"
+        <div className="absolute inset-0 bg-zinc-950" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_30%_20%,rgba(59,130,246,0.07),transparent)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_70%_80%,rgba(139,92,246,0.06),transparent)]" />
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,0.5) 39px,rgba(255,255,255,0.5) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,0.5) 39px,rgba(255,255,255,0.5) 40px)',
+          }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/80 via-violet-950/60 to-zinc-950/90"></div>
         <div className="relative z-10 flex flex-col h-full p-10">
           <Link to="/" className="flex items-center gap-2.5 cursor-pointer w-fit">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-brand dark:bg-brand-dark flex items-center justify-center">
               <i className="ri-archive-2-line text-white"></i>
             </div>
             <span className="font-bold text-xl text-white tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -122,12 +125,12 @@ export default function ResetPasswordPage() {
 
           <div className="flex-1 flex flex-col justify-center gap-6">
             <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-              <i className="ri-shield-keyhole-line text-3xl text-violet-300"></i>
+              <i className="ri-shield-keyhole-line text-3xl text-blue-300"></i>
             </div>
             <div>
               <h2 className="text-3xl font-bold text-white leading-tight mb-3" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 Nueva contraseña,<br />
-                <span className="bg-gradient-to-r from-violet-400 to-rose-400 bg-clip-text text-transparent">
+                <span className="text-brand dark:text-brand-dark">
                   acceso seguro.
                 </span>
               </h2>
@@ -144,7 +147,7 @@ export default function ResetPasswordPage() {
               ].map(tip => (
                 <div key={tip.text} className="flex items-center gap-3">
                   <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                    <i className={`${tip.icon} text-violet-300 text-sm`}></i>
+                    <i className={`${tip.icon} text-blue-300 text-sm`}></i>
                   </div>
                   <span className="text-zinc-400 text-sm">{tip.text}</span>
                 </div>
@@ -153,7 +156,7 @@ export default function ResetPasswordPage() {
           </div>
 
           <p className="text-zinc-600 text-xs">
-            © 2026 Vaultly · <a href="#" rel="nofollow" className="hover:text-zinc-400 transition-colors">Privacidad</a> · <a href="#" rel="nofollow" className="hover:text-zinc-400 transition-colors">Términos</a>
+            © 2026 Vaultly · <Link to="/privacy" rel="nofollow" className="hover:text-zinc-400 transition-colors">Privacidad</Link> · <Link to="/terms" rel="nofollow" className="hover:text-zinc-400 transition-colors">Términos</Link>
           </p>
         </div>
       </div>
@@ -163,7 +166,7 @@ export default function ResetPasswordPage() {
         {/* Top bar */}
         <div className="flex items-center justify-between px-6 py-4">
           <Link to="/" className="flex items-center gap-2 cursor-pointer lg:invisible">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-brand dark:bg-brand-dark flex items-center justify-center">
               <i className="ri-archive-2-line text-white text-xs"></i>
             </div>
             <span className="font-bold text-zinc-900 dark:text-white text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Vaultly</span>
@@ -181,7 +184,7 @@ export default function ResetPasswordPage() {
           {/* Loading state */}
           {pageState === 'loading' && (
             <div className="flex flex-col items-center gap-4 text-center">
-              <div className="w-12 h-12 rounded-full border-2 border-violet-200 dark:border-violet-800 border-t-violet-500 animate-spin"></div>
+              <div className="w-12 h-12 rounded-full border-2 border-blue-200 dark:border-blue-900 border-t-brand dark:border-t-brand-dark animate-spin"></div>
               <p className="text-sm text-zinc-500">Verificando enlace...</p>
             </div>
           )}
@@ -190,8 +193,8 @@ export default function ResetPasswordPage() {
           {pageState === 'expired' && (
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center gap-4 text-center">
-                <div className="w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center">
-                  <i className="ri-time-line text-3xl text-rose-500"></i>
+                <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center">
+                  <i className="ri-time-line text-3xl text-red-500"></i>
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-zinc-900 dark:text-white mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -205,7 +208,7 @@ export default function ResetPasswordPage() {
               <div className="flex flex-col gap-3">
                 <Link
                   to="/auth"
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-500 to-rose-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-brand dark:bg-brand-dark text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
                 >
                   <i className="ri-refresh-line"></i>
                   Solicitar nuevo enlace
@@ -239,7 +242,7 @@ export default function ResetPasswordPage() {
               <button
                 type="button"
                 onClick={() => navigate('/dashboard')}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-500 to-rose-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-brand dark:bg-brand-dark text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
               >
                 <i className="ri-dashboard-line"></i>
                 Ir a mi dashboard
@@ -253,8 +256,8 @@ export default function ResetPasswordPage() {
               {/* Header */}
               <div className="mb-8">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-950/40 flex items-center justify-center">
-                    <i className="ri-shield-keyhole-line text-violet-500 text-xs"></i>
+                  <div className="w-6 h-6 rounded-full bg-brand/10 dark:bg-brand-dark/15 flex items-center justify-center">
+                    <i className="ri-shield-keyhole-line text-brand dark:text-brand-dark text-xs"></i>
                   </div>
                   <span className="text-xs text-zinc-500">Restablecimiento de contraseña</span>
                 </div>
@@ -270,10 +273,10 @@ export default function ResetPasswordPage() {
                 {/* New password */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                    Nueva contraseña <span className="text-rose-500">*</span>
+                    Nueva contraseña <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${touched.password && passwordError ? 'text-rose-400' : 'text-zinc-400'}`}>
+                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${touched.password && passwordError ? 'text-red-400' : 'text-zinc-400'}`}>
                       <i className="ri-lock-line text-sm"></i>
                     </div>
                     <input
@@ -295,7 +298,7 @@ export default function ResetPasswordPage() {
                     </button>
                   </div>
                   {touched.password && passwordError && (
-                    <p className="flex items-center gap-1.5 text-xs text-rose-500">
+                    <p className="flex items-center gap-1.5 text-xs text-red-500">
                       <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                       {passwordError}
                     </p>
@@ -310,7 +313,7 @@ export default function ResetPasswordPage() {
                           />
                         ))}
                       </div>
-                      <span className={`text-xs font-medium ${strength === 1 ? 'text-rose-400' : strength === 2 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                      <span className={`text-xs font-medium ${strength === 1 ? 'text-red-400' : strength === 2 ? 'text-amber-400' : 'text-emerald-400'}`}>
                         {strengthLabel[strength]}
                       </span>
                     </div>
@@ -320,10 +323,10 @@ export default function ResetPasswordPage() {
                 {/* Confirm password */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                    Confirmar contraseña <span className="text-rose-500">*</span>
+                    Confirmar contraseña <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${touched.confirm && confirmError ? 'text-rose-400' : 'text-zinc-400'}`}>
+                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${touched.confirm && confirmError ? 'text-red-400' : 'text-zinc-400'}`}>
                       <i className="ri-lock-2-line text-sm"></i>
                     </div>
                     <input
@@ -344,7 +347,7 @@ export default function ResetPasswordPage() {
                     </button>
                   </div>
                   {touched.confirm && confirmError && (
-                    <p className="flex items-center gap-1.5 text-xs text-rose-500">
+                    <p className="flex items-center gap-1.5 text-xs text-red-500">
                       <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                       {confirmError}
                     </p>
@@ -358,16 +361,16 @@ export default function ResetPasswordPage() {
                 </div>
 
                 {serverError && (
-                  <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800">
-                    <i className="ri-error-warning-line text-rose-500 text-sm flex-shrink-0"></i>
-                    <p className="text-xs text-rose-600 dark:text-rose-400">{serverError}</p>
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                    <i className="ri-error-warning-line text-red-500 text-sm flex-shrink-0"></i>
+                    <p className="text-xs text-red-600 dark:text-red-400">{serverError}</p>
                   </div>
                 )}
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-500 to-rose-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-brand dark:bg-brand-dark text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
@@ -385,7 +388,7 @@ export default function ResetPasswordPage() {
                 <p className="text-center text-sm text-zinc-500">
                   <Link
                     to="/auth"
-                    className="text-violet-500 font-semibold hover:text-violet-600 transition-colors cursor-pointer"
+                    className="text-brand dark:text-brand-dark font-semibold hover:text-brand-hover dark:hover:text-brand-dark-hover transition-colors cursor-pointer"
                   >
                     Volver al inicio de sesión
                   </Link>

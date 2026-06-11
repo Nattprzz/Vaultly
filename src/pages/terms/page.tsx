@@ -27,7 +27,7 @@ const SECTIONS = [
     content: [
       {
         subtitle: '¿Qué es Vaultly?',
-        text: 'Vaultly es una plataforma digital que permite a los usuarios registrar, organizar y compartir su consumo cultural: películas, series, libros, videojuegos, anime, música y más. El servicio incluye un tracker personal, estadísticas de consumo, reseñas, listas y un perfil público opcional.',
+        text: 'Vaultly es una plataforma digital que permite a los usuarios registrar, organizar y compartir su consumo cultural: películas, series, libros, videojuegos, conciertos y más. El servicio incluye un tracker personal, estadísticas de consumo, reseñas, listas y un perfil público opcional.',
       },
       {
         subtitle: 'Disponibilidad',
@@ -67,7 +67,7 @@ const SECTIONS = [
     content: [
       {
         subtitle: 'Tu contenido',
-        text: 'Eres el único responsable del contenido que publicas en Vaultly: reseñas, valoraciones, listas, comentarios y cualquier otro material. Al publicar contenido, declaras que tienes los derechos necesarios para hacerlo y que no infringe derechos de terceros.',
+        text: 'Eres el único responsable del contenido que publicas en Vaultly: reseñas, valoraciones, listas, notas y cualquier otro material. Al publicar contenido, declaras que tienes los derechos necesarios para hacerlo y que no infringe derechos de terceros.',
       },
       {
         subtitle: 'Licencia que nos otorgas',
@@ -115,7 +115,7 @@ const SECTIONS = [
       },
       {
         subtitle: 'Interacciones entre usuarios',
-        text: 'Debes tratar a otros usuarios con respeto. El acoso, la intimidación, el spam y cualquier forma de comportamiento abusivo hacia otros miembros de la comunidad están estrictamente prohibidos y pueden resultar en la suspensión o eliminación de tu cuenta.',
+        text: 'Debes tratar a otros usuarios con respeto. El acoso, la intimidación, el spam y cualquier forma de comportamiento abusivo hacia otros usuarios están estrictamente prohibidos y pueden resultar en la suspensión o eliminación de tu cuenta.',
       },
     ],
   },
@@ -197,7 +197,7 @@ export default function TermsPage() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950">
+    <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--bg)]">
       <SeoHead
         title="Términos de Uso — Vaultly"
         description="Lee los Términos de Uso de Vaultly. Conoce tus derechos y obligaciones al usar nuestra plataforma de tracking cultural."
@@ -209,7 +209,7 @@ export default function TermsPage() {
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800">
         <div className="max-w-screen-xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 cursor-pointer">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-brand dark:bg-brand-dark flex items-center justify-center">
               <i className="ri-archive-2-line text-white text-sm"></i>
             </div>
             <span className="font-bold text-zinc-900 dark:text-white text-base" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -257,7 +257,7 @@ export default function TermsPage() {
             </span>
             <Link
               to="/privacy"
-              className="flex items-center gap-1.5 text-violet-500 hover:text-violet-600 transition-colors"
+              className="flex items-center gap-1.5 text-brand hover:text-brand-hover dark:text-brand-dark dark:hover:text-brand-dark-hover transition-colors"
             >
               <i className="ri-shield-check-line"></i>
               Ver Política de Privacidad
@@ -273,9 +273,9 @@ export default function TermsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { icon: 'ri-user-smile-line', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', title: 'Uso personal', desc: 'Vaultly es para uso personal. No uses la plataforma con fines comerciales sin permiso.' },
-              { icon: 'ri-edit-line', color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-950/30', title: 'Tu contenido', desc: 'Eres dueño de tus reseñas y listas. Nos das licencia para mostrarlas en la plataforma.' },
+              { icon: 'ri-edit-line', color: 'text-brand dark:text-brand-dark', bg: 'bg-brand/10 dark:bg-brand-dark/15', title: 'Tu contenido', desc: 'Eres dueño de tus reseñas y listas. Nos das licencia para mostrarlas en la plataforma.' },
               { icon: 'ri-shield-line', color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/30', title: 'Comportamiento', desc: 'Trata a los demás con respeto. El abuso, spam o acoso resulta en suspensión de cuenta.' },
-              { icon: 'ri-close-circle-line', color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-950/30', title: 'Cancelación', desc: 'Puedes eliminar tu cuenta cuando quieras. También podemos suspenderla si incumples los términos.' },
+              { icon: 'ri-close-circle-line', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950/30', title: 'Cancelación', desc: 'Puedes eliminar tu cuenta cuando quieras. También podemos suspenderla si incumples los términos.' },
             ].map((card, i) => (
               <div key={i} className="bg-white dark:bg-zinc-900 rounded-xl p-4 border border-zinc-100 dark:border-zinc-800">
                 <div className={`w-9 h-9 rounded-lg ${card.bg} flex items-center justify-center mb-3`}>
@@ -312,7 +312,7 @@ export default function TermsPage() {
               <p className="text-xs text-zinc-400 mb-3">Documentos relacionados</p>
               <Link
                 to="/privacy"
-                className="flex items-center gap-2 text-xs text-violet-500 hover:text-violet-600 transition-colors py-1"
+                className="flex items-center gap-2 text-xs text-brand hover:text-brand-hover dark:text-brand-dark dark:hover:text-brand-dark-hover transition-colors py-1"
               >
                 <i className="ri-shield-check-line"></i>
                 Política de Privacidad
@@ -341,8 +341,8 @@ export default function TermsPage() {
             ))}
 
             {/* Contact CTA */}
-            <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-rose-50 dark:from-amber-950/20 dark:to-rose-950/20 border border-amber-100 dark:border-amber-900/30 p-8 text-center">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-rose-500 flex items-center justify-center mx-auto mb-4">
+            <div className="rounded-2xl bg-[var(--surface-sunken)] border border-[var(--border)] p-8 text-center">
+              <div className="w-12 h-12 rounded-full bg-brand dark:bg-brand-dark flex items-center justify-center mx-auto mb-4">
                 <i className="ri-question-answer-line text-white text-lg"></i>
               </div>
               <h4 className="text-lg font-bold text-zinc-900 dark:text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -367,7 +367,7 @@ export default function TermsPage() {
       <footer className="border-t border-zinc-100 dark:border-zinc-800 py-8 px-4 md:px-6 mt-4">
         <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-brand dark:bg-brand-dark flex items-center justify-center">
               <i className="ri-archive-2-line text-white text-xs"></i>
             </div>
             <span className="font-semibold text-zinc-900 dark:text-white text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Vaultly</span>

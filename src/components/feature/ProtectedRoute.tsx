@@ -13,9 +13,9 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Props
   // While session is being restored, show a minimal loader
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--surface)] dark:bg-[var(--bg)]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center animate-pulse">
+          <div className="w-10 h-10 rounded-xl bg-brand dark:bg-brand-dark flex items-center justify-center animate-pulse">
             <i className="ri-archive-2-line text-white"></i>
           </div>
           <p className="text-sm text-zinc-400">Cargando...</p>

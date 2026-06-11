@@ -70,7 +70,7 @@ export default function PersonStats({ person }: Props) {
                 </span>
                 <div className="flex-1 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-violet-500 to-rose-500 transition-all duration-500"
+                    className="h-full rounded-full bg-brand dark:bg-brand-dark transition-all duration-500"
                     style={{ width: `${(count / person.works.length) * 100}%` }}
                   />
                 </div>

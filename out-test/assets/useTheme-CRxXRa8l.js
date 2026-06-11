@@ -1,0 +1,2 @@
+import{a as e}from"./chunk-BNv3lrIs.js";import{h as t}from"./index-CggXqzVX.js";var n=e(t(),1),r=`vaultly-theme`;function i(){let[e,t]=(0,n.useState)(()=>localStorage.getItem(r)||(window.matchMedia(`(prefers-color-scheme: dark)`).matches?`dark`:`light`));return(0,n.useEffect)(()=>{let t=document.documentElement;e===`dark`?t.classList.add(`dark`):t.classList.remove(`dark`),localStorage.setItem(r,e)},[e]),{theme:e,toggleTheme:()=>t(e=>e===`dark`?`light`:`dark`)}}export{i as t};
+//# sourceMappingURL=useTheme-CRxXRa8l.js.map

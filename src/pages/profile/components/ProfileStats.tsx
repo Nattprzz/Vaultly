@@ -1,7 +1,8 @@
 import { useTracker } from '@/hooks/useTracker';
-import { CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
 
 export default function ProfileStats() {
+  const CATEGORIES = useCategories();
   const { entries } = useTracker();
   const all = Object.values(entries);
 
@@ -24,7 +25,7 @@ export default function ProfileStats() {
       {/* Global overview */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
         <h3 className="font-bold text-zinc-900 dark:text-white mb-5 flex items-center gap-2">
-          <i className="ri-pie-chart-line text-violet-500"></i>
+          <i className="ri-pie-chart-line text-brand dark:text-brand-dark"></i>
           Resumen global
         </h3>
 
@@ -36,7 +37,7 @@ export default function ProfileStats() {
           </div>
           <div className="h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-violet-500 to-rose-500 transition-all duration-700"
+              className="h-full rounded-full bg-brand dark:bg-brand-dark transition-all duration-700"
               style={{ width: `${completionRate}%` }}
             ></div>
           </div>
@@ -48,7 +49,7 @@ export default function ProfileStats() {
             { label: 'Completados', value: globalCompleted, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', icon: 'ri-checkbox-circle-line' },
             { label: 'En progreso', value: globalInProgress, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/30', icon: 'ri-loader-4-line' },
             { label: 'Pendientes',  value: globalPending,    color: 'text-zinc-500',   bg: 'bg-zinc-100 dark:bg-zinc-800',       icon: 'ri-bookmark-line' },
-            { label: 'Abandonados', value: globalDropped,    color: 'text-rose-500',   bg: 'bg-rose-50 dark:bg-rose-950/30',     icon: 'ri-close-circle-line' },
+            { label: 'Abandonados', value: globalDropped,    color: 'text-red-500',   bg: 'bg-red-50 dark:bg-red-950/30',     icon: 'ri-close-circle-line' },
           ].map(s => (
             <div key={s.label} className={`flex flex-col items-center gap-1.5 py-4 rounded-xl ${s.bg}`}>
               <i className={`${s.icon} ${s.color} text-xl`}></i>
@@ -62,7 +63,7 @@ export default function ProfileStats() {
       {/* Per-category breakdown */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
         <h3 className="font-bold text-zinc-900 dark:text-white mb-5 flex items-center gap-2">
-          <i className="ri-bar-chart-box-line text-rose-500"></i>
+          <i className="ri-bar-chart-box-line text-brand dark:text-brand-dark"></i>
           Por categoría
         </h3>
         <div className="flex flex-col gap-4">
@@ -117,8 +118,8 @@ export default function ProfileStats() {
           <p className="text-xs text-zinc-500">Puntuación media</p>
         </div>
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-5 text-center">
-          <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-950/30 mx-auto mb-3">
-            <i className="ri-quill-pen-line text-violet-500 text-lg"></i>
+          <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-brand/10 dark:bg-brand-dark/15 mx-auto mb-3">
+            <i className="ri-quill-pen-line text-brand dark:text-brand-dark text-lg"></i>
           </div>
           <p className="text-2xl font-black text-zinc-900 dark:text-white mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             {all.filter(e => e.review?.trim()).length}
@@ -136,3 +137,4 @@ export default function ProfileStats() {
     </div>
   );
 }
+

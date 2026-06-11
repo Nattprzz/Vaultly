@@ -20,15 +20,6 @@ const THEME_OPTIONS = [
   },
 ];
 
-const ACCENT_COLORS = [
-  { id: 'violet', label: 'Violeta', color: '#8b5cf6' },
-  { id: 'rose',   label: 'Rosa',   color: '#f43f5e' },
-  { id: 'amber',  label: 'Ámbar',  color: '#f59e0b' },
-  { id: 'emerald',label: 'Verde',  color: '#10b981' },
-  { id: 'sky',    label: 'Azul',   color: '#0ea5e9' },
-  { id: 'zinc',   label: 'Neutro', color: '#71717a' },
-];
-
 const FONT_SIZES = [
   { id: 'sm',   label: 'Pequeño',  sample: 'text-xs' },
   { id: 'base', label: 'Normal',   sample: 'text-sm' },
@@ -38,11 +29,7 @@ const FONT_SIZES = [
 export default function AppearanceSection() {
   const { theme, toggleTheme } = useTheme();
 
-  // Accent color stored in localStorage (cosmetic only for now)
-  const savedAccent = localStorage.getItem('vaultly-accent') ?? 'violet';
   const savedFont = localStorage.getItem('vaultly-font-size') ?? 'base';
-
-  const setAccent = (id: string) => localStorage.setItem('vaultly-accent', id);
   const setFont = (id: string) => localStorage.setItem('vaultly-font-size', id);
 
   return (
@@ -86,28 +73,25 @@ export default function AppearanceSection() {
             );
           })}
         </div>
+        <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-3">
+          Tu preferencia se guarda en este dispositivo y se aplica al instante en toda la aplicación.
+        </p>
       </SettingsCard>
 
-      {/* Accent color */}
-      <SettingsCard title="Color de acento" description="Color principal usado en botones y elementos destacados.">
-        <div className="flex items-center gap-3 flex-wrap">
-          {ACCENT_COLORS.map(ac => (
-            <button
-              key={ac.id}
-              onClick={() => setAccent(ac.id)}
-              title={ac.label}
-              className={`relative w-10 h-10 rounded-full cursor-pointer transition-transform hover:scale-110 flex items-center justify-center ${
-                savedAccent === ac.id ? 'ring-2 ring-offset-2 ring-zinc-900 dark:ring-white dark:ring-offset-zinc-900' : ''
-              }`}
-              style={{ background: ac.color }}
-            >
-              {savedAccent === ac.id && (
-                <i className="ri-check-line text-white text-sm"></i>
-              )}
-            </button>
-          ))}
+      {/* Category colors live in their own section now — point people there instead
+          of duplicating a generic "accent color" picker that doesn't map to anything
+          concrete in the UI. */}
+      <SettingsCard
+        title="Colores de categoría"
+        description="El color de acento de Vaultly varía según la categoría (videojuegos, películas, series, libros, conciertos) para ayudarte a distinguirlas de un vistazo."
+      >
+        <div className="flex items-start gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800">
+          <i className="ri-palette-line text-zinc-400 text-base mt-0.5 flex-shrink-0"></i>
+          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+            Puedes personalizar el color de cada categoría — se usa en chips, insignias, bordes y filtros activos en todo Vaultly.
+            Ve a la pestaña <span className="font-semibold text-zinc-900 dark:text-white">Categorías</span> en el menú lateral para editarlos.
+          </p>
         </div>
-        <p className="text-xs text-zinc-400 mt-3">El color de acento se aplicará completamente al conectar Supabase.</p>
       </SettingsCard>
 
       {/* Font size */}

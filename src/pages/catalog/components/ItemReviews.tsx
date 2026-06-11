@@ -39,13 +39,14 @@ export default function ItemReviews({ itemId, totalReviews, communityRating }: P
   // Merge real reviews with community count fallback
   const allReviews = reviews;
   const realCount = allReviews.length;
+  const publicRatings = allReviews.filter(r => r.rating !== null);
   const displayCount = realCount > 0 ? realCount : totalReviews;
-  const displayAvg = realCount > 0
-    ? (allReviews.reduce((s, r) => s + r.rating, 0) / realCount).toFixed(1)
+  const displayAvg = publicRatings.length > 0
+    ? (publicRatings.reduce((s, r) => s + (r.rating ?? 0), 0) / publicRatings.length).toFixed(1)
     : communityRating;
 
   const sorted = sortBy === 'top'
-    ? [...allReviews].sort((a, b) => b.rating - a.rating)
+    ? [...allReviews].sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1))
     : allReviews;
   const visible = showAll ? sorted : sorted.slice(0, 3);
 
@@ -54,7 +55,7 @@ export default function ItemReviews({ itemId, totalReviews, communityRating }: P
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Reseñas de la comunidad</h2>
+          <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Reseñas públicas</h2>
           <p className="text-sm text-zinc-500 mt-0.5">
             {displayCount.toLocaleString()} reseña{displayCount !== 1 ? 's' : ''} · Media{' '}
             <span className="font-semibold text-amber-500">{displayAvg}/10</span>
@@ -102,7 +103,7 @@ export default function ItemReviews({ itemId, totalReviews, communityRating }: P
           <textarea
             value={reviewText}
             onChange={e => setReviewText(e.target.value.slice(0, 500))}
-            placeholder="Comparte tu opinión con la comunidad..."
+            placeholder="Añade tu opinión a tu historial..."
             rows={4}
             className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400/30 resize-none mb-2"
           />
@@ -188,11 +189,13 @@ export default function ItemReviews({ itemId, totalReviews, communityRating }: P
                       <p className="text-xs text-zinc-400">{new Date(review.updated_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-lg">
-                    <i className="ri-star-fill text-amber-400 text-xs"></i>
-                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{review.rating}</span>
-                    <span className="text-xs text-zinc-400">/10</span>
-                  </div>
+                  {review.rating !== null && (
+                    <div className="flex items-center gap-1 flex-shrink-0 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-lg">
+                      <i className="ri-star-fill text-amber-400 text-xs"></i>
+                      <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{review.rating}</span>
+                      <span className="text-xs text-zinc-400">/10</span>
+                    </div>
+                  )}
                 </div>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{review.review}</p>
                 <div className="flex items-center gap-4 mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">

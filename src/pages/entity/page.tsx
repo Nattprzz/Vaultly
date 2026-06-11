@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import Navbar from '@/components/feature/Navbar';
+import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
 import { useEntity, TYPE_LABELS, TYPE_ICONS } from '@/hooks/useEntity';
 import EntityHero from './components/EntityHero';
@@ -13,7 +13,7 @@ import { getSiteUrl } from '@/lib/site';
 // ── Skeleton ───────────────────────────────────────────────────────────────────
 function PageSkeleton() {
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 animate-pulse">
+    <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)] animate-pulse">
       <div className="w-full h-80 bg-zinc-200 dark:bg-zinc-800"></div>
       <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-10 flex flex-col gap-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -62,22 +62,22 @@ export default function EntityPage() {
   if (loading) {
     return (
       <>
-        <Navbar />
-        <div className="pt-16"><PageSkeleton /></div>
+        <Sidebar />
+        <div className="pt-14 md:pt-0 md:pl-64"><PageSkeleton /></div>
       </>
     );
   }
 
   if (error || !entity) {
     return (
-      <div className="min-h-screen bg-white dark:bg-zinc-950 flex flex-col">
-        <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-zinc-400 pt-16">
+      <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--bg)] flex flex-col">
+        <Sidebar />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-zinc-400 pt-14 md:pt-0 md:pl-64">
           <div className="w-16 h-16 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
             <i className="ri-user-unfollow-line text-3xl"></i>
           </div>
           <p className="text-lg font-semibold text-zinc-700 dark:text-zinc-300">Entidad no encontrada</p>
-          {error && <p className="text-sm text-rose-500 max-w-xs text-center">{error}</p>}
+          {error && <p className="text-sm text-red-500 max-w-xs text-center">{error}</p>}
           <Link
             to="/catalog"
             className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white underline cursor-pointer"
@@ -101,7 +101,7 @@ export default function EntityPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)]">
       <SeoHead
         title={`${entity.name} — ${typeLabel} | Vaultly`}
         description={
@@ -114,9 +114,9 @@ export default function EntityPage() {
         ogImage={entity.image_url ?? undefined}
         jsonLd={jsonLd}
       />
-      <Navbar />
+      <Sidebar />
 
-      <div className="pt-16">
+      <div className="pt-14 md:pt-0 md:pl-64">
         {/* ── Hero ── */}
         <EntityHero entity={entity} items={items} slug={slug} />
 

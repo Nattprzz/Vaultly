@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { GalleryImage } from '@/mocks/itemDetail';
+import type { GalleryImage } from '@/types/itemDetail';
 
 interface Props {
   gallery: GalleryImage[];

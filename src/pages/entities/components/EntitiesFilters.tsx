@@ -11,12 +11,12 @@ interface TypeTab {
 const TYPE_TABS: TypeTab[] = [
   { id: 'all', label: 'Todos', icon: 'ri-apps-line', color: 'text-zinc-500' },
   { id: 'actor', label: 'Actores', icon: 'ri-user-smile-line', color: 'text-amber-500' },
-  { id: 'actriz', label: 'Actrices', icon: 'ri-user-heart-line', color: 'text-rose-500' },
+  { id: 'actriz', label: 'Actrices', icon: 'ri-user-heart-line', color: 'text-teal-500' },
   { id: 'director', label: 'Directores', icon: 'ri-movie-2-line', color: 'text-orange-500' },
   { id: 'autor', label: 'Autores', icon: 'ri-quill-pen-line', color: 'text-emerald-500' },
   { id: 'desarrollador', label: 'Estudios', icon: 'ri-gamepad-line', color: 'text-cyan-500' },
-  { id: 'publisher', label: 'Publishers', icon: 'ri-building-2-line', color: 'text-violet-500' },
-  { id: 'artista', label: 'Artistas', icon: 'ri-music-2-line', color: 'text-pink-500' },
+  { id: 'publisher', label: 'Publishers', icon: 'ri-building-2-line', color: 'text-slate-500' },
+  { id: 'artista', label: 'Artistas', icon: 'ri-music-2-line', color: 'text-sky-500' },
 ];
 
 const SORT_OPTIONS: { value: EntitySortOption; label: string }[] = [

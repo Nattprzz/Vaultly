@@ -1,12 +1,15 @@
 import { usePublicTracker } from '@/hooks/usePublicTracker';
-import { CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
+import type { PublicPrivacyFlags } from '@/types/privacy';
 
 interface Props {
   userId: string | null;
+  privacy: PublicPrivacyFlags;
 }
 
-export default function PublicProfileStats({ userId }: Props) {
-  const { entries, loading } = usePublicTracker(userId);
+export default function PublicProfileStats({ userId, privacy }: Props) {
+  const CATEGORIES = useCategories();
+  const { entries, loading, hidden } = usePublicTracker(userId, privacy);
 
   if (loading) {
     return (
@@ -25,10 +28,20 @@ export default function PublicProfileStats({ userId }: Props) {
     );
   }
 
-  const completed  = entries.filter(e => e.status === 'completed').length;
-  const inProgress = entries.filter(e => e.status === 'in_progress').length;
-  const pending    = entries.filter(e => e.status === 'pending').length;
-  const dropped    = entries.filter(e => e.status === 'dropped').length;
+  if (hidden) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <i className="ri-lock-line text-3xl text-zinc-300 dark:text-zinc-600 mb-3"></i>
+        <p className="text-sm text-zinc-500">Este usuario ha ocultado sus estadísticas públicas.</p>
+      </div>
+    );
+  }
+
+  const showStatus = privacy.show_item_status !== false;
+  const completed  = showStatus ? entries.filter(e => e.status === 'completed').length : 0;
+  const inProgress = showStatus ? entries.filter(e => e.status === 'in_progress').length : 0;
+  const pending    = showStatus ? entries.filter(e => e.status === 'pending').length : 0;
+  const dropped    = showStatus ? entries.filter(e => e.status === 'dropped').length : 0;
   const completionRate = entries.length > 0 ? Math.round((completed / entries.length) * 100) : 0;
 
   const rated = entries.filter(e => e.rating !== null);
@@ -47,12 +60,12 @@ export default function PublicProfileStats({ userId }: Props) {
   const catStats = CATEGORIES.map(cat => {
     const catEntries = entries.filter(e => e.category === cat.id);
     if (catEntries.length === 0) return null;
-    const catCompleted = catEntries.filter(e => e.status === 'completed').length;
+    const catCompleted = showStatus ? catEntries.filter(e => e.status === 'completed').length : 0;
     const catRated = catEntries.filter(e => e.rating !== null);
     const catAvg = catRated.length > 0
       ? (catRated.reduce((s, e) => s + (e.rating ?? 0), 0) / catRated.length).toFixed(1)
       : null;
-    const pct = Math.round((catCompleted / catEntries.length) * 100);
+    const pct = showStatus ? Math.round((catCompleted / catEntries.length) * 100) : 0;
     return { ...cat, total: catEntries.length, completed: catCompleted, avg: catAvg, pct };
   }).filter(Boolean) as (typeof CATEGORIES[0] & { total: number; completed: number; avg: string | null; pct: number })[];
 
@@ -70,16 +83,18 @@ export default function PublicProfileStats({ userId }: Props) {
       {/* Global overview */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
         <h3 className="font-bold text-zinc-900 dark:text-white mb-5 flex items-center gap-2">
-          <i className="ri-pie-chart-line text-violet-500"></i>
+          <i className="ri-pie-chart-line text-brand dark:text-brand-dark"></i>
           Resumen global
         </h3>
+        {showStatus ? (
+          <>
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-zinc-600 dark:text-zinc-400">Tasa de finalización</span>
             <span className="text-sm font-bold text-zinc-900 dark:text-white">{completionRate}%</span>
           </div>
           <div className="h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-rose-500 transition-all duration-700" style={{ width: `${completionRate}%` }}></div>
+            <div className="h-full rounded-full bg-brand dark:bg-brand-dark transition-all duration-700" style={{ width: `${completionRate}%` }}></div>
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -87,7 +102,7 @@ export default function PublicProfileStats({ userId }: Props) {
             { label: 'Completados', value: completed,  color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', icon: 'ri-checkbox-circle-line' },
             { label: 'En progreso', value: inProgress, color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/30',     icon: 'ri-loader-4-line' },
             { label: 'Pendientes',  value: pending,    color: 'text-zinc-500',    bg: 'bg-zinc-100 dark:bg-zinc-800',          icon: 'ri-bookmark-line' },
-            { label: 'Abandonados', value: dropped,    color: 'text-rose-500',    bg: 'bg-rose-50 dark:bg-rose-950/30',        icon: 'ri-close-circle-line' },
+            { label: 'Abandonados', value: dropped,    color: 'text-red-500',    bg: 'bg-red-50 dark:bg-red-950/30',        icon: 'ri-close-circle-line' },
           ].map(s => (
             <div key={s.label} className={`flex flex-col items-center gap-1.5 py-4 rounded-xl ${s.bg}`}>
               <i className={`${s.icon} ${s.color} text-xl`}></i>
@@ -96,13 +111,20 @@ export default function PublicProfileStats({ userId }: Props) {
             </div>
           ))}
         </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-zinc-500">
+            <i className="ri-lock-line text-zinc-400"></i>
+            El usuario ha ocultado el estado de sus items.
+          </div>
+        )}
       </div>
 
       {/* Per-category */}
       {catStats.length > 0 && (
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
           <h3 className="font-bold text-zinc-900 dark:text-white mb-5 flex items-center gap-2">
-            <i className="ri-bar-chart-box-line text-rose-500"></i>
+            <i className="ri-bar-chart-box-line text-brand dark:text-brand-dark"></i>
             Por categoría
           </h3>
           <div className="flex flex-col gap-4">
@@ -116,7 +138,7 @@ export default function PublicProfileStats({ userId }: Props) {
                     <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{cat.label}</span>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-zinc-500">
-                    <span>{cat.completed}/{cat.total}</span>
+                    {showStatus ? <span>{cat.completed}/{cat.total}</span> : <span>{cat.total} items</span>}
                     {cat.avg && (
                       <div className="flex items-center gap-1">
                         <i className="ri-star-fill text-amber-400"></i>
@@ -164,9 +186,12 @@ export default function PublicProfileStats({ userId }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { icon: 'ri-star-fill', iconColor: 'text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30', value: avgRating, label: 'Puntuación media' },
-          { icon: 'ri-quill-pen-line', iconColor: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-950/30', value: entries.filter(e => e.review?.trim()).length, label: 'Reseñas escritas' },
+          { icon: 'ri-quill-pen-line', iconColor: 'text-brand dark:text-brand-dark', bg: 'bg-brand/10 dark:bg-brand-dark/15', value: entries.filter(e => e.review?.trim()).length, label: 'Reseñas escritas' },
           { icon: 'ri-trophy-line', iconColor: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', value: `${completionRate}%`, label: 'Tasa de finalización' },
-        ].map(f => (
+        ].filter(f => showStatus || f.icon !== 'ri-trophy-line').map(f => ({
+          ...f,
+          value: f.icon === 'ri-quill-pen-line' && !privacy.show_reviews ? 'â€”' : f.value,
+        })).map(f => (
           <div key={f.label} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-5 text-center">
             <div className={`w-10 h-10 flex items-center justify-center rounded-xl ${f.bg} mx-auto mb-3`}>
               <i className={`${f.icon} ${f.iconColor} text-lg`}></i>

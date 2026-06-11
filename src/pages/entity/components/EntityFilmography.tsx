@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import type { EntityItem } from '@/hooks/useEntity';
-import { CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
 import { toAppCategory } from '@/lib/categories';
 
 interface Props {
@@ -48,6 +48,7 @@ function sortItems(items: EntityItem[], sort: SortKey): EntityItem[] {
 
 // ── Grid card ──────────────────────────────────────────────────────────────────
 function GridCard({ item }: { item: EntityItem }) {
+  const CATEGORIES = useCategories();
   const rating = getItemRating(item);
   const year = getItemYear(item);
   const genre = getItemGenre(item);
@@ -113,6 +114,7 @@ function GridCard({ item }: { item: EntityItem }) {
 
 // ── List row ───────────────────────────────────────────────────────────────────
 function ListRow({ item, rank }: { item: EntityItem; rank: number }) {
+  const CATEGORIES = useCategories();
   const rating = getItemRating(item);
   const year = getItemYear(item);
   const genre = getItemGenre(item);
@@ -193,6 +195,7 @@ function ListRow({ item, rank }: { item: EntityItem; rank: number }) {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function EntityFilmography({ items, entityName }: Props) {
+  const CATEGORIES = useCategories();
   const [sort, setSort] = useState<SortKey>('year_desc');
   const [view, setView] = useState<ViewMode>('grid');
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -358,3 +361,4 @@ export default function EntityFilmography({ items, entityName }: Props) {
     </div>
   );
 }
+

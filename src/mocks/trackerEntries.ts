@@ -1,7 +1,7 @@
 import { TrackerEntry } from '@/hooks/useTracker';
 
 // Pre-loaded mock tracker entries — realistic data to show the tracker populated
-export const MOCK_TRACKER_ENTRIES: Record<string, TrackerEntry> = {
+export const MOCK_TRACKER_ENTRIES: Record<string, Omit<TrackerEntry, 'catalogItemId' | 'metadata' | 'title' | 'cover' | 'year' | 'genre'>> = {
   g1: {
     itemId: 'g1', category: 'games', status: 'completed',
     rating: 10, review: 'Una obra maestra absoluta. El mundo abierto más impresionante que he jugado.',

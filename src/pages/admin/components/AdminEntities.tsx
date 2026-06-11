@@ -263,7 +263,7 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
           {/* Name */}
           <div>
             <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
-              Nombre <span className="text-rose-400">*</span>
+              Nombre <span className="text-red-400">*</span>
             </label>
             <input
               value={form.name}
@@ -276,7 +276,7 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
           {/* Type */}
           <div>
             <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
-              Tipo <span className="text-rose-400">*</span>
+              Tipo <span className="text-red-400">*</span>
             </label>
             <div className="grid grid-cols-4 gap-2">
               {ENTITY_TYPES.map(t => (
@@ -357,11 +357,11 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
               placeholder={'{\n  "founded": "1998",\n  "country": "US"\n}'}
               rows={4}
               className={`w-full px-4 py-2.5 rounded-xl bg-zinc-800 border text-sm text-white placeholder-zinc-600 focus:outline-none focus:ring-2 font-mono resize-none ${
-                metaError ? 'border-rose-500 focus:ring-rose-500/30' : 'border-zinc-700 focus:ring-white/20'
+                metaError ? 'border-red-500 focus:ring-red-500/30' : 'border-zinc-700 focus:ring-white/20'
               }`}
             />
             {metaError
-              ? <p className="text-xs text-rose-400 mt-1">{metaError}</p>
+              ? <p className="text-xs text-red-400 mt-1">{metaError}</p>
               : <MetadataHint type={form.type} />
             }
           </div>
@@ -511,7 +511,7 @@ export default function AdminEntities() {
         <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold transition-all ${
           toast.type === 'ok'
             ? 'bg-emerald-950 border-emerald-800 text-emerald-300'
-            : 'bg-rose-950 border-rose-800 text-rose-300'
+            : 'bg-red-950 border-red-800 text-red-300'
         }`}>
           <i className={toast.type === 'ok' ? 'ri-checkbox-circle-line' : 'ri-error-warning-line'}></i>
           {toast.msg}
@@ -821,7 +821,7 @@ export default function AdminEntities() {
                         </button>
                         <button
                           onClick={() => { setDeleteConfirm(entity.id); setActionMenu(null); }}
-                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-rose-400 hover:bg-zinc-700 transition-colors cursor-pointer text-left"
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:bg-zinc-700 transition-colors cursor-pointer text-left"
                         >
                           <i className="ri-delete-bin-line"></i> Eliminar
                         </button>
@@ -911,8 +911,8 @@ export default function AdminEntities() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" onClick={() => setDeleteConfirm(null)}></div>
           <div className="relative z-10 bg-zinc-900 rounded-2xl border border-zinc-800 p-6 w-full max-w-sm">
-            <div className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center mx-auto mb-4">
-              <i className="ri-delete-bin-line text-rose-400 text-xl"></i>
+            <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+              <i className="ri-delete-bin-line text-red-400 text-xl"></i>
             </div>
             <h3 className="text-white font-bold text-center mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               ¿Eliminar entidad?
@@ -929,7 +929,7 @@ export default function AdminEntities() {
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors cursor-pointer"
               >
                 Eliminar
               </button>

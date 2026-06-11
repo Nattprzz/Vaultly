@@ -39,10 +39,10 @@ const TYPE_STYLES = {
     badge: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
   },
   tip: {
-    bg: 'bg-violet-50 dark:bg-violet-950/20',
-    border: 'border-violet-200 dark:border-violet-800',
-    icon: 'text-violet-500',
-    badge: 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300',
+    bg: 'bg-brand/[0.06] dark:bg-brand-dark/10',
+    border: 'border-brand/20 dark:border-brand-dark/25',
+    icon: 'text-brand dark:text-brand-dark',
+    badge: 'bg-brand/10 dark:bg-brand-dark/20 text-brand dark:text-brand-dark',
   },
 };
 
@@ -100,7 +100,7 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
         type: 'info',
         icon: 'ri-quill-pen-line',
         title: `${completedNoReview.length} ítems sin reseña`,
-        description: 'Tienes varios ítems completados sin reseña. Compartir tu opinión ayuda a la comunidad a descubrir nuevo contenido.',
+        description: 'Tienes varios ítems completados sin reseña. Añadir tu opinión mejora tu historial personal.',
         action: { label: 'Explorar mis completados', to: '/tracker' },
         dismissible: true,
       });
@@ -138,7 +138,7 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
         type: 'success',
         icon: 'ri-medal-line',
         title: '¡10 ítems completados!',
-        description: 'Llevas 10 ítems completados. Tu vault está creciendo. ¿Has compartido tu perfil con amigos?',
+        description: 'Llevas 10 ítems completados. Tu vault está creciendo. ¿Has compartido tu perfil público?',
         action: { label: 'Ver mi perfil', to: '/profile' },
         dismissible: true,
       });
@@ -164,7 +164,7 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
         type: 'tip',
         icon: 'ri-chat-quote-line',
         title: 'Escribe tu primera reseña',
-        description: 'Has completado varios ítems pero aún no has escrito ninguna reseña. ¡Comparte tu opinión con la comunidad!',
+        description: 'Has completado varios ítems pero aún no has escrito ninguna reseña. Añade tu opinión a tu historial.',
         action: { label: 'Ir al catálogo', to: '/catalog' },
         dismissible: true,
       });

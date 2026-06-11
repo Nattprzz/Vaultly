@@ -1,9 +1,11 @@
 import { useSettings } from '@/hooks/useSettings';
-import { CATEGORIES } from '@/mocks/catalog';
+import { useCategories } from '@/hooks/useCategoryColors';
 import SettingsCard from './SettingsCard';
+import CategoryColorEditor from './CategoryColorEditor';
 
 export default function CategoriesSection() {
   const { settings, toggleCategory } = useSettings();
+  const categories = useCategories();
 
   return (
     <div className="flex flex-col gap-6">
@@ -12,7 +14,7 @@ export default function CategoriesSection() {
         description="Selecciona qué categorías quieres ver en tu tracker, en el catálogo y en el navbar. Debes tener al menos una activa."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {CATEGORIES.map(cat => {
+          {categories.map(cat => {
             const isActive = settings.activeCategories.includes(cat.id);
             const isLast = isActive && settings.activeCategories.length === 1;
             return (
@@ -29,9 +31,10 @@ export default function CategoriesSection() {
               >
                 {/* Icon */}
                 <div
-                  className={`w-12 h-12 flex items-center justify-center rounded-xl flex-shrink-0 bg-gradient-to-br ${cat.color}`}
+                  className="w-12 h-12 flex items-center justify-center rounded-xl flex-shrink-0"
+                  style={{ background: `${cat.accent}1f`, color: cat.accent }}
                 >
-                  <i className={`${cat.icon} text-white text-xl`}></i>
+                  <i className={`${cat.icon} text-xl`}></i>
                 </div>
                 {/* Info */}
                 <div className="flex-1 min-w-0">
@@ -61,26 +64,25 @@ export default function CategoriesSection() {
         </div>
       </SettingsCard>
 
-      {/* Active summary */}
-      <SettingsCard title="Resumen de tu tracker">
+      {/* Color personalisation */}
+      <CategoryColorEditor />
+
+      {/* Active summary — live preview using the resolved (possibly customised) colors */}
+      <SettingsCard title="Resumen de tu tracker" description="Así se ven tus categorías activas con tus colores actuales.">
         <div className="flex flex-wrap gap-2">
-          {settings.activeCategories.map(catId => {
-            const cat = CATEGORIES.find(c => c.id === catId);
-            if (!cat) return null;
-            return (
-              <div
-                key={catId}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-white"
-                style={{ background: cat.accent }}
-              >
-                <i className={`${cat.icon} text-sm`}></i>
-                {cat.label}
-              </div>
-            );
-          })}
+          {categories.filter(cat => settings.activeCategories.includes(cat.id)).map(cat => (
+            <div
+              key={cat.id}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium"
+              style={{ background: `${cat.accent}1a`, color: cat.accent }}
+            >
+              <i className={`${cat.icon} text-sm`}></i>
+              {cat.label}
+            </div>
+          ))}
         </div>
         <p className="text-xs text-zinc-400 mt-3">
-          {settings.activeCategories.length} de {CATEGORIES.length} categorías activas
+          {settings.activeCategories.length} de {categories.length} categorías activas
         </p>
       </SettingsCard>
     </div>

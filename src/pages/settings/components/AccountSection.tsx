@@ -20,6 +20,7 @@ export default function AccountSection() {
 
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteNotice, setShowDeleteNotice] = useState(false);
 
   // Avatar upload
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -52,8 +53,8 @@ export default function AccountSection() {
   const usernameError = touched.username && username.trim().length < 3 ? 'Mínimo 3 caracteres.' : '';
 
   const inputBase = 'w-full px-4 py-2.5 rounded-xl border text-sm text-zinc-900 dark:text-white focus:outline-none transition-all';
-  const inputNormal = 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-violet-500/30';
-  const inputErrorClass = 'border-rose-400 dark:border-rose-500 bg-rose-50/40 dark:bg-rose-950/10 focus:ring-2 focus:ring-rose-500/20';
+  const inputNormal = 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 focus:ring-2 focus:ring-brand/30';
+  const inputErrorClass = 'border-red-400 dark:border-red-500 bg-red-50/40 dark:bg-red-950/10 focus:ring-2 focus:ring-red-500/20';
   const inputSuccessClass = 'border-emerald-400 dark:border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/10 focus:ring-2 focus:ring-emerald-500/20';
 
   const getDisplayNameClass = () => {
@@ -180,7 +181,7 @@ export default function AccountSection() {
 
   const pwStrength = newPassword.length === 0 ? 0 : newPassword.length < 6 ? 1 : newPassword.length < 10 ? 2 : 3;
   const pwStrengthLabel = ['', 'Débil', 'Media', 'Fuerte'];
-  const pwStrengthColor = ['', 'bg-rose-400', 'bg-amber-400', 'bg-emerald-400'];
+  const pwStrengthColor = ['', 'bg-red-400', 'bg-amber-400', 'bg-emerald-400'];
 
   const getPwClass = (hasError: boolean, isValid: boolean) => {
     if (hasError) return inputErrorClass;
@@ -247,7 +248,7 @@ export default function AccountSection() {
                   className="w-16 h-16 rounded-full object-cover object-top"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-500 to-rose-500 flex items-center justify-center text-white text-xl font-bold">
+                <div className="w-16 h-16 rounded-full bg-brand dark:bg-brand-dark flex items-center justify-center text-white text-xl font-bold">
                   {initials}
                 </div>
               )}
@@ -273,7 +274,7 @@ export default function AccountSection() {
               <p className="text-xs text-zinc-500">@{profile?.username ?? profile?.email}</p>
               <p className="text-xs text-zinc-400">{profile?.email}</p>
               <div className="flex items-center gap-2 mt-1">
-                <label className="flex items-center gap-1.5 text-xs text-violet-500 font-medium cursor-pointer hover:text-violet-600 transition-colors whitespace-nowrap">
+                <label className="flex items-center gap-1.5 text-xs text-brand dark:text-brand-dark font-medium cursor-pointer hover:text-brand-hover dark:hover:text-brand-dark-hover transition-colors whitespace-nowrap">
                   <i className="ri-upload-2-line text-xs"></i>
                   Cambiar foto
                   <input
@@ -291,7 +292,7 @@ export default function AccountSection() {
                       type="button"
                       onClick={handleRemoveAvatar}
                       disabled={avatarUploading}
-                      className="text-xs text-zinc-400 hover:text-rose-500 transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50"
+                      className="text-xs text-zinc-400 hover:text-red-500 transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50"
                     >
                       Eliminar
                     </button>
@@ -299,7 +300,7 @@ export default function AccountSection() {
                 )}
               </div>
               {avatarError && (
-                <p className="flex items-center gap-1 text-xs text-rose-500 mt-0.5">
+                <p className="flex items-center gap-1 text-xs text-red-500 mt-0.5">
                   <i className="ri-error-warning-line text-xs"></i>{avatarError}
                 </p>
               )}
@@ -311,7 +312,7 @@ export default function AccountSection() {
           <div className="flex flex-col gap-3">
             <div>
               <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block mb-1.5">
-                Nombre visible <span className="text-rose-500">*</span>
+                Nombre visible <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -328,7 +329,7 @@ export default function AccountSection() {
                 )}
               </div>
               {displayNameError && (
-                <p className="flex items-center gap-1.5 text-xs text-rose-500 mt-1">
+                <p className="flex items-center gap-1.5 text-xs text-red-500 mt-1">
                   <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                   {displayNameError}
                 </p>
@@ -337,7 +338,7 @@ export default function AccountSection() {
 
             <div>
               <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block mb-1.5">
-                Nombre de usuario <span className="text-rose-500">*</span>
+                Nombre de usuario <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">@</span>
@@ -355,7 +356,7 @@ export default function AccountSection() {
                 )}
               </div>
               {usernameError && (
-                <p className="flex items-center gap-1.5 text-xs text-rose-500 mt-1">
+                <p className="flex items-center gap-1.5 text-xs text-red-500 mt-1">
                   <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                   {usernameError}
                 </p>
@@ -382,9 +383,9 @@ export default function AccountSection() {
           </div>
 
           {saveError && (
-            <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800">
-              <i className="ri-error-warning-line text-rose-500 text-sm flex-shrink-0"></i>
-              <p className="text-xs text-rose-600 dark:text-rose-400">{saveError}</p>
+            <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+              <i className="ri-error-warning-line text-red-500 text-sm flex-shrink-0"></i>
+              <p className="text-xs text-red-600 dark:text-red-400">{saveError}</p>
             </div>
           )}
 
@@ -414,10 +415,10 @@ export default function AccountSection() {
           {/* Current password */}
           <div>
             <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block mb-1.5">
-              Contraseña actual <span className="text-rose-500">*</span>
+              Contraseña actual <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${currentPwError ? 'text-rose-400' : 'text-zinc-400'}`}>
+              <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${currentPwError ? 'text-red-400' : 'text-zinc-400'}`}>
                 <i className="ri-lock-line text-sm"></i>
               </div>
               <input
@@ -439,7 +440,7 @@ export default function AccountSection() {
               </button>
             </div>
             {currentPwError && (
-              <p className="flex items-center gap-1.5 text-xs text-rose-500 mt-1">
+              <p className="flex items-center gap-1.5 text-xs text-red-500 mt-1">
                 <i className="ri-error-warning-line text-xs flex-shrink-0"></i>{currentPwError}
               </p>
             )}
@@ -448,10 +449,10 @@ export default function AccountSection() {
           {/* New password */}
           <div>
             <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block mb-1.5">
-              Nueva contraseña <span className="text-rose-500">*</span>
+              Nueva contraseña <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${newPwError ? 'text-rose-400' : 'text-zinc-400'}`}>
+              <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${newPwError ? 'text-red-400' : 'text-zinc-400'}`}>
                 <i className="ri-lock-password-line text-sm"></i>
               </div>
               <input
@@ -473,7 +474,7 @@ export default function AccountSection() {
               </button>
             </div>
             {newPwError && (
-              <p className="flex items-center gap-1.5 text-xs text-rose-500 mt-1">
+              <p className="flex items-center gap-1.5 text-xs text-red-500 mt-1">
                 <i className="ri-error-warning-line text-xs flex-shrink-0"></i>{newPwError}
               </p>
             )}
@@ -484,7 +485,7 @@ export default function AccountSection() {
                     <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i <= pwStrength ? pwStrengthColor[pwStrength] : 'bg-zinc-200 dark:bg-zinc-700'}`} />
                   ))}
                 </div>
-                <span className={`text-xs font-medium ${pwStrength === 1 ? 'text-rose-400' : pwStrength === 2 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                <span className={`text-xs font-medium ${pwStrength === 1 ? 'text-red-400' : pwStrength === 2 ? 'text-amber-400' : 'text-emerald-400'}`}>
                   {pwStrengthLabel[pwStrength]}
                 </span>
               </div>
@@ -494,10 +495,10 @@ export default function AccountSection() {
           {/* Confirm password */}
           <div>
             <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block mb-1.5">
-              Confirmar contraseña <span className="text-rose-500">*</span>
+              Confirmar contraseña <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${confirmPwError ? 'text-rose-400' : 'text-zinc-400'}`}>
+              <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors ${confirmPwError ? 'text-red-400' : 'text-zinc-400'}`}>
                 <i className="ri-shield-check-line text-sm"></i>
               </div>
               <input
@@ -519,16 +520,16 @@ export default function AccountSection() {
               </button>
             </div>
             {confirmPwError && (
-              <p className="flex items-center gap-1.5 text-xs text-rose-500 mt-1">
+              <p className="flex items-center gap-1.5 text-xs text-red-500 mt-1">
                 <i className="ri-error-warning-line text-xs flex-shrink-0"></i>{confirmPwError}
               </p>
             )}
           </div>
 
           {pwError && (
-            <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800">
-              <i className="ri-error-warning-line text-rose-500 text-sm flex-shrink-0"></i>
-              <p className="text-xs text-rose-600 dark:text-rose-400">{pwError}</p>
+            <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+              <i className="ri-error-warning-line text-red-500 text-sm flex-shrink-0"></i>
+              <p className="text-xs text-red-600 dark:text-red-400">{pwError}</p>
             </div>
           )}
 
@@ -575,7 +576,7 @@ export default function AccountSection() {
               <button onClick={() => setShowLogoutConfirm(false)} className="px-3 py-2 text-sm text-zinc-500 cursor-pointer whitespace-nowrap">
                 Cancelar
               </button>
-              <button onClick={handleLogout} className="px-4 py-2 rounded-xl bg-rose-500 text-white text-sm font-semibold cursor-pointer whitespace-nowrap">
+              <button onClick={handleLogout} className="px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold cursor-pointer whitespace-nowrap">
                 Confirmar
               </button>
             </div>
@@ -606,15 +607,51 @@ export default function AccountSection() {
             )}
           </div>
 
-          <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900">
+          <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900">
             <div>
-              <p className="text-sm font-semibold text-rose-700 dark:text-rose-400">Eliminar cuenta</p>
+              <p className="text-sm font-semibold text-red-700 dark:text-red-400">Eliminar cuenta</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Esta acción es irreversible. Se borrarán todos tus datos.</p>
             </div>
-            <button className="px-4 py-2 rounded-xl border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 text-sm font-medium hover:bg-rose-100 dark:hover:bg-rose-950/40 transition-colors cursor-pointer whitespace-nowrap">
+            <button
+              onClick={() => setShowDeleteNotice(true)}
+              className="px-4 py-2 rounded-xl border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors cursor-pointer whitespace-nowrap"
+            >
               Eliminar
             </button>
           </div>
+
+          {/* Delete account notice modal */}
+          {showDeleteNotice && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 w-full max-w-sm shadow-xl">
+                <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-950/30">
+                      <i className="ri-delete-bin-line text-red-500 text-sm"></i>
+                    </div>
+                    <p className="text-sm font-bold text-zinc-900 dark:text-white">Eliminar cuenta</p>
+                  </div>
+                  <button
+                    onClick={() => setShowDeleteNotice(false)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                  >
+                    <i className="ri-close-line text-zinc-500 text-sm"></i>
+                  </button>
+                </div>
+                <div className="px-6 py-5 flex flex-col gap-4">
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    La eliminación de cuenta todavía no está disponible. Si necesitas eliminar tus datos, contacta con soporte.
+                  </p>
+                  <button
+                    onClick={() => setShowDeleteNotice(false)}
+                    className="w-full py-2.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
+                  >
+                    Entendido
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </SettingsCard>
     </div>

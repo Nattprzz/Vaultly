@@ -18,7 +18,7 @@ const TYPE_STYLES = {
   warning: { dot: 'bg-amber-400', icon: 'text-amber-500', iconBg: 'bg-amber-100 dark:bg-amber-900/40' },
   info: { dot: 'bg-sky-400', icon: 'text-sky-500', iconBg: 'bg-sky-100 dark:bg-sky-900/40' },
   success: { dot: 'bg-emerald-400', icon: 'text-emerald-500', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40' },
-  tip: { dot: 'bg-violet-400', icon: 'text-violet-500', iconBg: 'bg-violet-100 dark:bg-violet-900/40' },
+  tip: { dot: 'bg-brand-dark', icon: 'text-brand dark:text-brand-dark', iconBg: 'bg-brand/10 dark:bg-brand-dark/15' },
 };
 
 function getDismissed(): Set<string> {
@@ -80,7 +80,7 @@ export default function NotificationBell() {
         type: 'info',
         icon: 'ri-quill-pen-line',
         title: `${completedNoReview.length} ítems sin reseña`,
-        description: 'Comparte tu opinión con la comunidad.',
+        description: 'Añade tu opinión a tu historial personal.',
         action: { label: 'Ver completados', to: '/tracker' },
       });
     }
@@ -112,7 +112,7 @@ export default function NotificationBell() {
         type: 'success',
         icon: 'ri-medal-line',
         title: '¡10 ítems completados!',
-        description: '¿Has compartido tu perfil con amigos?',
+        description: '¿Has compartido tu perfil público?',
         action: { label: 'Ver perfil', to: '/profile' },
       });
     }
@@ -174,7 +174,7 @@ export default function NotificationBell() {
       >
         <i className="ri-notification-3-line text-lg"></i>
         {count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 flex items-center justify-center rounded-full bg-rose-500 text-white text-[9px] font-bold leading-none">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
             {count > 9 ? '9+' : count}
           </span>
         )}
