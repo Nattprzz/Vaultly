@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
 import ItemInfo from '../components/ItemInfo';
@@ -303,6 +304,8 @@ export default function ItemDetailPage() {
   const { category = '', id = '' } = useParams<{ category: string; id: string }>();
   const navigate = useNavigate();
   const CATEGORIES = useCategories();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
 
   // Scroll-reveal refs for animation
   const infoRef    = useScrollReveal<HTMLElement>();
@@ -583,7 +586,7 @@ export default function ItemDetailPage() {
                 {fullItem.description}
               </p>
 
-              {dataSource && (
+              {dataSource && isAdmin && (
                 <div className="mt-3">
                   <SourceBadge source={dataSource} />
                 </div>
@@ -629,22 +632,16 @@ export default function ItemDetailPage() {
 
         {/* ── Below fold ── */}
         <div className="max-w-screen-xl mx-auto px-4 md:px-6">
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 mt-8 pb-16">
-
-            {/* Left spacer — matches poster width on desktop */}
-            <div className="hidden lg:block flex-shrink-0 w-48" />
-
-            {/* Main content column */}
-            <div className="flex-1 min-w-0 flex flex-col gap-8">
+          <div className="flex flex-col gap-8 mt-8 pb-16">
 
               {/* ─ Información ─ */}
               <section
                 id="info"
                 data-section
-                ref={infoRef as React.RefObject<HTMLElement>}
+                ref={infoRef}
                 className="sr-item bg-zinc-900 rounded-2xl border border-zinc-800 p-6"
               >
-                <ItemInfo item={fullItem} />
+                <ItemInfo item={fullItem} rawItem={realItem ?? undefined} />
               </section>
 
               {/* ─ Reparto ─ */}
@@ -667,7 +664,7 @@ export default function ItemDetailPage() {
 
               {/* ─ Personas y estudios (from DB entities) ─ */}
               <section
-                ref={peopleRef as React.RefObject<HTMLElement>}
+                ref={peopleRef}
                 className="sr-item"
               >
                 <RelatedPeople item={fullItem} itemId={realItem?.id ?? null} />
@@ -678,7 +675,7 @@ export default function ItemDetailPage() {
                 <section
                   id="media"
                   data-section
-                  ref={galleryRef as React.RefObject<HTMLElement>}
+                  ref={galleryRef}
                   className="sr-item bg-zinc-900 rounded-2xl border border-zinc-800 p-6"
                 >
                   <ItemGallery gallery={fullItem.gallery} title={fullItem.title} />
@@ -698,7 +695,7 @@ export default function ItemDetailPage() {
 
               {/* ─ Estadísticas de comunidad ─ */}
               <section
-                ref={statsRef as React.RefObject<HTMLElement>}
+                ref={statsRef}
                 className="sr-item"
               >
                 <ItemCommunityStats
@@ -710,7 +707,7 @@ export default function ItemDetailPage() {
 
               {/* ─ Reseñas ─ */}
               <section
-                ref={reviewsRef as React.RefObject<HTMLElement>}
+                ref={reviewsRef}
                 className="sr-item bg-zinc-900 rounded-2xl border border-zinc-800 p-6"
               >
                 <ItemReviews
@@ -726,10 +723,9 @@ export default function ItemDetailPage() {
                 data-section
                 className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6"
               >
-                <RelatedItems category={resolvedCategoryId} currentId={id} />
+                <RelatedItems category={resolvedCategoryId} currentId={id} itemId={realItem?.id ?? null} />
               </section>
 
-            </div>
           </div>
         </div>
 

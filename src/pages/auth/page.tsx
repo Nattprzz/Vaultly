@@ -5,6 +5,7 @@ import { useTheme } from '@/hooks/useTheme';
 import SeoHead from '@/components/feature/SeoHead';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
+import ForgotPasswordForm from './components/ForgotPasswordForm';
 
 const LEFT_LOGIN = [
   { text: 'Cyberpunk 2077 · Completado',  color: '#22c55e' },
@@ -238,6 +239,10 @@ export default function AuthPage() {
               ? <RegisterForm
                   onSwitch={() => switchMode('login')}
                   onStepChange={s => setRegisterStep(s)}
+                />
+              : isForgot
+              ? <ForgotPasswordForm
+                  onBack={() => switchLoginView('login')}
                 />
               : <LoginForm
                   onSwitch={() => switchMode('register')}

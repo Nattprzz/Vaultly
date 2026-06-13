@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase';
 
 interface Props {
   category: string;
-  currentId: string;
+  currentId: string;       // slug
+  itemId?: string | null;  // UUID for entity-based matching
 }
 
 interface RelatedItem {
@@ -22,26 +23,126 @@ function getRating(item: RelatedItem): string | null {
   return r != null ? Number(r).toFixed(1) : null;
 }
 
-export default function RelatedItems({ category, currentId }: Props) {
+function extractGenres(meta: Record<string, unknown>): string[] {
+  if (Array.isArray(meta.genres)) return (meta.genres as unknown[]).map(String).filter(Boolean);
+  if (typeof meta.genre === 'string' && meta.genre) return [meta.genre];
+  return [];
+}
+
+const MIN_RESULTS = 4;
+const MAX_RESULTS = 10;
+
+export default function RelatedItems({ category, currentId, itemId }: Props) {
   const CATEGORIES = useCategories();
   const [items, setItems] = useState<RelatedItem[]>([]);
   const cat = CATEGORIES.find(c => c.id === category);
 
   useEffect(() => {
     let cancelled = false;
+
     const load = async () => {
-      const { data } = await supabase
+      const seen = new Set<string>([currentId]);
+      const result: RelatedItem[] = [];
+
+      // ── Step 1: Get current item genres ──────────────────────────────
+      const { data: cur } = await supabase
         .from('catalog_items')
-        .select('id, slug, title, image_url, release_date, metadata')
-        .eq('category', category)
-        .neq('slug', currentId)
-        .order('updated_at', { ascending: false })
-        .limit(10);
-      if (!cancelled) setItems((data ?? []) as RelatedItem[]);
+        .select('metadata')
+        .eq('slug', currentId)
+        .maybeSingle();
+
+      const genres = extractGenres((cur?.metadata ?? {}) as Record<string, unknown>);
+
+      // ── Step 2: Genre-based match ─────────────────────────────────────
+      if (genres.length > 0) {
+        const { data: pool } = await supabase
+          .from('catalog_items')
+          .select('id, slug, title, image_url, release_date, metadata')
+          .eq('category', category)
+          .neq('slug', currentId)
+          .order('updated_at', { ascending: false })
+          .limit(20);
+
+        for (const item of pool ?? []) {
+          if (result.length >= MAX_RESULTS) break;
+          if (seen.has(item.slug)) continue;
+          const iGenres = extractGenres((item.metadata ?? {}) as Record<string, unknown>);
+          if (iGenres.some(g => genres.includes(g))) {
+            seen.add(item.slug);
+            result.push(item as RelatedItem);
+          }
+        }
+      }
+
+      // ── Step 3: Entity-based match (cast / director / author) ─────────
+      if (itemId && result.length < MIN_RESULTS) {
+        const { data: entityLinks } = await supabase
+          .from('item_entities')
+          .select('entity_id')
+          .eq('item_id', itemId);
+
+        const entityIds = (entityLinks ?? [])
+          .map((e: Record<string, unknown>) => e.entity_id as string)
+          .filter(Boolean);
+
+        if (entityIds.length > 0) {
+          const { data: sharedLinks } = await supabase
+            .from('item_entities')
+            .select('item_id')
+            .in('entity_id', entityIds)
+            .neq('item_id', itemId);
+
+          const relatedIds = [
+            ...new Set(
+              (sharedLinks ?? [])
+                .map((e: Record<string, unknown>) => e.item_id as string)
+                .filter(Boolean)
+            ),
+          ];
+
+          if (relatedIds.length > 0) {
+            const { data: entityItems } = await supabase
+              .from('catalog_items')
+              .select('id, slug, title, image_url, release_date, metadata')
+              .in('id', relatedIds)
+              .eq('category', category)
+              .limit(MAX_RESULTS - result.length + 5);
+
+            for (const item of entityItems ?? []) {
+              if (result.length >= MAX_RESULTS) break;
+              if (seen.has(item.slug)) continue;
+              seen.add(item.slug);
+              result.push(item as RelatedItem);
+            }
+          }
+        }
+      }
+
+      // ── Step 4: Fallback — fill with recent same-category items ───────
+      if (result.length < MIN_RESULTS) {
+        const excludeSlugs = [...seen];
+        const { data: fallback } = await supabase
+          .from('catalog_items')
+          .select('id, slug, title, image_url, release_date, metadata')
+          .eq('category', category)
+          .not('slug', 'in', `(${excludeSlugs.join(',')})`)
+          .order('updated_at', { ascending: false })
+          .limit(MAX_RESULTS - result.length);
+
+        for (const item of fallback ?? []) {
+          if (result.length >= MAX_RESULTS) break;
+          if (seen.has(item.slug)) continue;
+          seen.add(item.slug);
+          result.push(item as RelatedItem);
+        }
+      }
+
+      if (!cancelled) setItems(result.slice(0, MAX_RESULTS));
     };
+
     void load();
     return () => { cancelled = true; };
-  }, [category, currentId]);
+  }, [category, currentId, itemId]);
 
   if (items.length === 0) return null;
 
@@ -77,7 +178,6 @@ export default function RelatedItems({ category, currentId }: Props) {
               to={`/catalog/${category}/${item.slug}`}
               className="flex-shrink-0 w-32 group cursor-pointer"
             >
-              {/* Poster */}
               <div className="w-32 h-48 rounded-xl overflow-hidden bg-zinc-800 border border-zinc-700/30 mb-2.5">
                 {item.image_url ? (
                   <img
@@ -92,8 +192,6 @@ export default function RelatedItems({ category, currentId }: Props) {
                   </div>
                 )}
               </div>
-
-              {/* Info */}
               <h3 className="text-xs font-semibold text-zinc-200 group-hover:text-white transition-colors leading-tight line-clamp-2 mb-1">
                 {item.title}
               </h3>

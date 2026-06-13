@@ -1,5 +1,12 @@
+import { useMemo } from 'react';
 import { useCategories } from '@/hooks/useCategoryColors';
-import { TrackerEntry, TrackerStatus } from '@/hooks/useTracker';
+import type { TrackerEntry, TrackerStatus } from '@/hooks/useTracker';
+import {
+  getCategoryStatuses,
+  STATUS_CONFIG,
+  getStatusLabel,
+} from '@/constants/tracker-statuses';
+import type { CategoryStatus } from '@/constants/tracker-statuses';
 
 type SortOption = 'updated' | 'added' | 'rating' | 'title';
 
@@ -17,14 +24,6 @@ interface Props {
   counts: Record<string, number>;
 }
 
-const STATUS_OPTIONS: { value: TrackerStatus | 'all'; label: string; activeClass: string }[] = [
-  { value: 'all',         label: 'Todos',       activeClass: 'bg-[var(--brand-accent)] text-white' },
-  { value: 'completed',   label: 'Completado',  activeClass: 'bg-emerald-500 text-white' },
-  { value: 'in_progress', label: 'En progreso', activeClass: 'bg-orange-500 text-white' },
-  { value: 'pending',     label: 'Pendiente',   activeClass: 'bg-slate-500 text-white' },
-  { value: 'dropped',     label: 'Abandonado',  activeClass: 'bg-red-500 text-white' },
-];
-
 export default function TrackerFilters({
   activeCategory,
   onCategoryChange,
@@ -34,11 +33,36 @@ export default function TrackerFilters({
   onSortChange,
   searchQuery,
   onSearchChange,
+  entries,
   activeCategories,
   counts,
 }: Props) {
   const CATEGORIES = useCategories();
   const visibleCats = CATEGORIES.filter(c => activeCategories.includes(c.id));
+
+  // Status pills: valid statuses for the active category, or only those present in entries
+  const statusOptions = useMemo<CategoryStatus[]>(() => {
+    if (activeCategory !== 'all') {
+      return getCategoryStatuses(activeCategory);
+    }
+    // For "all categories" view, show only statuses that actually appear in entries
+    const present = new Set(Object.values(entries).map(e => e.status as CategoryStatus));
+    // Preserve canonical order: iterate all possible statuses in order
+    const allOrdered: CategoryStatus[] = [];
+    for (const cat of Object.keys(getCategoryStatuses) as string[]) {
+      // fallback: build unique ordered list from all categories
+      void cat;
+    }
+    // simpler: just return present statuses sorted by canonical position
+    const canonical = [
+      'wishlist', 'pending', 'playing', 'watching', 'reading',
+      'played', 'watched', 'read', 'attended',
+      'completed', 'platinum',
+      'waiting_season', 'waiting_episode',
+      'abandoned', 'missed',
+    ] as CategoryStatus[];
+    return canonical.filter(s => present.has(s));
+  }, [activeCategory, entries]);
 
   return (
     <div className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
@@ -107,32 +131,56 @@ export default function TrackerFilters({
           })}
         </div>
 
-        {/* Row 3: Status */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
-            Estado
-          </span>
-          {STATUS_OPTIONS.map(opt => {
-            const isActive = activeStatus === opt.value;
-            const count = counts[opt.value] ?? 0;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => onStatusChange(opt.value)}
-                className={`flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all whitespace-nowrap ${
-                  isActive
-                    ? opt.activeClass
-                    : 'border border-[var(--border)] bg-[var(--surface-sunken)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                {opt.label}
-                <span className={`${isActive ? 'opacity-75' : 'text-[var(--text-tertiary)]'}`}>
-                  ({count})
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {/* Row 3: Status (dynamic per category) */}
+        {statusOptions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+              Estado
+            </span>
+
+            {/* "Todos" pill */}
+            <button
+              onClick={() => onStatusChange('all')}
+              className={`flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all whitespace-nowrap ${
+                activeStatus === 'all'
+                  ? 'bg-[var(--brand-accent)] text-white'
+                  : 'border border-[var(--border)] bg-[var(--surface-sunken)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              Todos
+              <span className={activeStatus === 'all' ? 'opacity-75' : 'text-[var(--text-tertiary)]'}>
+                ({counts['all'] ?? 0})
+              </span>
+            </button>
+
+            {statusOptions.map(s => {
+              const cfg     = STATUS_CONFIG[s];
+              const label   = getStatusLabel(s, activeCategory === 'all' ? undefined : activeCategory);
+              const count   = counts[s] ?? 0;
+              const isActive = activeStatus === s;
+
+              return (
+                <button
+                  key={s}
+                  onClick={() => onStatusChange(s)}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all whitespace-nowrap border"
+                  style={
+                    isActive
+                      ? { background: cfg.color, color: '#fff', borderColor: cfg.color }
+                      : { borderColor: 'var(--border)', background: 'var(--surface-sunken)', color: 'var(--text-secondary)' }
+                  }
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full flex-shrink-0"
+                    style={{ background: isActive ? '#fff' : cfg.color }}
+                  />
+                  {label}
+                  <span style={{ opacity: isActive ? 0.75 : 0.6 }}>({count})</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
       </div>
     </div>

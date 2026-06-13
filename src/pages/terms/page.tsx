@@ -49,7 +49,7 @@ const SECTIONS = [
       },
       {
         subtitle: 'Seguridad de la cuenta',
-        text: 'Eres responsable de mantener la confidencialidad de tus credenciales de acceso y de todas las actividades que ocurran bajo tu cuenta. Debes notificarnos inmediatamente en legal@vaultly.app si sospechas de un acceso no autorizado a tu cuenta.',
+        text: 'Eres responsable de mantener la confidencialidad de tus credenciales de acceso y de todas las actividades que ocurran bajo tu cuenta. Debes notificarnos inmediatamente en legal@vaultlytracker.com si sospechas de un acceso no autorizado a tu cuenta.',
       },
       {
         subtitle: 'Nombre de usuario',
@@ -187,7 +187,7 @@ const SECTIONS = [
       },
       {
         subtitle: 'Contacto legal',
-        text: 'Para cualquier consulta legal o notificación formal, puedes contactarnos en legal@vaultly.app. Nos comprometemos a responder en un plazo máximo de 30 días hábiles.',
+        text: 'Para cualquier consulta legal o notificación formal, puedes contactarnos en legal@vaultlytracker.com. Nos comprometemos a responder en un plazo máximo de 30 días hábiles.',
       },
     ],
   },
@@ -352,11 +352,11 @@ export default function TermsPage() {
                 Si algo no está claro o necesitas más información, escríbenos. Respondemos en menos de 30 días hábiles.
               </p>
               <a
-                href="mailto:legal@vaultly.app"
+                href="mailto:legal@vaultlytracker.com"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
               >
                 <i className="ri-mail-send-line"></i>
-                legal@vaultly.app
+                legal@vaultlytracker.com
               </a>
             </div>
           </div>

@@ -4,11 +4,22 @@ import { TrackerStatus, useTracker } from '@/hooks/useTracker';
 import AddToTrackerModal from '@/pages/catalog/components/AddToTrackerModal';
 import type { EnrichedEntry } from './trackerEntryUtils';
 
-const STATUS_BADGE: Record<TrackerStatus, { label: string; cls: string }> = {
-  pending: { label: 'Pendiente', cls: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500' },
-  in_progress: { label: 'En progreso', cls: 'bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400' },
-  completed: { label: 'Completado', cls: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400' },
-  dropped: { label: 'Abandonado', cls: 'bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400' },
+const STATUS_BADGE: Partial<Record<TrackerStatus, { label: string; cls: string }>> = {
+  wishlist:        { label: 'Wishlist',     cls: 'bg-slate-100 dark:bg-slate-800 text-slate-500' },
+  pending:         { label: 'Pendiente',    cls: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500' },
+  playing:         { label: 'Jugando',      cls: 'bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400' },
+  played:          { label: 'Jugado',       cls: 'bg-green-100 dark:bg-green-950/40 text-green-600 dark:text-green-400' },
+  completed:       { label: 'Completado',   cls: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400' },
+  platinum:        { label: 'Platinado',    cls: 'bg-yellow-100 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-400' },
+  watching:        { label: 'Viendo',       cls: 'bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400' },
+  watched:         { label: 'Vista',        cls: 'bg-green-100 dark:bg-green-950/40 text-green-600 dark:text-green-400' },
+  waiting_season:  { label: 'Esp. temp.',   cls: 'bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400' },
+  waiting_episode: { label: 'Esp. cap.',    cls: 'bg-violet-100 dark:bg-violet-950/40 text-violet-500 dark:text-violet-300' },
+  reading:         { label: 'Leyendo',      cls: 'bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400' },
+  read:            { label: 'Leído',        cls: 'bg-green-100 dark:bg-green-950/40 text-green-600 dark:text-green-400' },
+  abandoned:       { label: 'Abandonado',   cls: 'bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400' },
+  attended:        { label: 'Asistido',     cls: 'bg-green-100 dark:bg-green-950/40 text-green-600 dark:text-green-400' },
+  missed:          { label: 'No asistido',  cls: 'bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-600' },
 };
 
 interface Props {
@@ -23,7 +34,7 @@ export default function TrackerGrid({ enriched }: Props) {
     <>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {enriched.map(item => {
-          const badge = STATUS_BADGE[item.status];
+          const badge = STATUS_BADGE[item.status] ?? { label: item.status, cls: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500' };
           return (
             <div key={item.itemId} className="group relative">
               <Link to={`/catalog/${item.category}/${item.itemId}`} className="block">

@@ -1,4 +1,5 @@
-export type TrackerStatus = 'pending' | 'in_progress' | 'completed' | 'dropped' | null;
+import type { CategoryStatus } from '@/constants/tracker-statuses';
+export type TrackerStatus = CategoryStatus | null;
 
 export interface GalleryImage {
   id: string;

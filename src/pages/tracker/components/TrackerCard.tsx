@@ -1,24 +1,23 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { TrackerStatus, useTracker } from '@/hooks/useTracker';
+import { useTrackerContext } from '@/contexts/TrackerContext';
 import AddToTrackerModal from '@/pages/catalog/components/AddToTrackerModal';
 import type { EnrichedEntry } from './trackerEntryUtils';
-
-const STATUS_CONFIG: Record<TrackerStatus, { label: string; dot: string; ring: string }> = {
-  completed:   { label: 'Completado',  dot: 'bg-emerald-500', ring: 'ring-emerald-500/30' },
-  in_progress: { label: 'En progreso', dot: 'bg-orange-500',  ring: 'ring-orange-500/30' },
-  pending:     { label: 'Pendiente',   dot: 'bg-slate-400',   ring: 'ring-slate-400/30' },
-  dropped:     { label: 'Abandonado',  dot: 'bg-red-500',     ring: 'ring-red-500/30' },
-};
+import { STATUS_CONFIG, getStatusLabel, getStatusIcon } from '@/constants/tracker-statuses';
+import type { CategoryStatus } from '@/constants/tracker-statuses';
 
 interface Props {
   item: EnrichedEntry;
 }
 
 export default function TrackerCard({ item }: Props) {
-  const { getEntry, addOrUpdate, remove } = useTracker();
+  const { getEntry, addOrUpdate, remove } = useTrackerContext();
   const [editing, setEditing] = useState(false);
-  const status = STATUS_CONFIG[item.status];
+
+  const status = item.status as CategoryStatus;
+  const cfg    = STATUS_CONFIG[status];
+  const label  = getStatusLabel(status, item.category);
+  const icon   = getStatusIcon(status, item.category);
 
   return (
     <>
@@ -44,9 +43,8 @@ export default function TrackerCard({ item }: Props) {
               </div>
             )}
 
-            {/* Persistent top gradient for badges */}
+            {/* Gradient overlays */}
             <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/50 to-transparent" />
-            {/* Bottom gradient for status */}
             <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent" />
 
             {/* Category badge — top left */}
@@ -58,7 +56,7 @@ export default function TrackerCard({ item }: Props) {
                 border: `1px solid ${item.catAccent}45`,
               }}
             >
-              <i className={`${item.catIcon}`} />
+              <i className={item.catIcon} />
               <span className="hidden sm:inline">{item.catLabel}</span>
             </div>
 
@@ -71,12 +69,18 @@ export default function TrackerCard({ item }: Props) {
             )}
 
             {/* Status — bottom left */}
-            <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 rounded-full bg-black/75 px-2.5 py-1 backdrop-blur-sm">
-              <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${status.dot}`} />
-              <span className="text-[10px] font-semibold text-white">{status.label}</span>
-            </div>
+            {cfg && (
+              <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 rounded-full bg-black/75 px-2.5 py-1 backdrop-blur-sm">
+                <span
+                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                  style={{ background: cfg.color }}
+                />
+                <i className={`${icon} text-[9px]`} style={{ color: cfg.color }} />
+                <span className="text-[10px] font-semibold text-white">{label}</span>
+              </div>
+            )}
 
-            {/* Hover overlay with actions */}
+            {/* Hover overlay */}
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
               <button
                 onClick={e => { e.preventDefault(); setEditing(true); }}
@@ -116,7 +120,7 @@ export default function TrackerCard({ item }: Props) {
           title={item.title}
           cover={item.cover}
           existing={getEntry(item.itemId)}
-          onSave={(s, r, rev) => addOrUpdate(item.itemId, item.category, s, r, rev)}
+          onSave={(s, r, rev, gd) => addOrUpdate(item.itemId, item.category, s, r, rev, gd)}
           onRemove={() => remove(item.itemId)}
           onClose={() => setEditing(false)}
         />

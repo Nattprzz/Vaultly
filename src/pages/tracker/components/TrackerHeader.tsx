@@ -10,7 +10,7 @@ export default function TrackerHeader({ entries }: Props) {
   const { profile, user } = useAuth();
   const all = Object.values(entries);
   const completed = all.filter(e => e.status === 'completed').length;
-  const inProgress = all.filter(e => e.status === 'in_progress').length;
+  const inProgress = all.filter(e => ['playing', 'watching', 'reading'].includes(e.status)).length;
   const pending = all.filter(e => e.status === 'pending').length;
   const rated = all.filter(e => e.rating !== null);
   const avgRating = rated.length > 0

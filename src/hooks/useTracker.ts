@@ -6,7 +6,19 @@ import { SUPABASE_ANON_KEY } from '@/lib/supabaseConfig';
 import type { UserTrackingMetadata } from '@/types/metadata';
 import { defaultUserTrackingMetadata } from '@/types/metadata';
 
-export type TrackerStatus = 'pending' | 'in_progress' | 'completed' | 'dropped';
+import type { CategoryStatus } from '@/constants/tracker-statuses';
+import { getDefaultStatus } from '@/constants/tracker-statuses';
+/** Alias de compatibilidad — CategoryStatus es la fuente de verdad */
+export type TrackerStatus = CategoryStatus;
+
+/** Campos específicos de videojuegos que se guardan en columnas dedicadas */
+export interface GameData {
+  playingPlatform?: string | null;
+  hoursPlayed?: number | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  achievementsUnlocked?: number | null;
+}
 
 export interface TrackerEntry {
   itemId: string;
@@ -22,6 +34,12 @@ export interface TrackerEntry {
   cover: string;
   year: number;
   genre: string;
+  // Campos de videojuegos (null para otras categorías)
+  playingPlatform: string | null;
+  hoursPlayed: number | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  achievementsUnlocked: number | null;
 }
 
 const CATALOG_ITEM_URL = edgeFunctionUrl('catalog-item');
@@ -72,7 +90,7 @@ function rowToEntry(row: Record<string, unknown>, catalogItem?: Record<string, u
     itemId: (row.item_slug as string) ?? (row.id as string),
     catalogItemId: (row.item_id as string | null) ?? (catalogItem?.id as string | null) ?? null,
     category: (row.category as string) ?? '',
-    status: (row.status_en as TrackerStatus) ?? 'pending',
+    status: (row.status_en as TrackerStatus) ?? getDefaultStatus((row.category as string) ?? ''),
     rating: row.rating != null ? Number(row.rating) : null,
     review: (row.review as string) ?? '',
     addedAt: (row.created_at as string) ?? new Date().toISOString(),
@@ -82,6 +100,11 @@ function rowToEntry(row: Record<string, unknown>, catalogItem?: Record<string, u
     cover: (catalogItem?.image_url as string | null) ?? (catalogItem?.cover_url as string | null) ?? '',
     year: releaseDate ? Number(releaseDate.slice(0, 4)) : 0,
     genre,
+    playingPlatform:       (row.playing_platform as string | null)         ?? null,
+    hoursPlayed:           row.hours_played != null ? Number(row.hours_played) : null,
+    startedAt:             (row.started_at as string | null)               ?? null,
+    finishedAt:            (row.finished_at as string | null)              ?? null,
+    achievementsUnlocked:  row.achievements_unlocked != null ? Number(row.achievements_unlocked) : null,
   };
 }
 
@@ -96,7 +119,7 @@ export function useTracker() {
     setLoading(true);
     const { data, error } = await supabase
       .from('user_item_tracking')
-      .select('id, item_id, item_slug, category, status_en, rating, review, started_at, finished_at, metadata, created_at, updated_at')
+      .select('id, item_id, item_slug, category, status_en, rating, review, started_at, finished_at, playing_platform, hours_played, achievements_unlocked, metadata, created_at, updated_at')
       .eq('user_id', user.id);
 
     if (!error && data) {
@@ -156,6 +179,7 @@ export function useTracker() {
       status: TrackerStatus,
       rating: number | null,
       review: string,
+      gameData?: GameData,
       metadata?: UserTrackingMetadata,
     ) => {
       if (!user) return false;
@@ -178,8 +202,21 @@ export function useTracker() {
         cover: existing?.cover ?? '',
         year: existing?.year ?? 0,
         genre: existing?.genre ?? '',
+        playingPlatform:      category === 'videojuegos' ? (gameData?.playingPlatform      ?? existing?.playingPlatform      ?? null) : null,
+        hoursPlayed:          category === 'videojuegos' ? (gameData?.hoursPlayed          ?? existing?.hoursPlayed          ?? null) : null,
+        startedAt:            category === 'videojuegos' ? (gameData?.startedAt            ?? existing?.startedAt            ?? null) : null,
+        finishedAt:           category === 'videojuegos' ? (gameData?.finishedAt           ?? existing?.finishedAt           ?? null) : null,
+        achievementsUnlocked: category === 'videojuegos' ? (gameData?.achievementsUnlocked ?? existing?.achievementsUnlocked ?? null) : null,
       };
       setEntries(prev => ({ ...prev, [itemId]: optimistic }));
+
+      const rollback = () =>
+        setEntries(prev => {
+          const next = { ...prev };
+          if (existing) next[itemId] = existing;
+          else delete next[itemId];
+          return next;
+        });
 
       const { data: existingRow } = await supabase
         .from('user_item_tracking')
@@ -188,23 +225,20 @@ export function useTracker() {
         .eq('item_slug', itemId)
         .maybeSingle();
 
-      const catalogItemId = await ensureCatalogItemId(itemId, category);
-      const safeCatalogItemId = catalogItemId ?? existing?.catalogItemId ?? null;
+      // For updates, reuse the known catalog item id to avoid an unnecessary
+      // network call. For new inserts we must resolve it via the edge function.
+      const safeCatalogItemId = existing?.catalogItemId
+        ?? await ensureCatalogItemId(itemId, category);
 
-      if (!safeCatalogItemId) {
-        setEntries(prev => {
-          const next = { ...prev };
-          if (existing) next[itemId] = existing;
-          else delete next[itemId];
-          return next;
-        });
+      if (!safeCatalogItemId && !existingRow) {
+        rollback();
         setError('No se pudo guardar el ítem en el catálogo. Inténtalo de nuevo.');
         return false;
       }
 
       if (existingRow) {
         const updatePayload: Record<string, unknown> = {
-          item_id: safeCatalogItemId,
+          ...(safeCatalogItemId ? { item_id: safeCatalogItemId } : {}),
           status_en: status,
           rating,
           review,
@@ -212,13 +246,26 @@ export function useTracker() {
           updated_at: now,
         };
         if (metadata) updatePayload.metadata = { ...defaultUserTrackingMetadata(category), ...metadata };
+        if (category === 'videojuegos') {
+          updatePayload.playing_platform      = gameData?.playingPlatform      ?? null;
+          updatePayload.hours_played          = gameData?.hoursPlayed          ?? null;
+          updatePayload.started_at            = gameData?.startedAt            ?? null;
+          updatePayload.finished_at           = gameData?.finishedAt           ?? null;
+          updatePayload.achievements_unlocked = gameData?.achievementsUnlocked ?? null;
+        }
 
-        await supabase
+        const { error: updateError } = await supabase
           .from('user_item_tracking')
           .update(updatePayload)
           .eq('id', existingRow.id);
+
+        if (updateError) {
+          rollback();
+          setError(updateError.message);
+          return false;
+        }
       } else {
-        await supabase
+        const { error: insertError } = await supabase
           .from('user_item_tracking')
           .insert({
             user_id: user.id,
@@ -231,7 +278,20 @@ export function useTracker() {
             metadata: { ...defaultUserTrackingMetadata(category), ...(metadata ?? {}) },
             created_at: now,
             updated_at: now,
+            ...(category === 'videojuegos' && gameData ? {
+              playing_platform:      gameData.playingPlatform      ?? null,
+              hours_played:          gameData.hoursPlayed          ?? null,
+              started_at:            gameData.startedAt            ?? null,
+              finished_at:           gameData.finishedAt           ?? null,
+              achievements_unlocked: gameData.achievementsUnlocked ?? null,
+            } : {}),
           });
+
+        if (insertError) {
+          rollback();
+          setError(insertError.message);
+          return false;
+        }
       }
 
       await loadEntries();
@@ -241,20 +301,26 @@ export function useTracker() {
   );
 
   const remove = useCallback(
-    async (itemId: string) => {
-      if (!user) return;
+    async (itemId: string): Promise<boolean> => {
+      if (!user) return false;
+
+      const { error: deleteError } = await supabase
+        .from('user_item_tracking')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('item_slug', itemId);
+
+      if (deleteError) {
+        setError(deleteError.message);
+        return false;
+      }
 
       setEntries(prev => {
         const next = { ...prev };
         delete next[itemId];
         return next;
       });
-
-      await supabase
-        .from('user_item_tracking')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('item_slug', itemId);
+      return true;
     },
     [user],
   );

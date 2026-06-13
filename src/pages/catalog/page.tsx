@@ -93,8 +93,11 @@ function ItemCard({ item, categoryId, catIcon }: { item: CatalogItem; categoryId
   const href = targetCategory ? `/catalog/${targetCategory}/${item.slug || item.id}` : '/catalog';
 
   return (
-    <Link to={href} className="group cursor-pointer">
-      <div className="relative rounded-xl overflow-hidden mb-3 aspect-[2/3] bg-zinc-100 dark:bg-zinc-800">
+    <Link
+      to={href}
+      className="group cursor-pointer block transition-transform duration-300 ease-out hover:-translate-y-0.5"
+    >
+      <div className="relative rounded-xl overflow-hidden mb-3 aspect-[2/3] bg-zinc-100 dark:bg-zinc-800 transition-all duration-300 group-hover:ring-1 group-hover:ring-blue-500/25 group-hover:shadow-[0_6px_20px_rgba(59,130,246,0.12)]">
         {item.image_url ? (
           <img src={item.image_url} alt={item.title}
             title={`${item.title}${genre ? ` — ${genre}` : ''}`}
@@ -112,7 +115,7 @@ function ItemCard({ item, categoryId, catIcon }: { item: CatalogItem; categoryId
           </div>
         )}
       </div>
-      <h3 className="text-sm font-semibold text-zinc-900 dark:text-white leading-tight mb-1 line-clamp-2">{item.title}</h3>
+      <h3 className="text-sm font-semibold text-zinc-900 dark:text-white leading-tight mb-1 line-clamp-2 transition-colors duration-200 group-hover:text-blue-500 dark:group-hover:text-blue-400">{item.title}</h3>
       <div className="flex items-center justify-between gap-1">
         <span className="text-xs text-zinc-500 flex-shrink-0">{year}</span>
         {genre && <span className="text-xs text-zinc-400 truncate">{genre}</span>}

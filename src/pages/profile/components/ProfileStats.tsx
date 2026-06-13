@@ -1,5 +1,6 @@
 import { useTracker } from '@/hooks/useTracker';
 import { useCategories } from '@/hooks/useCategoryColors';
+import { SEMANTIC_GROUPS } from '@/constants/tracker-statuses';
 
 export default function ProfileStats() {
   const CATEGORIES = useCategories();
@@ -7,9 +8,9 @@ export default function ProfileStats() {
   const all = Object.values(entries);
 
   const globalCompleted = all.filter(e => e.status === 'completed').length;
-  const globalInProgress = all.filter(e => e.status === 'in_progress').length;
+  const globalInProgress = all.filter(e => (SEMANTIC_GROUPS.active as readonly string[]).includes(e.status)).length;
   const globalPending = all.filter(e => e.status === 'pending').length;
-  const globalDropped = all.filter(e => e.status === 'dropped').length;
+  const globalDropped = all.filter(e => (SEMANTIC_GROUPS.abandoned as readonly string[]).includes(e.status)).length;
   const completionRate = all.length > 0 ? Math.round((globalCompleted / all.length) * 100) : 0;
 
   const rated = all.filter(e => e.rating !== null);

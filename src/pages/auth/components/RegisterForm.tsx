@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { CATEGORIES } from '@/lib/categoryConfig';
 import { SETTINGS_STORAGE_KEY } from '@/hooks/useSettings';
+import OAuthButtons from './OAuthButtons';
 
 interface RegisterFormProps {
   onSwitch: () => void;
@@ -467,32 +468,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
               <i className="ri-arrow-right-line"></i>
             </button>
 
-            <div className="relative flex items-center gap-3">
-              <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700"></div>
-              <span className="text-xs text-zinc-400">o regístrate con</span>
-              <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700"></div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                disabled
-                title="Próximamente disponible"
-                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/60 text-sm text-zinc-400 dark:text-zinc-500 opacity-50 cursor-not-allowed whitespace-nowrap"
-              >
-                <i className="ri-google-fill text-base"></i>
-                Google
-              </button>
-              <button
-                type="button"
-                disabled
-                title="Próximamente disponible"
-                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/60 text-sm text-zinc-400 dark:text-zinc-500 opacity-50 cursor-not-allowed whitespace-nowrap"
-              >
-                <i className="ri-discord-fill text-base"></i>
-                Discord
-              </button>
-            </div>
+            <OAuthButtons mode="register" />
 
             <p className="text-center text-sm text-zinc-500">
               ¿Ya tienes cuenta?{' '}

@@ -26,7 +26,7 @@ const FAQ_CATEGORIES = [
       },
       {
         q: '¿Puedo tener varias cuentas?',
-        a: 'No, los Términos de Uso de Vaultly permiten una única cuenta por persona. Si necesitas acceso para un equipo o uso profesional, escríbenos a hola@vaultly.app.',
+        a: 'No, los Términos de Uso de Vaultly permiten una única cuenta por persona. Si necesitas acceso para un equipo o uso profesional, escríbenos a contacto@vaultlytracker.com.',
         link: null,
       },
     ],
@@ -75,7 +75,7 @@ const FAQ_CATEGORIES = [
       },
       {
         q: '¿Cómo solicito la eliminación de mis datos?',
-        a: 'Puedes eliminar tu cuenta y todos los datos asociados desde Ajustes → Cuenta. Si necesitas una eliminación específica de ciertos datos o tienes una solicitud RGPD, escríbenos a privacy@vaultly.app.',
+        a: 'Puedes eliminar tu cuenta y todos los datos asociados desde Ajustes → Cuenta. Si necesitas una eliminación específica de ciertos datos o tienes una solicitud RGPD, escríbenos a privacidad@vaultlytracker.com.',
         link: null,
       },
     ],
@@ -126,9 +126,18 @@ const CONTACT_CARDS = [
     color: 'text-violet-500',
     bg: 'bg-violet-50 dark:bg-violet-950/30',
     title: 'Email general',
-    desc: 'Para consultas generales y soporte',
-    value: 'hola@vaultly.app',
-    href: 'mailto:hola@vaultly.app',
+    desc: 'Para consultas generales',
+    value: 'contacto@vaultlytracker.com',
+    href: 'mailto:contacto@vaultlytracker.com',
+  },
+  {
+    icon: 'ri-tools-line',
+    color: 'text-sky-500',
+    bg: 'bg-sky-50 dark:bg-sky-950/30',
+    title: 'Soporte tÃ©cnico',
+    desc: 'Incidencias y ayuda tÃ©cnica',
+    value: 'soporte@vaultlytracker.com',
+    href: 'mailto:soporte@vaultlytracker.com',
   },
   {
     icon: 'ri-shield-check-line',
@@ -136,8 +145,8 @@ const CONTACT_CARDS = [
     bg: 'bg-emerald-50 dark:bg-emerald-950/30',
     title: 'Privacidad y datos',
     desc: 'Solicitudes RGPD y datos personales',
-    value: 'privacy@vaultly.app',
-    href: 'mailto:privacy@vaultly.app',
+    value: 'privacidad@vaultlytracker.com',
+    href: 'mailto:privacidad@vaultlytracker.com',
   },
   {
     icon: 'ri-scales-3-line',
@@ -145,8 +154,8 @@ const CONTACT_CARDS = [
     bg: 'bg-amber-50 dark:bg-amber-950/30',
     title: 'Legal',
     desc: 'Consultas legales y términos',
-    value: 'legal@vaultly.app',
-    href: 'mailto:legal@vaultly.app',
+    value: 'legal@vaultlytracker.com',
+    href: 'mailto:legal@vaultlytracker.com',
   },
 ];
 
@@ -268,7 +277,7 @@ export default function ContactPage() {
 
       {/* Contact cards */}
       <section className="border-b border-zinc-100 dark:border-zinc-800 py-10 px-4 md:px-6 bg-zinc-50/50 dark:bg-zinc-900/20">
-        <div className="max-w-screen-xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="max-w-screen-xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {CONTACT_CARDS.map(card => (
             <a
               key={card.title}
@@ -541,7 +550,7 @@ export default function ContactPage() {
                   <i className="ri-error-warning-line text-rose-500 flex-shrink-0"></i>
                   <p className="text-sm text-rose-600 dark:text-rose-400">
                     Hubo un error al enviar el mensaje. Inténtalo de nuevo o escríbenos directamente a{' '}
-                    <a href="mailto:hola@vaultly.app" className="font-semibold underline">hola@vaultly.app</a>.
+                    <a href="mailto:contacto@vaultlytracker.com" className="font-semibold underline">contacto@vaultlytracker.com</a>.
                   </p>
                 </div>
               )}

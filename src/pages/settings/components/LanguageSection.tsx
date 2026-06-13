@@ -24,11 +24,15 @@ export default function LanguageSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {LANGUAGES.map(lang => {
             const isActive = settings.language === lang.id;
+            const isAvailable = lang.id === 'es';
             return (
               <button
                 key={lang.id}
-                onClick={() => update('language', lang.id)}
-                className={`flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 transition-all cursor-pointer text-left ${
+                onClick={() => isAvailable ? update('language', lang.id) : undefined}
+                disabled={!isAvailable}
+                className={`flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 transition-all text-left ${
+                  !isAvailable ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                } ${
                   isActive
                     ? 'border-zinc-900 dark:border-white bg-zinc-50 dark:bg-zinc-800'
                     : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
@@ -41,10 +45,15 @@ export default function LanguageSection() {
                   </p>
                   <p className="text-xs text-zinc-400">{lang.label}</p>
                 </div>
-                {isActive && (
+                {isActive && isAvailable && (
                   <div className="w-5 h-5 rounded-full bg-zinc-900 dark:bg-white flex items-center justify-center flex-shrink-0">
                     <i className="ri-check-line text-white dark:text-zinc-900 text-xs"></i>
                   </div>
+                )}
+                {!isAvailable && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 font-medium flex-shrink-0 whitespace-nowrap">
+                    Pronto
+                  </span>
                 )}
               </button>
             );
@@ -53,7 +62,7 @@ export default function LanguageSection() {
         <div className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900 flex items-start gap-2">
           <i className="ri-translate-2 text-amber-500 text-sm mt-0.5 flex-shrink-0"></i>
           <p className="text-xs text-amber-700 dark:text-amber-400">
-            El soporte completo de idiomas estará disponible próximamente. Actualmente la app está disponible en español.
+            Actualmente la interfaz está disponible únicamente en español. Más idiomas estarán disponibles próximamente.
           </p>
         </div>
       </SettingsCard>

@@ -17,6 +17,7 @@ interface KpiCard {
 interface WeeklyPoint {
   day: string;
   count: number;
+  categories: Record<string, number>;
 }
 
 interface CategoryDistribution {
@@ -96,11 +97,15 @@ export default function AdminOverview() {
         day.setDate(start.getDate() + index);
         const nextDay = new Date(day);
         nextDay.setDate(day.getDate() + 1);
-        const count = trackerData.filter(row => {
+        const dayRows = trackerData.filter(row => {
           const created = new Date(row.created_at).getTime();
           return created >= day.getTime() && created < nextDay.getTime();
-        }).length;
-        return { day: formatter.format(day).slice(0, 1).toUpperCase(), count };
+        });
+        const categories: Record<string, number> = {};
+        dayRows.forEach(row => {
+          categories[row.category] = (categories[row.category] ?? 0) + 1;
+        });
+        return { day: formatter.format(day).slice(0, 1).toUpperCase(), count: dayRows.length, categories };
       }));
 
       const byCategory = new Map<string, number>();
@@ -211,22 +216,42 @@ export default function AdminOverview() {
               const pct = (day.count / maxSignups) * 100;
               return (
                 <div key={day.day} className="flex flex-col items-center gap-2 flex-1">
-                  <span className="text-xs text-zinc-500">{day.count}</span>
+                  <span className="text-xs text-zinc-500">{day.count || ''}</span>
                   <div className="w-full flex items-end justify-center" style={{ height: '80px' }}>
                     <div
-                      className="w-full rounded-t-lg transition-all duration-500"
+                      className="w-full rounded-t-lg overflow-hidden flex flex-col-reverse transition-all duration-500"
                       style={{
                         height: `${pct}%`,
                         minHeight: day.count > 0 ? '6px' : '0',
-                        background: 'linear-gradient(to top, #8b5cf6, #f43f5e)',
-                        opacity: day.count > 0 ? 1 : 0.15,
+                        opacity: day.count > 0 ? 1 : 0,
                       }}
-                    ></div>
+                    >
+                      {CATEGORIES.map(cat => {
+                        const n = day.categories[cat.id] ?? 0;
+                        if (n === 0) return null;
+                        return (
+                          <div
+                            key={cat.id}
+                            style={{ flex: n, backgroundColor: cat.accent, minHeight: '2px' }}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
                   <span className="text-xs text-zinc-500 font-medium">{day.day}</span>
                 </div>
               );
             })}
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-4">
+            {CATEGORIES.map(cat => (
+              <div key={cat.id} className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: cat.accent }} />
+                <span className="text-[10px] text-zinc-500">{cat.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 

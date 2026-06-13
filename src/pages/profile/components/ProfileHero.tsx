@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTracker } from '@/hooks/useTracker';
@@ -18,6 +18,9 @@ export default function ProfileHero({ isOwn }: Props) {
   const { entries } = useTracker();
   const [shareOpen, setShareOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
+
+  useEffect(() => { setAvatarError(false); }, [profile?.avatar_url]);
 
   const all = Object.values(entries);
   const completed = all.filter(e => e.status === 'completed').length;
@@ -62,9 +65,20 @@ export default function ProfileHero({ isOwn }: Props) {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="flex items-end gap-5">
             {/* Avatar */}
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-brand dark:bg-brand-dark flex items-center justify-center text-white text-3xl font-black border-4 border-white dark:border-zinc-950 flex-shrink-0">
-              {initials}
-            </div>
+            {profile?.avatar_url && !avatarError ? (
+              <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden border-4 border-white dark:border-zinc-950 flex-shrink-0">
+                <img
+                  src={profile.avatar_url}
+                  alt={profile?.display_name ?? profileUsername}
+                  className="w-full h-full object-cover"
+                  onError={() => setAvatarError(true)}
+                />
+              </div>
+            ) : (
+              <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-brand dark:bg-brand-dark flex items-center justify-center text-white text-3xl font-black border-4 border-white dark:border-zinc-950 flex-shrink-0">
+                {initials}
+              </div>
+            )}
             {/* Name + meta */}
             <div className="pb-1">
               <div className="flex items-center gap-2 mb-1">

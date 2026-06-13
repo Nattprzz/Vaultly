@@ -57,9 +57,14 @@ export default function ItemCastSection({ cast, sectionTitle = 'Reparto principa
         </span>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+      <div className="flex flex-wrap justify-center gap-4">
         {shown.map((member, i) => (
-          <CastCard key={`${member.name}-${i}`} member={member} />
+          <div
+            key={`${member.name}-${i}`}
+            className="w-[calc(33%-11px)] sm:w-[calc(25%-12px)] md:w-[calc(20%-13px)] shrink-0"
+          >
+            <CastCard member={member} />
+          </div>
         ))}
       </div>
 

@@ -19,6 +19,7 @@ const ResetPasswordPage = lazy(() => import("../pages/auth/reset-password/page")
 const PrivacyPage = lazy(() => import("../pages/privacy/page"));
 const TermsPage = lazy(() => import("../pages/terms/page"));
 const ContactPage = lazy(() => import("../pages/contact/page"));
+const CompanyPage = lazy(() => import("../pages/company/page"));
 
 const routes: RouteObject[] = [
   { path: "/", element: <LazyRoute><Home /></LazyRoute> },
@@ -87,6 +88,7 @@ const routes: RouteObject[] = [
   { path: "/privacy", element: <LazyRoute><PrivacyPage /></LazyRoute> },
   { path: "/terms", element: <LazyRoute><TermsPage /></LazyRoute> },
   { path: "/contact", element: <LazyRoute><ContactPage /></LazyRoute> },
+  { path: "/company/:slug", element: <LazyRoute><CompanyPage /></LazyRoute> },
   { path: "*", element: <LazyRoute><NotFound /></LazyRoute> },
 ];
 

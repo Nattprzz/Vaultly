@@ -85,11 +85,11 @@ const SECTIONS = [
       },
       {
         subtitle: 'Eliminación',
-        text: 'Puedes solicitar la eliminación completa de tu cuenta y todos los datos asociados. Esta acción es irreversible. Para iniciar el proceso, ve a Ajustes → Cuenta → Eliminar cuenta, o contáctanos en privacy@vaultly.app.',
+        text: 'Puedes solicitar la eliminación completa de tu cuenta y todos los datos asociados. Esta acción es irreversible. Para iniciar el proceso, ve a Ajustes → Cuenta → Eliminar cuenta, o contáctanos en privacidad@vaultlytracker.com.',
       },
       {
         subtitle: 'Oposición y limitación',
-        text: 'Puedes oponerte al procesamiento de tus datos para determinados fines o solicitar que limitemos su uso. Para ejercer estos derechos, contáctanos en privacy@vaultly.app.',
+        text: 'Puedes oponerte al procesamiento de tus datos para determinados fines o solicitar que limitemos su uso. Para ejercer estos derechos, contáctanos en privacidad@vaultlytracker.com.',
       },
     ],
   },
@@ -113,7 +113,7 @@ const SECTIONS = [
     content: [
       {
         subtitle: 'Restricción de edad',
-        text: 'Vaultly no está dirigido a menores de 13 años. No recopilamos conscientemente información personal de niños menores de 13 años. Si eres padre o tutor y crees que tu hijo nos ha proporcionado información personal, contáctanos en privacy@vaultly.app para que podamos eliminarla.',
+        text: 'Vaultly no está dirigido a menores de 13 años. No recopilamos conscientemente información personal de niños menores de 13 años. Si eres padre o tutor y crees que tu hijo nos ha proporcionado información personal, contáctanos en privacidad@vaultlytracker.com para que podamos eliminarla.',
       },
     ],
   },
@@ -133,7 +133,7 @@ const SECTIONS = [
     content: [
       {
         subtitle: 'Responsable del tratamiento',
-        text: 'Si tienes preguntas, dudas o solicitudes relacionadas con esta Política de Privacidad o el tratamiento de tus datos personales, puedes contactarnos en: privacy@vaultly.app. Nos comprometemos a responder en un plazo máximo de 30 días.',
+        text: 'Si tienes preguntas, dudas o solicitudes relacionadas con esta Política de Privacidad o el tratamiento de tus datos personales, puedes contactarnos en: privacidad@vaultlytracker.com. Nos comprometemos a responder en un plazo máximo de 30 días.',
       },
     ],
   },
@@ -258,11 +258,11 @@ export default function PrivacyPage() {
                 Si tienes dudas sobre cómo tratamos tus datos, no dudes en contactarnos. Respondemos en menos de 30 días.
               </p>
               <a
-                href="mailto:privacy@vaultly.app"
+                href="mailto:privacidad@vaultlytracker.com"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
               >
                 <i className="ri-mail-send-line"></i>
-                privacy@vaultly.app
+                privacidad@vaultlytracker.com
               </a>
             </div>
           </div>

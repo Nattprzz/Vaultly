@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Manual de usuario — Vaultly</title>
+<style>
+  :root {
+    --blue:       #3B82F6;
+    --blue-dark:  #2563EB;
+    --blue-soft:  #EFF6FF;
+    --gray:       #6B7280;
+    --gray-light: #D1D5DB;
+    --ink:        #111827;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page { size: A4; margin: 0; }
+
+  .page {
+    position: relative;
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
+    page-break-after: always;
+    background: #ffffff;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* ---------- Cabecera y pie ---------- */
+  .topbar {
+    height: 16mm;
+    background: var(--blue);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 14mm;
+    gap: 8px;
+  }
+  .topbar .logo-icon {
+    width: 9mm; height: 9mm; border-radius: 4px;
+    background: #0B0F14;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .topbar .logo-icon svg { width: 7mm; height: 7mm; }
+  .topbar .brand { font-size: 12pt; font-weight: 700; letter-spacing: .3px; font-family: "Segoe UI Semibold", sans-serif; }
+  .topbar .spacer { flex: 1; }
+  .topbar .section-tag {
+    font-size: 9.5pt; font-weight: 500; color: rgba(255,255,255,.92);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  .footer {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 12mm;
+    border-top: 1px solid var(--gray-light);
+    display: flex; align-items: center; padding: 0 14mm;
+    font-size: 8pt; color: var(--gray);
+  }
+  .footer .spacer { flex: 1; }
+  .footer .pagenum { font-weight: 700; color: var(--blue-dark); }
+
+  .content { padding: 9mm 14mm 16mm 14mm; }
+
+  /* ---------- Tipografía ---------- */
+  h2.section { font-size: 17pt; color: var(--blue-dark); margin: 0 0 1.5mm 0; font-weight: 700; }
+  .section-sub { font-size: 10pt; color: var(--gray); margin: 0 0 6mm 0; }
+  .section-rule { height: 3px; width: 26mm; background: var(--blue); border-radius: 3px; margin: 0 0 6mm 0; }
+  h3.block { font-size: 12pt; color: var(--ink); margin: 7mm 0 3mm 0; font-weight: 700; }
+  p { font-size: 10.5pt; line-height: 1.5; margin: 0 0 3mm 0; }
+
+  /* ---------- Pasos numerados ---------- */
+  ol.steps { list-style: none; counter-reset: step; margin: 0; padding: 0; }
+  ol.steps > li { counter-increment: step; position: relative; padding: 0 0 5mm 13mm; min-height: 9mm; }
+  ol.steps > li::before {
+    content: counter(step); position: absolute; left: 0; top: -1mm;
+    width: 8.5mm; height: 8.5mm; background: var(--blue); color: #fff; border-radius: 50%;
+    font-size: 11pt; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  ol.steps > li .step-title { font-weight: 600; font-size: 10.5pt; }
+  ol.steps > li .step-body  { font-size: 10pt; color: #4B5563; line-height: 1.45; margin-top: 1mm; }
+  ol.steps > li .step-body b { color: var(--ink); }
+
+  /* ---------- Botón / chip de referencia ---------- */
+  .btn {
+    display: inline-block; background: var(--blue); color: #fff;
+    font-size: 9pt; font-weight: 600; padding: 1px 8px; border-radius: 4px; white-space: nowrap;
+  }
+  .btn.soft { background: #fff; color: var(--blue-dark); border: 1px solid var(--blue); }
+
+  .tag {
+    display: inline-block; font-size: 8.5pt; font-weight: 600; padding: 1px 7px; border-radius: 4px;
+    border: 1px solid var(--gray-light); background: #F9FAFB; color: #4B5563; white-space: nowrap;
+  }
+  .tag.blue   { background: var(--blue-soft); color: var(--blue-dark); border-color: rgba(59,130,246,.4); }
+  .tag.amber  { background: #FFFBEB; color: #92400E; border-color: #FCD34D; }
+  .tag.green  { background: #F0FDF4; color: #166534; border-color: #86EFAC; }
+  .tag.red    { background: #FEF2F2; color: #991B1B; border-color: #FCA5A5; }
+  .tag.purple { background: #F5F3FF; color: #5B21B6; border-color: #C4B5FD; }
+  .tag.orange { background: #FFF7ED; color: #9A3412; border-color: #FDBA74; }
+  .tag.pink   { background: #FDF2F8; color: #9D174D; border-color: #F9A8D4; }
+  .tag.gray   { background: #F3F4F6; color: #374151; border-color: #D1D5DB; }
+
+  ul.plain { margin: 1mm 0 3mm 0; padding-left: 6mm; }
+  ul.plain li { font-size: 10pt; line-height: 1.5; margin-bottom: 1.5mm; }
+
+  /* ---------- Cajas de consejo ---------- */
+  .tip {
+    background: var(--blue-soft); border-left: 4px solid var(--blue); border-radius: 4px;
+    padding: 4mm 5mm; margin: 5mm 0; font-size: 9.7pt; line-height: 1.45;
+  }
+  .tip .tip-title { font-weight: 700; color: var(--blue-dark); display: block; margin-bottom: 1mm; font-size: 9.7pt; }
+
+  /* ---------- Tablas ---------- */
+  table.fields { width: 100%; border-collapse: collapse; font-size: 9.4pt; margin: 3mm 0 2mm 0; }
+  table.fields th {
+    background: var(--blue); color: #fff; text-align: left; padding: 2.4mm 3mm; font-size: 9pt; font-weight: 600;
+  }
+  table.fields td { padding: 2.1mm 3mm; border-bottom: 1px solid #E5E7EB; vertical-align: top; line-height: 1.32; }
+  table.fields tr:nth-child(even) td { background: #F0F7FF; }
+
+  /* ---------- Chips de categorías ---------- */
+  .chips { display: flex; flex-wrap: wrap; gap: 2mm; margin: 2mm 0 1mm 0; }
+  .chip {
+    font-size: 9pt; padding: 1.2mm 3mm; border-radius: 20px;
+    background: #F9FAFB; border: 1px solid var(--gray-light); color: #4B5563;
+  }
+  .vlabel { font-size: 9.5pt; font-weight: 700; color: var(--ink); margin: 4mm 0 1.5mm 0; }
+
+  /* ---------- Tarjetas ---------- */
+  .cards { display: flex; flex-direction: column; gap: 3mm; margin: 2mm 0; }
+  .card {
+    border: 1px solid #E5E7EB; border-left: 4px solid var(--blue); border-radius: 5px;
+    padding: 3.5mm 4mm; background: #fff;
+  }
+  .card .card-title { font-weight: 700; font-size: 10.5pt; color: var(--ink); margin-bottom: 1mm; }
+  .card .card-body  { font-size: 9.7pt; color: #4B5563; line-height: 1.45; }
+  .card.accent-purple { border-left-color: #8B5CF6; }
+  .card.accent-red    { border-left-color: #EF4444; }
+  .card.accent-orange { border-left-color: #F97316; }
+  .card.accent-green  { border-left-color: #22C55E; }
+  .card.accent-pink   { border-left-color: #EC4899; }
+
+  /* ---------- Grid de dos columnas ---------- */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5mm; margin: 2mm 0; }
+
+  /* ---------- Portada ---------- */
+  .cover {
+    height: 297mm; display: flex; flex-direction: column;
+    background: linear-gradient(160deg, #ffffff 45%, #EFF6FF 100%);
+    page-break-after: always;
+  }
+  .cover-band { height: 8mm; background: var(--blue); }
+  .cover-body {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 0 26mm;
+  }
+  .cover-logo-wrap {
+    width: 28mm; height: 28mm;
+    background: #0B0F14; border-radius: 22%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 8mm;
+    box-shadow: 0 8px 32px rgba(59,130,246,.25);
+  }
+  .cover-logo-wrap svg { width: 18mm; height: 18mm; }
+  .cover-kicker { font-size: 11pt; letter-spacing: 3px; text-transform: uppercase; color: var(--blue); font-weight: 700; margin-bottom: 4mm; }
+  .cover-title  { font-size: 38pt; font-weight: 800; color: var(--ink); line-height: 1.05; margin: 0 0 3mm 0; letter-spacing: -.5px; }
+  .cover-app    { font-size: 15pt; color: var(--gray); margin: 0 0 8mm 0; }
+  .cover-desc   {
+    max-width: 95mm;
+    font-size: 10.5pt; color: #4B5563; line-height: 1.6;
+    background: #fff; border: 1px solid #DBEAFE; border-radius: 10px; padding: 5mm 7mm;
+  }
+  .cover-foot { padding: 0 0 16mm 0; text-align: center; color: var(--gray); font-size: 9pt; }
+  .cover-foot .line { width: 30mm; height: 3px; background: var(--blue); border-radius: 3px; margin: 0 auto 5mm auto; }
+
+  /* ---------- Tabla de categorías con iconos de colores ---------- */
+  .cat-row { display: flex; align-items: center; gap: 3mm; padding: 2.5mm 0; border-bottom: 1px solid #F3F4F6; }
+  .cat-row:last-child { border-bottom: none; }
+  .cat-dot  { width: 7mm; height: 7mm; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9pt; }
+  .cat-name { font-weight: 700; font-size: 10pt; width: 28mm; flex-shrink: 0; }
+  .cat-statuses { display: flex; gap: 2mm; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<!-- ============ PORTADA ============ -->
+<div class="cover">
+  <div class="cover-band"></div>
+  <div class="cover-body">
+    <div class="cover-logo-wrap">
+      <!-- Favicon Vaultly inline -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="1" y="2"  width="22" height="6" rx="3" fill="#3B82F6"/>
+        <rect x="1" y="11" width="17" height="6" rx="3" fill="#3B82F6" fill-opacity=".72"/>
+        <rect x="1" y="20" width="11" height="6" rx="3" fill="#3B82F6" fill-opacity=".46"/>
+      </svg>
+    </div>
+    <div class="cover-kicker">Manual de usuario</div>
+    <h1 class="cover-title">Vaultly</h1>
+    <p class="cover-app">Guía completa de uso</p>
+    <div class="cover-desc">
+      Tu historial cultural completo en un único lugar.<br/>
+      Registra, puntúa y descubre videojuegos, películas,<br/>
+      series, libros y conciertos.
+    </div>
+  </div>
+  <div class="cover-foot">
+    <div class="line"></div>
+    Vaultly · © 2026
+  </div>
+</div>
+
+<!-- ============ 1. EMPEZAR ============ -->
+<div class="page">
+  <div class="topbar">
+    <div class="logo-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="1" y="2"  width="22" height="6" rx="3" fill="#3B82F6"/>
+        <rect x="1" y="11" width="17" height="6" rx="3" fill="#3B82F6" fill-opacity=".72"/>
+        <rect x="1" y="20" width="11" height="6" rx="3" fill="#3B82F6" fill-opacity=".46"/>
+      </svg>
+    </div>
+    <span class="brand">Vaultly</span>
+    <span class="spacer"></span>
+    <span class="section-tag">1 · Empezar</span>
+  </div>
+  <div class="content">
+    <h2 class="section">Crear cuenta e iniciar sesión</h2>
+    <div class="section-rule"></div>
+    <p class="section-sub">Vaultly es gratuito. Crea tu cuenta en menos de un minuto y empieza a registrar tu historial cultural.</p>
+
+    <h3 class="block" style="margin-top:2mm;">Crear una cuenta nueva</h3>
+    <ol class="steps">
+      <li>
+        <div class="step-title">Abre la página de acceso</div>
+        <div class="step-body">Ve a Vaultly y pulsa <b>Registrarse</b> en la pantalla de bienvenida.</div>
+      </li>
+      <li>
+        <div class="step-title">Rellena el formulario</div>
+        <div class="step-body">Introduce tu <b>nombre de usuario</b> (mínimo 3 caracteres, sin espacios), <b>correo electrónico</b> y una <b>contraseña</b> segura.</div>
+      </li>
+      <li>
+        <div class="step-title">Confirma tu correo</div>
+        <div class="step-body">Recibirás un enlace de verificación. Ábrelo para activar tu cuenta.</div>
+      </li>
+      <li>
+        <div class="step-title">¡Listo!</div>
+        <div class="step-body">Serás redirigido al <b>Dashboard</b> y ya puedes empezar a añadir ítems.</div>
+      </li>
+    </ol>
+
+    <h3 class="block">Iniciar sesión</h3>
+    <p>Puedes entrar con <b>tu correo electrónico</b> o con tu <b>nombre de usuario</b> — ambos funcionan en el mismo campo.</p>
+    <div class="tip">
+      <span class="tip-title">¿Olvidaste tu contraseña?</span>
+      Pulsa <b>¿Olvidaste tu contraseña?</b> en la pantalla de login. Recibirás un enlace de restablecimiento en tu correo. El enlace expira en 1 hora.
+    </div>
+
+    <h3 class="block">Navegación principal</h3>
+    <div class="cards">
+      <div class="card">
+        <div class="card-title">Barra lateral (escritorio)</div>
+        <div class="card-body">En pantallas grandes encontrarás la barra lateral fija con todos los accesos: Dashboard, Tracker, Catálogo, Entidades, Comparar, Perfil y Ajustes.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Barra inferior (móvil)</div>
+        <div class="card-body">En móvil, la navegación aparece en la parte inferior de la pantalla con los accesos más frecuentes.</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span>Vaultly · Manual de usuario</span>
+    <span class="spacer"></span>
+    <span class="pagenum">2</span>
+  </div>
+</div>
+
+<!-- ============ 2. CATÁLOGO ============ -->
+<div class="page">
+  <div class="topbar">
+    <div class="logo-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="1" y="2"  width="22" height="6" rx="3" fill="#3B82F6"/>
+        <rect x="1" y="11" width="17" height="6" rx="3" fill="#3B82F6" fill-opacity=".72"/>
+        <rect x="1" y="20" width="11" height="6" rx="3" fill="#3B82F6" fill-opacity=".46"/>
+      </svg>
+    </div>
+    <span class="brand">Vaultly</span>
+    <span class="spacer"></span>
+    <span class="section-tag">2 · Catálogo</span>
+  </div>
+  <div class="content">
+    <h2 class="section">Explorar el catálogo</h2>
+    <div class="section-rule"></div>
+    <p class="section-sub">El catálogo reúne miles de títulos organizados en cinco categorías. Úsalo para descubrir, buscar y añadir ítems a tu tracker.</p>
+
+    <h3 class="block" style="margin-top:2mm;">Las cinco categorías</h3>
+    <div style="margin: 0 0 5mm 0;">
+      <div class="cat-row">
+        <div class="cat-dot" style="background:#7C3AED18; color:#7C3AED;">🎮</div>
+        <div class="cat-name" style="color:#7C3AED;">Videojuegos</div>
+        <div style="font-size:9.5pt; color:#4B5563;">Videojuegos de todas las plataformas y géneros.</div>
+      </div>
+      <div class="cat-row">
+        <div class="cat-dot" style="background:#EF444418; color:#EF4444;">🎬</div>
+        <div class="cat-name" style="color:#EF4444;">Películas</div>
+        <div style="font-size:9.5pt; color:#4B5563;">Largometrajes de todos los géneros y épocas.</div>
+      </div>
+      <div class="cat-row">
+        <div class="cat-dot" style="background:#F9731618; color:#F97316;">📺</div>
+        <div class="cat-name" style="color:#F97316;">Series</div>
+        <div style="font-size:9.5pt; color:#4B5563;">Series de televisión y plataformas de streaming.</div>
+      </div>
+      <div class="cat-row">
+        <div class="cat-dot" style="background:#22C55E18; color:#22C55E;">📚</div>
+        <div class="cat-name" style="color:#22C55E;">Libros</div>
+        <div style="font-size:9.5pt; color:#4B5563;">Novelas, ensayos, cómics y todo tipo de lectura.</div>
+      </div>
+      <div class="cat-row">
+        <div class="cat-dot" style="background:#EC489918; color:#EC4899;">🎵</div>
+        <div class="cat-name" style="color:#EC4899;">Conciertos</div>
+        <div style="font-size:9.5pt; color:#4B5563;">Actuaciones en directo, festivales y giras.</div>
+      </div>
+    </div>
+
+    <h3 class="block">Buscar y filtrar</h3>
+    <ul class="plain">
+      <li>Usa la <b>barra de búsqueda</b> del catálogo para encontrar un título concreto.</li>
+      <li>Filtra por <b>categoría</b> desde las pestañas superiores o desde la barra lateral.</li>
+      <li>Aplica filtros adicionales de <b>género</b> y <b>año</b> para acotar los resultados.</li>
+    </ul>
+
+    <h3 class="block">Ver el detalle de un ítem</h3>
+    <p>Pulsa sobre cualquier portada o título para abrir su página de detalle. Allí encontrarás:</p>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Información completa</div>
+        <div class="card-body">Sinopsis, fecha, géneros, duración, plataformas y puntuación de la comunidad.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Reparto y equipo</div>
+        <div class="card-body">Actores, directores, autores y otras personas vinculadas al ítem.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Tráiler</div>
+        <div class="card-body">Vídeo oficial embebido cuando está disponible.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Ítems relacionados</div>
+        <div class="card-body">Títulos similares por género o por las mismas personas implicadas.</div>
+      </div>
+    </div>
+
+    <div class="tip">
+      <span class="tip-title">Añadir directamente desde el catálogo</span>
+      En cualquier portada o en la página de detalle encontrarás el botón <b>+ Añadir al tracker</b>. No tienes que salir del catálogo para registrar un ítem.
+    </div>
+  </div>
+  <div class="footer">
+    <span>Vaultly · Manual de usuario</span>
+    <span class="spacer"></span>
+    <span class="pagenum">3</span>
+  </div>
+</div>
+
+<!-- ============ 3. TRACKER ============ -->
+<div class="page">
+  <div class="topbar">
+    <div class="logo-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="1" y="2"  width="22" height="6" rx="3" fill="#3B82F6"/>
+        <rect x="1" y="11" width="17" height="6" rx="3" fill="#3B82F6" fill-opacity=".72"/>
+        <rect x="1" y="20" width="11" height="6" rx="3" fill="#3B82F6" fill-opacity=".46"/>
+      </svg>
+    </div>
+    <span class="brand">Vaultly</span>
+    <span class="spacer"></span>
+    <span class="section-tag">3 · Tracker</span>
+  </div>
+  <div class="content">
+    <h2 class="section">Tu tracker personal</h2>
+    <div class="section-rule"></div>
+    <p class="section-sub">El tracker es tu colección personal. Guarda todo lo que has consumido, estás consumiendo o tienes pendiente, con estado, puntuación y reseña.</p>
+
+    <h3 class="block" style="margin-top:2mm;">Añadir un ítem al tracker</h3>
+    <ol class="steps">
+      <li>
+        <div class="step-title">Encuentra el ítem en el catálogo</div>
+        <div class="step-body">Búscalo por título o navega por categoría.</div>
+      </li>
+      <li>
+        <div class="step-title">Pulsa <span class="btn">+ Añadir al tracker</span></div>
+        <div class="step-body">El botón está en la portada y también en la página de detalle del ítem.</div>
+      </li>
+      <li>
+        <div class="step-title">Elige el estado</div>
+        <div class="step-body">Selecciona en qué punto estás con ese ítem (ver estados más abajo).</div>
+      </li>
+      <li>
+        <div class="step-title">Puntúa y añade una reseña (opcional)</div>
+        <div class="step-body">La <b>puntuación</b> es de 1 a 10. La <b>reseña</b> admite hasta 500 caracteres.</div>
+      </li>
+      <li>
+        <div class="step-title">Pulsa <span class="btn">Añadir al tracker</span></div>
+        <div class="step-body">El ítem aparecerá en tu tracker y en tu perfil público (si lo tienes activo).</div>
+      </li>
+    </ol>
+
+    <h3 class="block">Estados por categoría</h3>
+    <p style="font-size:9.5pt; color:#4B5563; margin-bottom:2mm;">Cada categoría usa etiquetas contextuales para que el estado sea siempre natural:</p>
+
+    <div style="margin: 0 0 3mm 0;">
+      <div class="cat-row">
+        <div class="cat-dot" style="background:#7C3AED18; color:#7C3AED;">🎮</div>
+        <div class="cat-name" style="color:#7C3AED; font-size:9.5pt;">Videojuegos</div>
+        <div class="cat-statuses">
+          <span class="tag gray">Pendiente</span>
+          <span class="tag amber">Jugando</span>
+          <span class="tag green">Completado</span>
+          <span class="tag red">Abandonado</span>
+        </div>
+      </div>
+      <div class="cat-row">
+        <div class="cat-dot" style="background:#EF444418; color:#EF4444;">🎬</div>
+        <div class="cat-name" style="color:#EF4444; font-size:9.5pt;">Películas</div>
+        <div class="cat-statuses">
+          <span class="tag gray">Pendiente</span>
+          <span class="tag amber">Viendo</span>
+          <span class="tag green">Vista</span>
+          <span class="tag red">Abandonada</span>
+        </div>
+      </div>
+      <div class="cat-row">
+        <div class="cat-dot" style="background:#F9731618; color:#F97316;">📺</div>
+        <div class="cat-name" style="color:#F97316; font-size:9.5pt;">Series</div>
+        <div class="cat-statuses">
+          <span class="tag gray">Pendiente</span>
+          <span class="tag amber">Viendo</span>
+          <span class="tag green">Al día</span>
+          <span class="tag red">Abandonada</span>
+        </div>
+      </div>
+      <div class="cat-row">
+        <div class="cat-dot" style="background:#22C55E18; color:#22C55E;">📚</div>
+        <div class="cat-name" style="color:#22C55E; font-size:9.5pt;">Libros</div>
+        <div class="cat-statuses">
+          <span class="tag gray">Pendiente</span>
+          <span class="tag amber">Leyendo</span>
+          <span class="tag green">Leído</span>
+          <span class="tag red">Abandonado</span>
+        </div>
+      </div>
+      <div class="cat-row">
+        <div class="cat-dot" style="background:#EC489918; color:#EC4899;">🎵</div>
+        <div class="cat-name" style="color:#EC4899; font-size:9.5pt;">Conciertos</div>
+        <div class="cat-statuses">
+          <span class="tag gray">Pendiente</span>
+          <span class="tag amber">Asistiendo</span>
+          <span class="tag green">Asistido</span>
+          <span class="tag red">Cancelado</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip">
+      <span class="tip-title">Editar o eliminar un ítem del tracker</span>
+      Pulsa sobre cualquier tarjeta en tu tracker para abrir de nuevo el modal. Actualiza estado, puntuación o reseña y guarda. Para eliminarlo del tracker, pulsa <b>Eliminar</b> en la esquina inferior izquierda del modal.
+    </div>
+  </div>
+  <div class="footer">
+    <span>Vaultly · Manual de usuario</span>
+    <span class="spacer"></span>
+    <span class="pagenum">4</span>
+  </div>
+</div>
+
+<!-- ============ 4. TRACKER FILTROS ============ -->
+<div class="page">
+  <div class="topbar">
+    <div class="logo-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="1" y="2"  width="22" height="6" rx="3" fill="#3B82F6"/>
+        <rect x="1" y="11" width="17" height="6" rx="3" fill="#3B82F6" fill-opacity=".72"/>
+        <rect x="1" y="20" width="11" height="6" rx="3" fill="#3B82F6" fill-opacity=".46"/>
+      </svg>
+    </div>
+    <span class="brand">Vaultly</span>
+    <span class="spacer"></span>
+    <span class="section-tag">3 · Tracker (cont.)</span>
+  </div>
+  <div class="content">
+    <h2 class="section">Filtrar y organizar tu tracker</h2>
+    <div class="section-rule"></div>
+
+    <h3 class="block" style="margin-top:2mm;">Filtros disponibles</h3>
+    <table class="fields">
+      <thead>
+        <tr><th style="width:38mm;">Filtro</th><th>Qué hace</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>Categoría</b></td><td>Muestra solo los ítems de la categoría seleccionada (o todos).</td></tr>
+        <tr><td><b>Estado</b></td><td>Filtra por estado: Pendiente, En progreso, Completado o Abandonado.</td></tr>
+        <tr><td><b>Búsqueda</b></td><td>Filtra por título en tiempo real mientras escribes.</td></tr>
+        <tr><td><b>Orden</b></td><td>Última actualización, Fecha de añadido, Puntuación o Título A–Z.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="block">Línea de tiempo</h3>
+    <p>A la derecha del grid (en escritorio) encontrarás la <b>línea de tiempo</b>: un historial visual de cuándo añadiste o actualizaste cada ítem, organizado por fecha.</p>
+
+    <h3 class="block">Estadísticas rápidas</h3>
+    <p>En la cabecera del tracker verás el total de ítems, cuántos tienes en cada estado y un resumen por categoría. Úsalo para revisar de un vistazo el estado de tu colección.</p>
+
+    <h3 class="block">Preguntas frecuentes del tracker</h3>
+
+    <p style="margin-bottom:1.5mm;"><b>¿Puedo tener el mismo ítem en varias categorías?</b></p>
+    <p style="font-size:9.8pt; color:#4B5563;">No. Cada ítem pertenece a una sola categoría. Si quieres actualizar su estado, abre el modal del ítem en el tracker y cámbialo.</p>
+
+    <p style="margin-bottom:1.5mm;"><b>¿Se pueden importar colecciones de otras plataformas?</b></p>
+    <p style="font-size:9.8pt; color:#4B5563;">Actualmente no está disponible la importación automática. Añade los ítems manualmente desde el catálogo.</p>
+
+    <p style="margin-bottom:1.5mm;"><b>¿Qué diferencia hay entre «Completado» y «Al día» (series)?</b></p>
+    <p style="font-size:9.8pt; color:#4B5563;"><span class="tag green">Completado</span> se usa para ítems finalizados (películas, libros, juegos). En series, <span class="tag green">Al día</span> indica que has visto todos los episodios disponibles hasta ahora.</p>
+
+    <div class="tip">
+      <span class="tip-title">Categorías activas</span>
+      En <b>Ajustes → Categorías</b> puedes desactivar las categorías que no uses. Las categorías ocultas no aparecen en el tracker ni en el dashboard, aunque sus datos se conservan.
+    </div>
+  </div>
+  <div class="footer">
+    <span>Vaultly · Manual de usuario</span>
+    <span class="spacer"></span>
+    <span class="pagenum">5</span>
+  </div>
+</div>
+
+<!-- ============ 5. DASHBOARD ============ -->
+<div class="page">
+  <div class="topbar">
+    <div class="logo-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="1" y="2"  width="22" height="6" rx="3" fill="#3B82F6"/>
+        <rect x="1" y="11" width="17" height="6" rx="3" fill="#3B82F6" fill-opacity=".72"/>
+        <rect x="1" y="20" width="11" height="6" rx="3" fill="#3B82F6" fill-opacity=".46"/>
+      </svg>
+    </div>
+    <span class="brand">Vaultly</span>
+    <span class="spacer"></span>
+    <span class="section-tag">4 · Dashboard</span>
+  </div>
+  <div class="content">
+    <h2 class="section">Panel personal (Dashboard)</h2>
+    <div class="section-rule"></div>
+    <p class="section-sub">El Dashboard es tu centro de mando. De un vistazo puedes ver en qué punto está tu colección, qué has añadido recientemente y tu actividad de la semana.</p>
+
+    <h3 class="block" style="margin-top:2mm;">Secciones del Dashboard</h3>
+    <div class="cards">
+      <div class="card">
+        <div class="card-title">Tarjetas de estadísticas globales</div>
+        <div class="card-body">Totales de tu colección: número de ítems completados, en progreso, pendientes y abandonados. Siempre muestran el global, sin importar el filtro de categoría activo.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Siguiendo actualmente</div>
+        <div class="card-body">Los ítems que tienes en estado activo (Jugando, Viendo, Leyendo, Asistiendo). Son tus pendientes inmediatos.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Actividad reciente</div>
+        <div class="card-body">Los últimos ítems añadidos o actualizados en tu tracker, ordenados por fecha.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Actividad semanal</div>
+        <div class="card-body">Gráfico de barras con cuántos ítems has movido cada día de los últimos 7 días.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Progreso por categoría</div>
+        <div class="card-body">Barras de progreso por categoría: cuántos completados vs. total añadido en cada una.</div>
+      </div>
+    </div>
+
+    <h3 class="block">Filtro de categoría en el Dashboard</h3>
+    <p>Los chips de categoría en la parte superior del Dashboard filtran las secciones <b>Siguiendo</b>, <b>Actividad reciente</b> y <b>Actividad semanal</b> para que veas solo la categoría que te interesa en ese momento.</p>
+
+    <div class="tip">
+      <span class="tip-title">Notificaciones inteligentes</span>
+      Si tienes muchos ítems sin puntuar, ítems en progreso sin actualizar desde hace tiempo, o logros recientes, el Dashboard te mostrará una notificación contextual en la parte superior.
+    </div>
+  </div>
+  <div class="footer">
+    <span>Vaultly · Manual de usuario</span>
+    <span class="spacer"></span>
+    <span class="pagenum">6</span>
+  </div>
+</div>
+
+<!-- ============ 6. PERFIL ============ -->
+<div class="page">
+  <div class="topbar">
+    <div class="logo-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="1" y="2"  width="22" height="6" rx="3" fill="#3B82F6"/>
+        <rect x="1" y="11" width="17" height="6" rx="3" fill="#3B82F6" fill-opacity=".72"/>
+        <rect x="1" y="20" width="11" height="6" rx="3" fill="#3B82F6" fill-opacity=".46"/>
+      </svg>
+    </div>
+    <span class="brand">Vaultly</span>
+    <span class="spacer"></span>
+    <span class="section-tag">5 · Perfil</span>
+  </div>
+  <div class="content">
+    <h2 class="section">Tu perfil público</h2>
+    <div class="section-rule"></div>
+    <p class="section-sub">Tu perfil es tu tarjeta de presentación cultural. Puedes compartirlo con quien quieras o mantenerlo completamente privado.</p>
+
+    <h3 class="block" style="margin-top:2mm;">Las tres pestañas del perfil</h3>
+    <div class="cards">
+      <div class="card">
+        <div class="card-title">Destacados</div>
+        <div class="card-body">Muestra una selección curada de tus mejores ítems por categoría: los que has puntuado más alto, los completados más recientes y tus favoritos.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Estadísticas</div>
+        <div class="card-body">Gráficos y cifras sobre tu colección: géneros favoritos, puntuación media, distribución por categoría y actividad histórica.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Reseñas</div>
+        <div class="card-body">Todas tus reseñas escritas, con la portada del ítem y tu puntuación. Puedes ordenarlas por fecha o puntuación.</div>
+      </div>
+    </div>
+
+    <h3 class="block">Compartir tu perfil</h3>
+    <p>Tu perfil público vive en <span style="font-family:monospace; font-size:9.5pt; background:#F3F4F6; padding:1px 5px; border-radius:3px;">/u/tu-usuario</span>. Puedes copiarlo desde <b>Ajustes → Privacidad → Enlace de tu perfil público</b> o usar los botones de compartir directos para X, WhatsApp y Telegram.</p>
+
+    <h3 class="block">Privacidad granular</h3>
+    <p>Desde <b>Ajustes → Privacidad</b> controlas exactamente qué ve cada visitante:</p>
+    <table class="fields">
+      <thead><tr><th style="width:50mm;">Opción</th><th>Qué controla</th></tr></thead>
+      <tbody>
+        <tr><td><b>Perfil público</b></td><td>Activa o desactiva la visibilidad de toda tu página pública.</td></tr>
+        <tr><td><b>Compartir tracker</b></td><td>Si tu tracker es visible para quienes tengan el enlace.</td></tr>
+        <tr><td><b>Mostrar puntuaciones</b></td><td>Si tus valoraciones (1–10) son visibles en el perfil.</td></tr>
+        <tr><td><b>Mostrar reseñas</b></td><td>Si tus reseñas escritas son visibles.</td></tr>
+        <tr><td><b>Mostrar estado de ítems</b></td><td>Si el estado (Completado, Jugando…) es visible por ítem.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="tip">
+      <span class="tip-title">Perfil privado</span>
+      Si desactivas <b>Perfil público</b>, todas las opciones dependientes se desactivan automáticamente. Solo tú podrás ver tu página.
+    </div>
+  </div>
+  <div class="footer">
+    <span>Vaultly · Manual de usuario</span>
+    <span class="spacer"></span>
+    <span class="pagenum">7</span>
+  </div>
+</div>
+
+<!-- ============ 7. ENTIDADES Y COMPARAR ============ -->
+<div class="page">
+  <div class="topbar">
+    <div class="logo-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="1" y="2"  width="22" height="6" rx="3" fill="#3B82F6"/>
+        <rect x="1" y="11" width="17" height="6" rx="3" fill="#3B82F6" fill-opacity=".72"/>
+        <rect x="1" y="20" width="11" height="6" rx="3" fill="#3B82F6" fill-opacity=".46"/>
+      </svg>
+    </div>
+    <span class="brand">Vaultly</span>
+    <span class="spacer"></span>
+    <span class="section-tag">6 · Entidades</span>
+  </div>
+  <div class="content">
+    <h2 class="section">Entidades y comparaciones</h2>
+    <div class="section-rule"></div>
+    <p class="section-sub">Las entidades son las personas y estudios detrás de los ítems: actores, directores, autores, desarrolladoras. Explóralos y compáralos entre sí.</p>
+
+    <h3 class="block" style="margin-top:2mm;">Página de entidad</h3>
+    <p>Pulsa sobre el nombre o foto de cualquier persona en la ficha de un ítem para abrir su página. Allí encontrarás:</p>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Biografía</div>
+        <div class="card-body">Información biográfica, fecha de nacimiento, nacionalidad y rol principal.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Filmografía / Obras</div>
+        <div class="card-body">Todos los ítems del catálogo vinculados a esa entidad, con rol y año.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Popularidad</div>
+        <div class="card-body">Estadísticas de popularidad según las puntuaciones de los usuarios de Vaultly.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Obra más valorada</div>
+        <div class="card-body">El ítem con mayor puntuación media entre los usuarios que lo han trackeado.</div>
+      </div>
+    </div>
+
+    <h3 class="block">Comparar dos entidades</h3>
+    <ol class="steps">
+      <li>
+        <div class="step-title">Ve a <b>Comparar</b> en el menú lateral</div>
+        <div class="step-body">También puedes acceder desde cualquier página de entidad con el botón <b>Comparar</b>.</div>
+      </li>
+      <li>
+        <div class="step-title">Selecciona las dos entidades</div>
+        <div class="step-body">Usa el buscador de cada columna o elige una de las <b>comparaciones sugeridas</b> para empezar rápido.</div>
+      </li>
+      <li>
+        <div class="step-title">Analiza los resultados</div>
+        <div class="step-body">Verás un gráfico de evolución de ratings, estadísticas comparadas (consistencia, media, total de obras) y las obras destacadas de cada uno.</div>
+      </li>
+      <li>
+        <div class="step-title">Comparte la comparación</div>
+        <div class="step-body">La URL ya contiene los parámetros. Pulsa <b>Copiar enlace</b> para compartirla.</div>
+      </li>
+    </ol>
+
+    <div class="tip">
+      <span class="tip-title">Comparaciones sugeridas</span>
+      Cuando entras a Comparar sin haber seleccionado nada, aparecen pares populares predefinidos (Nolan vs. Villeneuve, Cillian Murphy vs. Timothée Chalamet…) para que puedas explorar con un solo clic.
+    </div>
+  </div>
+  <div class="footer">
+    <span>Vaultly · Manual de usuario</span>
+    <span class="spacer"></span>
+    <span class="pagenum">8</span>
+  </div>
+</div>
+
+<!-- ============ 8. CONFIGURACIÓN ============ -->
+<div class="page">
+  <div class="topbar">
+    <div class="logo-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="1" y="2"  width="22" height="6" rx="3" fill="#3B82F6"/>
+        <rect x="1" y="11" width="17" height="6" rx="3" fill="#3B82F6" fill-opacity=".72"/>
+        <rect x="1" y="20" width="11" height="6" rx="3" fill="#3B82F6" fill-opacity=".46"/>
+      </svg>
+    </div>
+    <span class="brand">Vaultly</span>
+    <span class="spacer"></span>
+    <span class="section-tag">7 · Ajustes</span>
+  </div>
+  <div class="content">
+    <h2 class="section">Configuración</h2>
+    <div class="section-rule"></div>
+    <p class="section-sub">Desde Ajustes personalizas todos los aspectos de tu experiencia en Vaultly.</p>
+
+    <table class="fields" style="margin-top: 2mm;">
+      <thead>
+        <tr><th style="width:36mm;">Sección</th><th>Qué puedes configurar</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Apariencia</b></td>
+          <td>Cambia entre modo claro, modo oscuro o sincronización automática con el sistema operativo. También puedes ajustar el color de acento.</td>
+        </tr>
+        <tr>
+          <td><b>Categorías</b></td>
+          <td>Activa o desactiva las categorías que aparecen en tu tracker y dashboard. Puedes personalizar el color de cada una.</td>
+        </tr>
+        <tr>
+          <td><b>Idioma</b></td>
+          <td>Selecciona el idioma de la interfaz de Vaultly.</td>
+        </tr>
+        <tr>
+          <td><b>Notificaciones</b></td>
+          <td>Gestiona qué alertas recibes: nuevos lanzamientos de ítems que sigues, actualizaciones del catálogo, etc.</td>
+        </tr>
+        <tr>
+          <td><b>Privacidad</b></td>
+          <td>Controla la visibilidad de tu perfil y tracker. Acceso al enlace compartible (ver sección 5).</td>
+        </tr>
+        <tr>
+          <td><b>Cuenta</b></td>
+          <td>Cambia tu nombre de usuario, correo, contraseña o elimina tu cuenta permanentemente.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 class="block">Cambiar contraseña</h3>
+    <ol class="steps">
+      <li>
+        <div class="step-title">Ve a <b>Ajustes → Cuenta</b></div>
+      </li>
+      <li>
+        <div class="step-title">Introduce tu contraseña actual y la nueva</div>
+        <div class="step-body">La nueva contraseña debe tener al menos 8 caracteres.</div>
+      </li>
+      <li>
+        <div class="step-title">Pulsa <span class="btn">Guardar cambios</span></div>
+      </li>
+    </ol>
+
+    <div class="tip">
+      <span class="tip-title">Eliminar cuenta</span>
+      La eliminación de cuenta es permanente e irreversible. Todos tus datos de tracker, reseñas y puntuaciones se borran definitivamente. La opción está al final de <b>Ajustes → Cuenta</b>, protegida por una confirmación adicional.
+    </div>
+  </div>
+  <div class="footer">
+    <span>Vaultly · Manual de usuario</span>
+    <span class="spacer"></span>
+    <span class="pagenum">9</span>
+  </div>
+</div>
+
+<!-- ============ 9. CONSEJOS Y FAQ ============ -->
+<div class="page">
+  <div class="topbar">
+    <div class="logo-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+        <rect x="1" y="2"  width="22" height="6" rx="3" fill="#3B82F6"/>
+        <rect x="1" y="11" width="17" height="6" rx="3" fill="#3B82F6" fill-opacity=".72"/>
+        <rect x="1" y="20" width="11" height="6" rx="3" fill="#3B82F6" fill-opacity=".46"/>
+      </svg>
+    </div>
+    <span class="brand">Vaultly</span>
+    <span class="spacer"></span>
+    <span class="section-tag">8 · Consejos</span>
+  </div>
+  <div class="content">
+    <h2 class="section">Consejos y preguntas frecuentes</h2>
+    <div class="section-rule"></div>
+
+    <h3 class="block" style="margin-top:2mm;">Para sacar el máximo partido</h3>
+    <ul class="plain">
+      <li>Empieza el día con el <b>Dashboard</b> para ver qué tienes en progreso y qué hace tiempo que no actualizas.</li>
+      <li>Usa <b>Pendiente</b> como tu lista de deseos: añade lo que quieres consumir antes de empezarlo.</li>
+      <li>Puntúa los ítems justo al terminarlos, cuando la impresión está fresca.</li>
+      <li>Escribe reseñas aunque sean breves: con el tiempo se convierten en un diario cultural valioso.</li>
+      <li>Desactiva en <b>Ajustes → Categorías</b> las que no uses para mantener el tracker limpio y ordenado.</li>
+    </ul>
+
+    <h3 class="block">Preguntas frecuentes</h3>
+
+    <p style="margin-bottom:1.5mm;"><b>No encuentro un ítem en el catálogo.</b></p>
+    <p style="font-size:9.8pt; color:#4B5563; margin-bottom:4mm;">El catálogo se actualiza periódicamente. Si un título no está, puedes reportarlo desde la página de contacto (<b>Ajustes → Privacidad → Contacto y soporte</b>) y lo valoraremos para añadirlo.</p>
+
+    <p style="margin-bottom:1.5mm;"><b>¿Puedo usar Vaultly sin crear cuenta?</b></p>
+    <p style="font-size:9.8pt; color:#4B5563; margin-bottom:4mm;">Puedes explorar el catálogo y las páginas públicas sin cuenta. Para guardar ítems en tu tracker necesitas registrarte.</p>
+
+    <p style="margin-bottom:1.5mm;"><b>¿Mis datos se comparten con terceros?</b></p>
+    <p style="font-size:9.8pt; color:#4B5563; margin-bottom:4mm;">No. Consulta la <b>Política de Privacidad</b> en <b>Ajustes → Privacidad</b> para más detalles.</p>
+
+    <p style="margin-bottom:1.5mm;"><b>¿Cómo funciona el modo oscuro?</b></p>
+    <p style="font-size:9.8pt; color:#4B5563; margin-bottom:4mm;">Ve a <b>Ajustes → Apariencia</b> y elige entre Claro, Oscuro o Automático (sigue la configuración de tu sistema operativo).</p>
+
+    <div class="tip">
+      <span class="tip-title">Contacto y soporte</span>
+      Si encuentras un error, tienes una sugerencia o necesitas ayuda, escríbenos desde <b>Ajustes → Privacidad → Contacto y soporte</b>. Respondemos en menos de 48 horas.
+    </div>
+
+    <div style="margin-top: 14mm; text-align: center;">
+      <div style="display:inline-flex; align-items:center; gap:10px; justify-content:center;">
+        <div style="width:20mm; height:20mm; background:#0B0F14; border-radius:22%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(59,130,246,.2);">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="14mm" height="14mm">
+            <rect x="1" y="2"  width="22" height="6" rx="3" fill="#3B82F6"/>
+            <rect x="1" y="11" width="17" height="6" rx="3" fill="#3B82F6" fill-opacity=".72"/>
+            <rect x="1" y="20" width="11" height="6" rx="3" fill="#3B82F6" fill-opacity=".46"/>
+          </svg>
+        </div>
+        <div style="text-align:left;">
+          <div style="font-size:20pt; font-weight:800; color:var(--ink); letter-spacing:-.3px;">Vaultly</div>
+          <div style="font-size:9pt; color:var(--gray);">Tu historial cultural completo</div>
+        </div>
+      </div>
+      <div style="margin-top:5mm; font-size:8.5pt; color:var(--gray);">© 2026 Vaultly · Todos los derechos reservados</div>
+    </div>
+  </div>
+  <div class="footer">
+    <span>Vaultly · Manual de usuario</span>
+    <span class="spacer"></span>
+    <span class="pagenum">10</span>
+  </div>
+</div>
+
+</body>
+</html>

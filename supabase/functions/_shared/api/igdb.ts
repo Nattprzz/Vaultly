@@ -1,8 +1,8 @@
-import type { NormalizedCatalogItem } from './types.ts';
+import type { GameCompanyRef, NormalizedCatalogItem } from './types.ts';
 import { compact, requireEnv, stripHtml, toSourceSlug } from './utils.ts';
 
 const TWITCH_TOKEN_URL = 'https://id.twitch.tv/oauth2/token';
-const IGDB_GAMES_URL = 'https://api.igdb.com/v4/games';
+const IGDB_API_BASE = 'https://api.igdb.com/v4';
 
 let tokenCache: { token: string; expiresAt: number } | null = null;
 
@@ -32,9 +32,9 @@ async function getIgdbToken() {
   return { clientId, token: tokenCache.token };
 }
 
-async function igdbRequest(body: string) {
+export async function igdbRequest(endpoint: string, body: string) {
   const { clientId, token } = await getIgdbToken();
-  const res = await fetch(IGDB_GAMES_URL, {
+  const res = await fetch(`${IGDB_API_BASE}/${endpoint.replace(/^\/+/, '')}`, {
     method: 'POST',
     headers: {
       'Client-ID': clientId,
@@ -49,18 +49,47 @@ async function igdbRequest(body: string) {
   return res.json();
 }
 
-function coverUrl(imageId?: string | null) {
-  return imageId ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg` : null;
+export function igdbImageUrl(imageId?: string | null, size = 't_cover_big') {
+  return imageId ? `https://images.igdb.com/igdb/image/upload/${size}/${imageId}.jpg` : null;
 }
 
 function releaseDate(timestamp?: number | null) {
   return timestamp ? new Date(timestamp * 1000).toISOString().slice(0, 10) : null;
 }
 
+function safeCompanySlug(name: string, slug?: string | null) {
+  const value = slug || name;
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'unknown-company';
+}
+
 function companyNames(game: any, flag: 'developer' | 'publisher') {
   return compact((game.involved_companies ?? [])
     .filter((item: any) => item?.[flag])
     .map((item: any) => item.company?.name));
+}
+
+function companyRefs(game: any, flag: 'developer' | 'publisher'): GameCompanyRef[] {
+  const seen = new Set<number | string>();
+  return compact((game.involved_companies ?? [])
+    .filter((item: any) => item?.[flag] && item.company?.name)
+    .map((item: any) => {
+      const company = item.company;
+      const slug = safeCompanySlug(company.name, company.slug);
+      const key = company.id ?? slug;
+      if (seen.has(key)) return null;
+      seen.add(key);
+      return {
+        igdb_id: company.id ?? null,
+        name: company.name,
+        slug,
+        url: `/company/${slug}`,
+      };
+    }));
 }
 
 function regionalReleaseDates(game: any) {
@@ -90,7 +119,7 @@ function normalizeGame(game: any): NormalizedCatalogItem {
     title: game.name ?? 'Unknown',
     slug: toSourceSlug('games', game.id),
     description: stripHtml(game.summary),
-    image_url: coverUrl(game.cover?.image_id),
+    image_url: igdbImageUrl(game.cover?.image_id),
     release_date: releaseDate(game.first_release_date),
     metadata: {
       rating: game.total_rating != null ? Math.round(Number(game.total_rating) / 10) : null,
@@ -99,6 +128,8 @@ function normalizeGame(game: any): NormalizedCatalogItem {
       platforms: compact((game.platforms ?? []).map((platform: any) => platform.name)),
       developers: companyNames(game, 'developer'),
       publishers: companyNames(game, 'publisher'),
+      developer_companies: companyRefs(game, 'developer'),
+      publisher_companies: companyRefs(game, 'publisher'),
       game_modes: compact((game.game_modes ?? []).map((mode: any) => mode.name)),
       release_dates: regionalReleaseDates(game),
       achievements_count: null,
@@ -113,20 +144,20 @@ export async function searchIgdbGames(query: string, page = 1, limit = 20): Prom
   const offset = Math.max(page - 1, 0) * limit;
   const body = `
     search "${query.replace(/"/g, '\\"')}";
-    fields name,slug,summary,cover.image_id,genres.name,platforms.name,game_modes.name,involved_companies.developer,involved_companies.publisher,involved_companies.company.name,release_dates.region,release_dates.date,first_release_date,total_rating,total_rating_count;
+    fields name,slug,summary,cover.image_id,genres.name,platforms.name,game_modes.name,involved_companies.developer,involved_companies.publisher,involved_companies.company.id,involved_companies.company.name,involved_companies.company.slug,release_dates.region,release_dates.date,first_release_date,total_rating,total_rating_count;
     limit ${limit};
     offset ${offset};
   `;
-  const games = await igdbRequest(body);
+  const games = await igdbRequest('games', body);
   return (games ?? []).map(normalizeGame);
 }
 
 export async function getIgdbGame(sourceId: string): Promise<NormalizedCatalogItem | null> {
   const body = `
-    fields name,slug,summary,cover.image_id,genres.name,platforms.name,game_modes.name,involved_companies.developer,involved_companies.publisher,involved_companies.company.name,release_dates.region,release_dates.date,first_release_date,total_rating,total_rating_count;
+    fields name,slug,summary,cover.image_id,genres.name,platforms.name,game_modes.name,involved_companies.developer,involved_companies.publisher,involved_companies.company.id,involved_companies.company.name,involved_companies.company.slug,release_dates.region,release_dates.date,first_release_date,total_rating,total_rating_count;
     where id = ${Number(sourceId)};
     limit 1;
   `;
-  const games = await igdbRequest(body);
+  const games = await igdbRequest('games', body);
   return games?.[0] ? normalizeGame(games[0]) : null;
 }

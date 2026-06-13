@@ -3,13 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
 import { useSettings } from '@/hooks/useSettings';
-import { useTracker, TrackerStatus } from '@/hooks/useTracker';
+import { TrackerProvider, useTrackerContext } from '@/contexts/TrackerContext';
+import type { TrackerStatus } from '@/hooks/useTracker';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { useCategories } from '@/hooks/useCategoryColors';
 import { isAppCategory } from '@/lib/categories';
+import { getCategoryStatuses, getAllStatuses } from '@/constants/tracker-statuses';
 import { enrichEntries, type EnrichedEntry } from './components/trackerEntryUtils';
 import TrackerHero from './components/TrackerHero';
 import TrackerStats from './components/TrackerStats';
+import TrackerDonutChart from './components/TrackerDonutChart';
 import TrackerFilters from './components/TrackerFilters';
 import TrackerCardGrid from './components/TrackerCardGrid';
 import TrackerTimeline from './components/TrackerTimeline';
@@ -30,10 +33,18 @@ function sortEntries(items: EnrichedEntry[], sortBy: SortOption): EnrichedEntry[
 }
 
 export default function TrackerPage() {
+  return (
+    <TrackerProvider>
+      <TrackerPageContent />
+    </TrackerProvider>
+  );
+}
+
+function TrackerPageContent() {
   const { settings } = useSettings();
   const navigate = useNavigate();
   const { category: paramCategory } = useParams<{ category?: string }>();
-  const { entries, loading } = useTracker();
+  const { entries, loading } = useTrackerContext();
   const CATEGORIES = useCategories();
 
   const [activeCategory, setActiveCategory] = useState(paramCategory ?? 'all');
@@ -91,13 +102,17 @@ export default function TrackerPage() {
     [byCat, searchQuery],
   );
 
-  const statusCounts = useMemo(() => ({
-    all:         searched.length,
-    in_progress: searched.filter(e => e.status === 'in_progress').length,
-    pending:     searched.filter(e => e.status === 'pending').length,
-    completed:   searched.filter(e => e.status === 'completed').length,
-    dropped:     searched.filter(e => e.status === 'dropped').length,
-  }), [searched]);
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: searched.length };
+    // Show counts for statuses valid in the active category (or all used statuses when 'all')
+    const statuses = activeCategory === 'all'
+      ? [...new Set(searched.map(e => e.status))]
+      : getCategoryStatuses(activeCategory);
+    for (const s of statuses) {
+      counts[s] = searched.filter(e => e.status === s).length;
+    }
+    return counts;
+  }, [searched, activeCategory]);
 
   const filtered = useMemo(
     () => statusFilter === 'all' ? searched : searched.filter(e => e.status === statusFilter),
@@ -127,6 +142,12 @@ export default function TrackerPage() {
           {/* 2 · Stats */}
           <div ref={statsRef} className="sr-item sr-delay-100">
             <TrackerStats entries={entries} activeCategory={activeCategory} />
+            <TrackerDonutChart
+              entries={entries}
+              activeCategory={activeCategory}
+              activeStatus={statusFilter}
+              onStatusFilter={setStatusFilter}
+            />
           </div>
 
           {/* 3 · Filters */}

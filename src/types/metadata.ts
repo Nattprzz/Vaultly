@@ -103,6 +103,7 @@ export type CatalogItemMetadata =
 
 export interface UserTrackingMetadata {
   playing_platform?: string | null;
+  hours_played?: number | null;
   achievements_unlocked?: number | null;
   has_platinum?: boolean;
   watched_platform?: string | null;

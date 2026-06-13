@@ -3,64 +3,69 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useCategories } from '@/hooks/useCategoryColors';
 import type { CategoryConfig } from '@/lib/categoryConfig';
+import {
+  SEMANTIC_GROUPS,
+  getActionText,
+} from '@/constants/tracker-statuses';
+import type { CategoryStatus } from '@/constants/tracker-statuses';
 
 export interface DashboardStats {
-  total_tracked: number;
-  completed: number;
-  in_progress: number;
-  pending: number;
-  dropped: number;
-  avg_rating: number | null;
-  reviews_written: number;
+  total_tracked:    number;
+  completed:        number;
+  in_progress:      number;
+  pending:          number;
+  dropped:          number;
+  avg_rating:       number | null;
+  reviews_written:  number;
 }
 
 export interface CategoryStat {
-  id: string;
-  label: string;
-  icon: string;
-  accent: string;
-  total: number;
-  completed: number;
+  id:          string;
+  label:       string;
+  icon:        string;
+  accent:      string;
+  total:       number;
+  completed:   number;
   in_progress: number;
-  avg_rating: number | null;
+  avg_rating:  number | null;
 }
 
 export interface RecentActivityItem {
-  id: string;
-  item_slug: string;
-  title: string;
-  category: string;
+  id:            string;
+  item_slug:     string;
+  title:         string;
+  category:      string;
   categoryLabel: string;
-  icon: string;
-  accent: string;
-  status_en: string;
-  rating: number | null;
-  updated_at: string;
+  icon:          string;
+  accent:        string;
+  status_en:     string;
+  rating:        number | null;
+  updated_at:    string;
 }
 
 export interface CurrentlyTrackingItem {
-  id: string;
-  item_slug: string;
-  title: string;
-  cover: string | null;
-  category: string;
-  icon: string;
-  accent: string;
+  id:         string;
+  item_slug:  string;
+  title:      string;
+  cover:      string | null;
+  category:   string;
+  icon:       string;
+  accent:     string;
   updated_at: string;
 }
 
 export interface WeeklyActivityPoint {
-  day: string;
+  day:   string;
   count: number;
 }
 
 export interface RawTrackingRow {
-  category: string;
-  status_en: string;
+  category:   string;
+  status_en:  string;
   updated_at: string;
 }
 
-function timeAgo(dateStr: string): string {
+export function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 60) return `Hace ${mins} min`;
@@ -72,14 +77,9 @@ function timeAgo(dateStr: string): string {
   return `Hace ${weeks} semana${weeks !== 1 ? 's' : ''}`;
 }
 
-function statusLabel(status: string): string {
-  switch (status) {
-    case 'completed':   return 'Completó';
-    case 'in_progress': return 'Empezó';
-    case 'pending':     return 'Añadió a pendientes';
-    case 'dropped':     return 'Abandonó';
-    default:            return 'Actualizó';
-  }
+/** @deprecated Usar getActionText de @/constants/tracker-statuses */
+export function statusLabel(status: string): string {
+  return getActionText(status);
 }
 
 function getCatMeta(catId: string, categories: CategoryConfig[]) {
@@ -91,9 +91,9 @@ function getCatMeta(catId: string, categories: CategoryConfig[]) {
 }
 
 interface CatalogRow {
-  title: string;
+  title:     string;
   image_url: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata:  Record<string, unknown> | null;
 }
 
 function resolveTitle(slug: string, item?: CatalogRow | null): string {
@@ -102,7 +102,6 @@ function resolveTitle(slug: string, item?: CatalogRow | null): string {
   if (meta?.title)          return String(meta.title);
   if (meta?.name)           return String(meta.name);
   if (meta?.original_title) return String(meta.original_title);
-  // Slug humanization — guard against "Category 123456" pattern
   const humanized = String(slug ?? '').replace(/-/g, ' ').trim();
   if (/^[a-z]+ \d{4,}$/i.test(humanized)) return 'Elemento sin título';
   return humanized.replace(/\b\w/g, c => c.toUpperCase());
@@ -111,13 +110,13 @@ function resolveTitle(slug: string, item?: CatalogRow | null): string {
 export function useDashboardStats() {
   const { user } = useAuth();
   const categories = useCategories();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [categoryStats, setCategoryStats] = useState<CategoryStat[]>([]);
-  const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
+  const [stats,             setStats]             = useState<DashboardStats | null>(null);
+  const [categoryStats,     setCategoryStats]     = useState<CategoryStat[]>([]);
+  const [recentActivity,    setRecentActivity]    = useState<RecentActivityItem[]>([]);
   const [currentlyTracking, setCurrentlyTracking] = useState<CurrentlyTrackingItem[]>([]);
-  const [weeklyActivity, setWeeklyActivity] = useState<WeeklyActivityPoint[]>([]);
-  const [rawRows, setRawRows] = useState<RawTrackingRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [weeklyActivity,    setWeeklyActivity]    = useState<WeeklyActivityPoint[]>([]);
+  const [rawRows,           setRawRows]           = useState<RawTrackingRow[]>([]);
+  const [loading,           setLoading]           = useState(true);
 
   useEffect(() => {
     if (!user) return;
@@ -131,12 +130,9 @@ export function useDashboardStats() {
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
-      if (error || !rows) {
-        setLoading(false);
-        return;
-      }
+      if (error || !rows) { setLoading(false); return; }
 
-      // --- Fetch real titles from catalog_items ---
+      // Fetch real titles
       const slugs = [...new Set(rows.map(r => r.item_slug).filter(Boolean))];
       const catalogMap = new Map<string, CatalogRow>();
       if (slugs.length > 0) {
@@ -146,36 +142,45 @@ export function useDashboardStats() {
           .in('slug', slugs);
         catalogRows?.forEach(item => {
           catalogMap.set(item.slug, {
-            title: item.title,
+            title:     item.title,
             image_url: item.image_url,
-            metadata: item.metadata as Record<string, unknown> | null,
+            metadata:  item.metadata as Record<string, unknown> | null,
           });
         });
       }
 
-      // --- Global stats ---
-      const total = rows.length;
-      const completed = rows.filter(r => r.status_en === 'completed').length;
-      const inProgress = rows.filter(r => r.status_en === 'in_progress').length;
-      const pending = rows.filter(r => r.status_en === 'pending').length;
-      const dropped = rows.filter(r => r.status_en === 'dropped').length;
-      const rated = rows.filter(r => r.rating != null);
-      const avgRating = rated.length > 0
+      // Helper: check semantic group
+      const isCompleted  = (s: string) => SEMANTIC_GROUPS.completed.includes(s as CategoryStatus);
+      const isActive     = (s: string) => SEMANTIC_GROUPS.active.includes(s as CategoryStatus);
+      const isPending    = (s: string) => SEMANTIC_GROUPS.pending.includes(s as CategoryStatus);
+      const isAbandoned  = (s: string) => SEMANTIC_GROUPS.abandoned.includes(s as CategoryStatus);
+
+      // Global stats
+      const total          = rows.length;
+      const completed      = rows.filter(r => isCompleted(r.status_en)).length;
+      const inProgress     = rows.filter(r => isActive(r.status_en)).length;
+      const pending        = rows.filter(r => isPending(r.status_en)).length;
+      const dropped        = rows.filter(r => isAbandoned(r.status_en)).length;
+      const rated          = rows.filter(r => r.rating != null);
+      const avgRating      = rated.length > 0
         ? Math.round((rated.reduce((s, r) => s + Number(r.rating), 0) / rated.length) * 10) / 10
         : null;
-      const reviewsWritten = rows.filter(r => r.review && r.review.trim().length > 0).length;
+      const reviewsWritten = rows.filter(r => r.review?.trim().length > 0).length;
 
-      setStats({ total_tracked: total, completed, in_progress: inProgress, pending, dropped, avg_rating: avgRating, reviews_written: reviewsWritten });
+      setStats({
+        total_tracked: total, completed, in_progress: inProgress,
+        pending, dropped, avg_rating: avgRating, reviews_written: reviewsWritten,
+      });
 
-      // --- Category stats ---
+      // Category stats
       const catMap: Record<string, { total: number; completed: number; in_progress: number; ratings: number[] }> = {};
       rows.forEach(r => {
         const cat = r.category ?? 'unknown';
         if (!catMap[cat]) catMap[cat] = { total: 0, completed: 0, in_progress: 0, ratings: [] };
         catMap[cat].total++;
-        if (r.status_en === 'completed') catMap[cat].completed++;
-        if (r.status_en === 'in_progress') catMap[cat].in_progress++;
-        if (r.rating != null) catMap[cat].ratings.push(Number(r.rating));
+        if (isCompleted(r.status_en))  catMap[cat].completed++;
+        if (isActive(r.status_en))     catMap[cat].in_progress++;
+        if (r.rating != null)          catMap[cat].ratings.push(Number(r.rating));
       });
 
       const catStats: CategoryStat[] = Object.entries(catMap)
@@ -183,67 +188,66 @@ export function useDashboardStats() {
         .map(([catId, v]) => {
           const meta = getCatMeta(catId, categories);
           return {
-            id: catId,
-            label: meta.label,
-            icon: meta.icon,
-            accent: meta.accent,
-            total: v.total,
-            completed: v.completed,
+            id:          catId,
+            label:       meta.label,
+            icon:        meta.icon,
+            accent:      meta.accent,
+            total:       v.total,
+            completed:   v.completed,
             in_progress: v.in_progress,
-            avg_rating: v.ratings.length > 0
+            avg_rating:  v.ratings.length > 0
               ? Math.round((v.ratings.reduce((s, r) => s + r, 0) / v.ratings.length) * 10) / 10
               : null,
           };
         })
         .sort((a, b) => b.total - a.total);
-
       setCategoryStats(catStats);
 
-      // --- Recent activity (last 8 updated) ---
+      // Recent activity (last 8)
       const recent: RecentActivityItem[] = rows.slice(0, 8).map(r => {
         const meta = getCatMeta(r.category ?? '', categories);
         const catalogItem = catalogMap.get(r.item_slug ?? '');
         return {
-          id: r.id,
-          item_slug: r.item_slug ?? r.id,
-          title: resolveTitle(r.item_slug ?? r.id, catalogItem),
-          category: r.category ?? '',
+          id:            r.id,
+          item_slug:     r.item_slug ?? r.id,
+          title:         resolveTitle(r.item_slug ?? r.id, catalogItem),
+          category:      r.category ?? '',
           categoryLabel: meta.label,
-          icon: meta.icon,
-          accent: meta.accent,
-          status_en: r.status_en ?? 'pending',
-          rating: r.rating != null ? Number(r.rating) : null,
-          updated_at: r.updated_at,
+          icon:          meta.icon,
+          accent:        meta.accent,
+          status_en:     r.status_en ?? 'pending',
+          rating:        r.rating != null ? Number(r.rating) : null,
+          updated_at:    r.updated_at,
         };
       });
       setRecentActivity(recent);
 
-      // --- Currently tracking (in_progress, last 4) ---
-      const inProgressRows = rows.filter(r => r.status_en === 'in_progress').slice(0, 4);
-      const currently: CurrentlyTrackingItem[] = inProgressRows.map(r => {
+      // Currently tracking (active statuses, last 4)
+      const activeRows = rows.filter(r => isActive(r.status_en)).slice(0, 4);
+      const currently: CurrentlyTrackingItem[] = activeRows.map(r => {
         const meta = getCatMeta(r.category ?? '', categories);
         const catalogItem = catalogMap.get(r.item_slug ?? '');
         return {
-          id: r.id,
-          item_slug: r.item_slug ?? r.id,
-          title: resolveTitle(r.item_slug ?? r.id, catalogItem),
-          cover: catalogItem?.image_url ?? null,
-          category: r.category ?? '',
-          icon: meta.icon,
-          accent: meta.accent,
+          id:         r.id,
+          item_slug:  r.item_slug ?? r.id,
+          title:      resolveTitle(r.item_slug ?? r.id, catalogItem),
+          cover:      catalogItem?.image_url ?? null,
+          category:   r.category ?? '',
+          icon:       meta.icon,
+          accent:     meta.accent,
           updated_at: r.updated_at,
         };
       });
       setCurrentlyTracking(currently);
 
-      // --- Raw rows (for category-filtered views in page) ---
+      // Raw rows
       setRawRows(rows.map(r => ({
-        category: r.category ?? '',
-        status_en: r.status_en ?? 'pending',
+        category:   r.category ?? '',
+        status_en:  r.status_en ?? 'pending',
         updated_at: r.updated_at,
       })));
 
-      // --- Weekly activity (all categories, unfiltered — page computes filtered) ---
+      // Weekly activity
       const today = new Date();
       const start = new Date(today);
       start.setDate(today.getDate() - 6);
@@ -252,10 +256,8 @@ export function useDashboardStats() {
       const weekly = Array.from({ length: 7 }, (_, index) => {
         const date = new Date(start);
         date.setDate(start.getDate() + index);
-        const dayStart = new Date(date);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(date);
-        dayEnd.setHours(23, 59, 59, 999);
+        const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
+        const dayEnd   = new Date(date); dayEnd.setHours(23, 59, 59, 999);
         const count = rows.filter(row => {
           const updated = new Date(row.updated_at).getTime();
           return updated >= dayStart.getTime() && updated <= dayEnd.getTime();
@@ -272,5 +274,3 @@ export function useDashboardStats() {
 
   return { stats, categoryStats, recentActivity, currentlyTracking, weeklyActivity, rawRows, loading };
 }
-
-export { timeAgo, statusLabel };

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import SettingsCard from './SettingsCard';
 
@@ -26,11 +27,25 @@ const FONT_SIZES = [
   { id: 'lg',   label: 'Grande',   sample: 'text-base' },
 ];
 
+const FONT_SIZE_PX: Record<string, string> = { sm: '14px', base: '16px', lg: '18px' };
+
 export default function AppearanceSection() {
   const { theme, toggleTheme } = useTheme();
 
-  const savedFont = localStorage.getItem('vaultly-font-size') ?? 'base';
-  const setFont = (id: string) => localStorage.setItem('vaultly-font-size', id);
+  const [savedFont, setSavedFont] = useState(() => localStorage.getItem('vaultly-font-size') ?? 'base');
+  const [fontSaved, setFontSaved] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = FONT_SIZE_PX[savedFont] ?? '16px';
+  }, [savedFont]);
+
+  const setFont = (id: string) => {
+    if (id === savedFont) return;
+    localStorage.setItem('vaultly-font-size', id);
+    setSavedFont(id);
+    setFontSaved(true);
+    setTimeout(() => setFontSaved(false), 2000);
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -112,6 +127,12 @@ export default function AppearanceSection() {
             </button>
           ))}
         </div>
+        {fontSaved && (
+          <p className="flex items-center gap-1.5 text-xs text-emerald-500 mt-3">
+            <i className="ri-checkbox-circle-line"></i>
+            Tamaño aplicado
+          </p>
+        )}
       </SettingsCard>
     </div>
   );

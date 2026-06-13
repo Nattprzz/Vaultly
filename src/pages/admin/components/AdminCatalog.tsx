@@ -85,34 +85,6 @@ function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
           </button>
         </div>
 
-        {/* Tabs — only when editing */}
-        {false && isEdit && (
-          <div className="flex items-center gap-1 px-6 pt-4 flex-shrink-0">
-            <button
-              onClick={() => setActiveTab('info')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                activeTab === 'info'
-                  ? 'bg-white/10 text-white'
-                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
-              }`}
-            >
-              <i className="ri-file-info-line text-sm"></i>
-              Información
-            </button>
-            <button
-              onClick={() => setActiveTab('entities')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                activeTab === 'entities'
-                  ? 'bg-white/10 text-white'
-                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
-              }`}
-            >
-              <i className="ri-user-star-line text-sm"></i>
-              Entidades
-            </button>
-          </div>
-        )}
-
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
 
@@ -408,9 +380,9 @@ export default function AdminCatalog() {
       </div>
 
       {/* Table */}
-      <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
-        <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-zinc-800 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-          <div className="col-span-6">Ítem</div>
+      <div className="bg-zinc-900 rounded-2xl border border-zinc-800">
+        <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-zinc-800 text-xs font-semibold text-zinc-500 uppercase tracking-wider rounded-t-2xl overflow-hidden">
+          <div className="col-span-6 lg:col-span-5">Ítem</div>
           <div className="col-span-2 hidden md:block">Categoría</div>
           <div className="col-span-2 hidden lg:block">Fuente</div>
           <div className="col-span-2 hidden lg:block">Fecha</div>
@@ -445,7 +417,7 @@ export default function AdminCatalog() {
               return (
                 <div key={item.id} className="grid grid-cols-12 gap-4 px-5 py-4 items-center hover:bg-white/5 transition-colors">
                   {/* Item */}
-                  <div className="col-span-10 md:col-span-6 flex items-center gap-3 min-w-0">
+                  <div className="col-span-10 md:col-span-6 lg:col-span-5 flex items-center gap-3 min-w-0">
                     {item.image_url ? (
                       <div className="w-10 h-14 rounded-lg overflow-hidden flex-shrink-0">
                         <img src={item.image_url} alt={item.title} className="w-full h-full object-cover object-top" />

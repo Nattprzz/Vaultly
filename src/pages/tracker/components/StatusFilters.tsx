@@ -15,18 +15,18 @@ interface Props {
 
 const STATUS_OPTIONS: { value: TrackerStatus | 'all'; label: string; icon: string }[] = [
   { value: 'all',         label: 'Todos',       icon: 'ri-list-check' },
-  { value: 'in_progress', label: 'En progreso', icon: 'ri-loader-4-line' },
+  { value: 'playing',     label: 'En progreso', icon: 'ri-loader-4-line' },
   { value: 'pending',     label: 'Pendientes',  icon: 'ri-bookmark-line' },
   { value: 'completed',   label: 'Completados', icon: 'ri-checkbox-circle-line' },
-  { value: 'dropped',     label: 'Abandonados', icon: 'ri-close-circle-line' },
+  { value: 'abandoned',   label: 'Abandonados', icon: 'ri-close-circle-line' },
 ];
 
 const STATUS_ACTIVE_STYLES: Record<string, string> = {
-  all:         'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900',
-  in_progress: 'bg-amber-500 text-white',
-  pending:     'bg-zinc-500 text-white',
-  completed:   'bg-emerald-500 text-white',
-  dropped:     'bg-red-500 text-white',
+  all:       'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900',
+  playing:   'bg-amber-500 text-white',
+  pending:   'bg-zinc-500 text-white',
+  completed: 'bg-emerald-500 text-white',
+  abandoned: 'bg-red-500 text-white',
 };
 
 export default function StatusFilters({
