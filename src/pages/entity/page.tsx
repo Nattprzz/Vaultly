@@ -1,16 +1,41 @@
+/**
+ * page.tsx — página de perfil público de una entidad del catálogo.
+ *
+ * Muestra el hero con estadísticas rápidas, la bio expandible, las estadísticas
+ * de popularidad, la obra destacada, la filmografía completa y los colaboradores
+ * frecuentes. Incluye SEO completo con JSON-LD de tipo `Person` u `Organization`.
+ * Si la entidad no existe o hay un error, muestra un estado vacío con enlace al catálogo.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { useParams, Link } from 'react-router-dom';
+
+// ─── Componentes ─────────────────────────────────────────────────────────────
+
 import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
-import { useEntity, TYPE_LABELS, TYPE_ICONS } from '@/hooks/useEntity';
 import EntityHero from './components/EntityHero';
 import EntityPopularityStats from './components/EntityPopularityStats';
 import EntityFilmography from './components/EntityFilmography';
 import EntityTopWork from './components/EntityTopWork';
 import EntityRelated from './components/EntityRelated';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useEntity, TYPE_LABELS, TYPE_ICONS } from '@/hooks/useEntity';
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
 import { getSiteUrl } from '@/lib/site';
 
-// ── Skeleton ───────────────────────────────────────────────────────────────────
+// ─── Sub-componentes ─────────────────────────────────────────────────────────
+
+/** Esqueleto de carga animado mientras se resuelven los datos de la entidad. */
 function PageSkeleton() {
   return (
     <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)] animate-pulse">
@@ -27,11 +52,31 @@ function PageSkeleton() {
   );
 }
 
-// ── Bio expandable ─────────────────────────────────────────────────────────────
-function EntityBio({ bio, name }: { bio: string; name: string }) {
+/** Props del componente de biografía expandible. */
+interface EntityBioProps {
+  /** Texto completo de la bio. */
+  bio: string;
+  /** Nombre de la entidad, usado en el encabezado "Sobre X". */
+  name: string;
+}
+
+/**
+ * Bio de la entidad con truncado a 300 caracteres y botón "Leer más / menos".
+ *
+ * @param bio  - Texto completo de la biografía.
+ * @param name - Nombre de la entidad para el encabezado de sección.
+ */
+function EntityBio({ bio, name }: EntityBioProps) {
+  // ─── Estado ─────────────────────────────────────────────────────────────
+
   const [expanded, setExpanded] = useState(false);
-  const isLong = bio.length > 300;
+
+  // ─── Datos derivados ────────────────────────────────────────────────────
+
+  const isLong   = bio.length > 300;
   const displayed = isLong && !expanded ? bio.slice(0, 300) + '…' : bio;
+
+  // ─── Renderizado ────────────────────────────────────────────────────────
 
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6 mb-8">
@@ -54,10 +99,13 @@ function EntityBio({ bio, name }: { bio: string; name: string }) {
   );
 }
 
-// ── Main page ──────────────────────────────────────────────────────────────────
+// ─── Componente principal ─────────────────────────────────────────────────────
+
 export default function EntityPage() {
   const { slug = '' } = useParams<{ slug: string }>();
   const { entity, items, loading, error } = useEntity(slug);
+
+  // ─── Renderizado: carga ──────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -67,6 +115,8 @@ export default function EntityPage() {
       </>
     );
   }
+
+  // ─── Renderizado: error / entidad no encontrada ──────────────────────────
 
   if (error || !entity) {
     return (
@@ -89,8 +139,11 @@ export default function EntityPage() {
     );
   }
 
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const typeLabel = TYPE_LABELS[entity.type] ?? entity.type;
 
+  /** Structured data JSON-LD: `Person` para roles creativos, `Organization` para estudios. */
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': ['actor', 'director', 'author', 'artist'].includes(entity.type) ? 'Person' : 'Organization',
@@ -99,6 +152,8 @@ export default function EntityPage() {
     image: entity.image_url ?? undefined,
     url: `${getSiteUrl()}/entity/${slug}`,
   };
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)]">
@@ -117,22 +172,15 @@ export default function EntityPage() {
       <Sidebar />
 
       <div className="pt-14 md:pt-0 md:pl-64">
-        {/* ── Hero ── */}
         <EntityHero entity={entity} items={items} slug={slug} />
 
-        {/* ── Content ── */}
         <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-10">
-
-          {/* Bio */}
           {entity.bio && <EntityBio bio={entity.bio} name={entity.name} />}
 
-          {/* Popularity stats */}
           {items.length > 0 && <EntityPopularityStats items={items} />}
 
-          {/* Top work highlight */}
           {items.length > 0 && <EntityTopWork items={items} />}
 
-          {/* Filmography */}
           {items.length > 0 ? (
             <EntityFilmography items={items} entityName={entity.name} />
           ) : (
@@ -155,7 +203,6 @@ export default function EntityPage() {
             </div>
           )}
 
-          {/* Related entities / collaborators */}
           <EntityRelated items={items} currentSlug={slug} />
         </div>
       </div>

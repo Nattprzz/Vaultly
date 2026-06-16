@@ -11,36 +11,51 @@
    ────────────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    /* Brand — deep blue is the ONE interface color; categories are accents only */
-    --brand-accent: #2563eb;
-    --brand-accent-hover: #1d4ed8;
-    --brand-accent-soft: rgba(37, 99, 235, 0.12);
+    /* ── Brand ─────────────────────────────────────────────────────────────── */
+    --brand-accent:        #0553EB;
+    --brand-accent-hover:  #1E63F5;
+    --brand-accent-active: #033596;
+    --brand-accent-soft:   rgba(5, 83, 235, 0.10);
+    --brand-secondary:     #033596;
+    --brand-deep:          #011741;
 
-    /* Surfaces — light mode */
-    --bg: #f8fafc;
-    --surface: #ffffff;
-    --surface-raised: #ffffff;
-    --surface-sunken: #f1f5f9;
-    --surface-overlay: rgba(15, 23, 42, 0.5);
+    /* ── Surfaces — light ───────────────────────────────────────────────────── */
+    --bg:               #F8FAFC;
+    --surface:          #FFFFFF;
+    --surface-raised:   #FFFFFF;
+    --surface-sunken:   #F1F5F9;
+    --surface-overlay:  rgba(15, 23, 42, 0.50);
 
-    /* Borders */
-    --border: #e2e8f0;
-    --border-subtle: #eef2f7;
-    --border-strong: #cbd5e1;
+    /* ── Sidebar — light ────────────────────────────────────────────────────── */
+    --sidebar-bg:          #FFFFFF;
+    --sidebar-hover:       #F1F5F9;
+    --sidebar-active-bg:   #E0EAFF;
+    --sidebar-active-text: #0553EB;
 
-    /* Text */
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-tertiary: #94a3b8;
-    --text-on-accent: #ffffff;
+    /* ── Borders ────────────────────────────────────────────────────────────── */
+    --border:        #E2E8F0;
+    --border-subtle: #EEF2F7;
+    --border-strong: #CBD5E1;
+    --border-hover:  #CBD5E1;
 
-    /* States */
-    --state-success: #16a34a;
-    --state-warning: #ea580c;
-    --state-danger: #dc2626;
-    --state-info: #2563eb;
+    /* ── Text ───────────────────────────────────────────────────────────────── */
+    --text-primary:   #0F172A;
+    --text-secondary: #334155;
+    --text-tertiary:  #64748B;
+    --text-on-accent: #FFFFFF;
 
-    /* Shape & elevation */
+    /* ── Inputs ─────────────────────────────────────────────────────────────── */
+    --input-bg:     #FFFFFF;
+    --input-border: #E2E8F0;
+    --input-focus:  #0553EB;
+
+    /* ── States ─────────────────────────────────────────────────────────────── */
+    --state-success: #16A34A;
+    --state-warning: #D97706;
+    --state-danger:  #DC2626;
+    --state-info:    #0553EB;
+
+    /* ── Shape & elevation ──────────────────────────────────────────────────── */
     --radius-sm: 0.5rem;
     --radius-md: 0.75rem;
     --radius-lg: 1rem;
@@ -49,47 +64,63 @@
     --shadow-md: 0 4px 16px -4px rgba(15, 23, 42, 0.08);
     --shadow-lg: 0 12px 32px -8px rgba(15, 23, 42, 0.12);
 
-    /* Category accents — overwritten at runtime by CategoryColorsProvider
-       (kept here as defaults so first paint never shows unstyled colors).
-       These are pure accents (badges/chips/icons/active states) — they never
-       define page backgrounds or the interface's primary color (that's brand blue). */
+    /* ── Category accents — overwritten at runtime by CategoryColorsProvider ── */
     --cat-videojuegos: #3b82f6;
-    --cat-peliculas: #f97316;
-    --cat-series: #8b5cf6;
-    --cat-libros: #fbbf24;
-    --cat-conciertos: #ec4899;
+    --cat-peliculas:   #f97316;
+    --cat-series:      #8b5cf6;
+    --cat-libros:      #fbbf24;
+    --cat-conciertos:  #ec4899;
   }
 
   .dark {
-    /* Brand */
-    --brand-accent: #3b82f6;
-    --brand-accent-hover: #60a5fa;
-    --brand-accent-soft: rgba(59, 130, 246, 0.16);
+    /* ── Brand ─────────────────────────────────────────────────────────────── */
+    --brand-accent:        #0553EB;
+    --brand-accent-hover:  #1E63F5;
+    --brand-accent-active: #033596;
+    --brand-accent-soft:   rgba(5, 83, 235, 0.16);
+    --brand-secondary:     #033596;
+    --brand-deep:          #011741;
 
-    /* Surfaces — deep, slightly blue-tinted black (never pure gray/zinc) */
-    --bg: #0b0f14;
-    --surface: #111827;
-    --surface-raised: #161f2e;
-    --surface-sunken: #0b0f14;
-    --surface-overlay: rgba(0, 0, 0, 0.6);
+    /* ── Surfaces — dark ────────────────────────────────────────────────────── */
+    --bg:              #0A0F1A;
+    --surface:         #111827;
+    --surface-raised:  #1A2335;
+    --surface-sunken:  #0A0F1A;
+    --surface-overlay: rgba(0, 0, 0, 0.65);
 
-    --border: #334155;
-    --border-subtle: #1f2937;
-    --border-strong: #475569;
+    /* ── Sidebar — dark navy brand base ─────────────────────────────────────── */
+    --sidebar-bg:          #011741;
+    --sidebar-hover:       rgba(3, 53, 150, 0.35);
+    --sidebar-active-bg:   rgba(5, 83, 235, 0.22);
+    --sidebar-active-text: #93B5FF;
 
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-tertiary: #64748b;
-    --text-on-accent: #ffffff;
+    /* ── Borders ────────────────────────────────────────────────────────────── */
+    --border:        #1E293B;
+    --border-subtle: #1A2335;
+    --border-strong: #334155;
+    --border-hover:  #334155;
 
-    --state-success: #22c55e;
-    --state-warning: #f97316;
-    --state-danger: #ef4444;
-    --state-info: #3b82f6;
+    /* ── Text ───────────────────────────────────────────────────────────────── */
+    --text-primary:   #F8FAFC;
+    --text-secondary: #CBD5E1;
+    --text-tertiary:  #94A3B8;
+    --text-on-accent: #FFFFFF;
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 20px -4px rgba(0, 0, 0, 0.45);
-    --shadow-lg: 0 16px 40px -8px rgba(0, 0, 0, 0.55);
+    /* ── Inputs ─────────────────────────────────────────────────────────────── */
+    --input-bg:     #1A2335;
+    --input-border: #1E293B;
+    --input-focus:  #0553EB;
+
+    /* ── States ─────────────────────────────────────────────────────────────── */
+    --state-success: #22C55E;
+    --state-warning: #F59E0B;
+    --state-danger:  #EF4444;
+    --state-info:    #0553EB;
+
+    /* ── Shadows ────────────────────────────────────────────────────────────── */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.40);
+    --shadow-md: 0 4px 20px -4px rgba(0, 0, 0, 0.55);
+    --shadow-lg: 0 16px 48px -8px rgba(0, 0, 0, 0.65);
   }
 }
 
@@ -153,3 +184,8 @@
 .sr-delay-300 { transition-delay: 300ms; }
 .sr-delay-400 { transition-delay: 400ms; }
 .sr-delay-500 { transition-delay: 500ms; }
+::view-transition-old(root), ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+

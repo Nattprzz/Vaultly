@@ -1,5 +1,16 @@
+/**
+ * anilist.ts — cliente compartido de AniList.
+ *
+ * Normaliza respuestas GraphQL de AniList al contrato común de catálogo.
+ *
+ * Utilizado por Edge Functions que necesitan buscar anime o manga.
+ */
+
+// ─── Framework ─────────────────────────────────────────────────────────
 import type { AniListMediaType, NormalizedCatalogItem } from './types.ts';
-import { compact, stripHtml, toSourceSlug } from './utils.ts';
+
+// ─── Servicios ─────────────────────────────────────────────────────────
+import { compact, stripHtml, timedFetch, toSourceSlug } from './utils.ts';
 
 const ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co';
 
@@ -59,6 +70,15 @@ function normalizeMedia(media: any, type: AniListMediaType): NormalizedCatalogIt
   };
 }
 
+/**
+ * Busca medios en AniList y los adapta al contrato común de catálogo.
+ *
+ * @param query Texto de búsqueda.
+ * @param type Tipo de medio AniList.
+ * @param page Página solicitada.
+ * @param limit Tamaño máximo de página.
+ * @returns Elementos normalizados para el catálogo.
+ */
 export async function searchAniListMedia(
   query: string,
   type: AniListMediaType = 'ANIME',
@@ -67,7 +87,7 @@ export async function searchAniListMedia(
 ): Promise<NormalizedCatalogItem[]> {
   if (!query.trim()) return [];
 
-  const res = await fetch(ANILIST_GRAPHQL_URL, {
+  const res = await timedFetch(ANILIST_GRAPHQL_URL, {
     method: 'POST',
     headers: {
       Accept: 'application/json',

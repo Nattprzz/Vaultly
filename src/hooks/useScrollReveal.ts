@@ -1,17 +1,44 @@
+/**
+ * useScrollReveal.ts — animaciones de entrada al hacer scroll.
+ *
+ * Devuelve una callback ref que, al asignarse a un elemento del DOM,
+ * añade la clase `sr-visible` cuando el elemento entra en el viewport.
+ * Usa IntersectionObserver para evitar el coste de listeners de scroll.
+ * La callback ref garantiza que el observer se registre incluso cuando
+ * el elemento se monta después del render inicial (p.ej. tras un loading state).
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useCallback, useRef } from 'react';
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/**
+ * Opciones de configuración del observer de scroll reveal.
+ */
 interface ScrollRevealOptions {
+  /** Fracción del elemento que debe ser visible para activar la animación (0-1). */
   threshold?: number;
+  /** Margen respecto al viewport (formato CSS). Negativo recorta el área de intersección. */
   rootMargin?: string;
+  /** Si true, la clase solo se añade una vez y el observer se desconecta. */
   once?: boolean;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
 /**
- * Returns a callback ref to attach to any element.
- * When the element enters the viewport, the class `sr-visible` is added.
- * Using a callback ref (instead of useRef + useEffect) ensures the observer
- * is set up even when the element is added to the DOM after initial mount
- * (e.g. after a loading state with an early return).
+ * Genera una callback ref para animar un elemento al entrar en el viewport.
+ *
+ * Uso:
+ * ```tsx
+ * const ref = useScrollReveal();
+ * return <div ref={ref} className="sr-hidden">...</div>;
+ * ```
+ *
+ * @param options Opciones de configuración del IntersectionObserver.
+ * @returns Callback ref para asignar al elemento del DOM.
  */
 export function useScrollReveal<T extends HTMLElement = HTMLDivElement>(
   options: ScrollRevealOptions = {},
@@ -21,7 +48,6 @@ export function useScrollReveal<T extends HTMLElement = HTMLDivElement>(
 
   return useCallback(
     (node: T | null) => {
-      // Disconnect any previous observer (element swapped or unmounted)
       disconnectRef.current?.();
       disconnectRef.current = null;
 

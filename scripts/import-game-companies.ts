@@ -1,10 +1,25 @@
+/**
+ * import-game-companies.ts — importación CSV de compañías de videojuegos.
+ *
+ * Lee exportaciones CSV, normaliza columnas heterogéneas y sincroniza game_companies.
+ *
+ * Utilizado en tareas operativas de carga masiva y preparación de datos.
+ */
+
+// ─── Librerías externas ────────────────────────────────────────────────
 import { createClient } from '@supabase/supabase-js';
+
+// ─── Utilidades ────────────────────────────────────────────────────────
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 
+// ─── Tipos ─────────────────────────────────────────────────────────────
 type CsvRow = Record<string, string>;
 
+/**
+ * Fila normalizada lista para persistirse en game_companies.
+ */
 type ImportRow = {
   igdb_id: number;
   slug: string;
@@ -35,6 +50,7 @@ type ImportRow = {
   last_synced_at: string;
 };
 
+// ─── Constantes ───────────────────────────────────────────────────────
 const BATCH_SIZE = 250;
 
 const COUNTRY_BY_ISO_NUMERIC: Record<number, string> = {
@@ -71,6 +87,13 @@ const STATUS_BY_ID: Record<number, string> = {
   1: 'defunct',
 };
 
+// ─── Configuración ────────────────────────────────────────────────────
+/**
+ * Carga variables desde .env cuando el proceso no las ha recibido.
+ *
+ * Existe para permitir ejecuciones locales del importador sin depender
+ * de un gestor externo de entorno.
+ */
 function loadEnv() {
   const envPath = resolve(process.cwd(), '.env');
   if (!existsSync(envPath)) return;
@@ -87,6 +110,13 @@ function loadEnv() {
   }
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────
+/**
+ * Parsea un CSV simple respetando comillas y saltos de línea escapados.
+ *
+ * @param text Contenido completo del archivo CSV.
+ * @returns Cabeceras detectadas y filas indexadas por nombre de columna.
+ */
 function parseCsv(text: string): { headers: string[]; rows: CsvRow[] } {
   const normalized = text.replace(/^\uFEFF/, '');
   const records: string[][] = [];
@@ -134,6 +164,13 @@ function parseCsv(text: string): { headers: string[]; rows: CsvRow[] } {
   return { headers, rows };
 }
 
+/**
+ * Obtiene un valor usando alias de columna tolerantes a formato.
+ *
+ * @param row Fila CSV original.
+ * @param aliases Posibles nombres equivalentes de columna.
+ * @returns Valor encontrado o cadena vacía.
+ */
 function get(row: CsvRow, aliases: string[]) {
   const normalized = new Map(Object.entries(row).map(([key, value]) => [key.toLowerCase().replace(/[\s.-]+/g, '_'), value]));
   for (const alias of aliases) {
@@ -143,6 +180,12 @@ function get(row: CsvRow, aliases: string[]) {
   return '';
 }
 
+/**
+ * Convierte un texto en slug estable para game_companies.
+ *
+ * @param value Texto base de la compañía.
+ * @returns Slug normalizado.
+ */
 function toSlug(value: string) {
   return value
     .toLowerCase()
@@ -152,6 +195,12 @@ function toSlug(value: string) {
     .replace(/^-|-$/g, '');
 }
 
+/**
+ * Convierte valores CSV a número nullable.
+ *
+ * @param value Valor original recibido desde CSV.
+ * @returns Número válido o null.
+ */
 function toNumber(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value !== 'string') return null;
@@ -161,6 +210,12 @@ function toNumber(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/**
+ * Intenta interpretar valores JSON o listas serializadas por exportaciones externas.
+ *
+ * @param value Valor textual del CSV.
+ * @returns Estructura parseada o texto original cuando no es JSON válido.
+ */
 function parseJsonish(value: string): unknown {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -168,7 +223,7 @@ function parseJsonish(value: string): unknown {
   try {
     return JSON.parse(trimmed);
   } catch {
-    // IGDB exports sometimes serialize arrays as "1, 2, 3" or "[1,2,3]" strings with single quotes.
+    // Algunas exportaciones de IGDB serializan arrays como cadenas con comillas simples o listas separadas por comas.
   }
 
   try {
@@ -178,6 +233,12 @@ function parseJsonish(value: string): unknown {
   }
 }
 
+/**
+ * Normaliza un valor CSV a array.
+ *
+ * @param value Valor original que puede venir como JSON, lista o texto.
+ * @returns Lista segura para campos JSONB.
+ */
 function toArray(value: string): unknown[] {
   const parsed = parseJsonish(value);
   if (Array.isArray(parsed)) return parsed;
@@ -194,10 +255,17 @@ function toArray(value: string): unknown[] {
   return [parsed];
 }
 
+// ─── Validaciones ─────────────────────────────────────────────────────
 function countArray(value: string) {
   return toArray(value).length;
 }
 
+/**
+ * Normaliza fechas heterogéneas a formato ISO de día.
+ *
+ * @param value Fecha como timestamp, JSON o texto.
+ * @returns Fecha YYYY-MM-DD o null.
+ */
 function normalizeDate(value: string): string | null {
   const parsed = parseJsonish(value);
   const primitive = typeof parsed === 'object' && parsed && 'date' in parsed
@@ -216,18 +284,36 @@ function normalizeDate(value: string): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
 }
 
+/**
+ * Normaliza códigos de país de IGDB a nombre legible.
+ *
+ * @param value Código numérico o texto recibido.
+ * @returns País normalizado o null.
+ */
 function normalizeCountry(value: string): string | null {
   const numeric = toNumber(value);
   if (numeric != null) return COUNTRY_BY_ISO_NUMERIC[numeric] ?? String(numeric);
   return value.trim() || null;
 }
 
+/**
+ * Normaliza estados numéricos de IGDB a etiquetas persistidas.
+ *
+ * @param value Estado numérico o textual.
+ * @returns Estado normalizado o null.
+ */
 function normalizeStatus(value: string): string | null {
   const numeric = toNumber(value);
   if (numeric != null) return STATUS_BY_ID[numeric] ?? String(numeric);
   return value.trim() || null;
 }
 
+/**
+ * Extrae el identificador de imagen desde formatos habituales de IGDB.
+ *
+ * @param value Campo de logo exportado.
+ * @returns Identificador de imagen o null.
+ */
 function extractImageId(value: string): string | null {
   const parsed = parseJsonish(value);
   if (typeof parsed === 'string') return parsed.trim() || null;
@@ -239,6 +325,12 @@ function extractImageId(value: string): string | null {
   return null;
 }
 
+/**
+ * Construye la URL de logo priorizando una URL ya presente en el CSV.
+ *
+ * @param row Fila CSV de compañía.
+ * @returns URL de logo o null.
+ */
 function normalizeLogoUrl(row: CsvRow) {
   const existing = get(row, ['logo_url', 'logo.url']);
   if (existing) return existing;
@@ -247,6 +339,12 @@ function normalizeLogoUrl(row: CsvRow) {
   return imageId ? `https://images.igdb.com/igdb/image/upload/t_logo_big/${imageId}.png` : null;
 }
 
+/**
+ * Normaliza enlaces externos desde columnas dedicadas o el campo websites.
+ *
+ * @param row Fila CSV de compañía.
+ * @returns Mapa de enlaces soportados por game_companies.
+ */
 function normalizeWebsites(row: CsvRow) {
   const links = {
     website_url: get(row, ['website_url', 'website', 'url']) || null,
@@ -272,10 +370,24 @@ function normalizeWebsites(row: CsvRow) {
   return links;
 }
 
+/**
+ * Extrae arrays JSON desde columnas con alias conocidos.
+ *
+ * @param row Fila CSV de compañía.
+ * @param aliases Posibles columnas que contienen la lista.
+ * @returns Lista saneada sin valores vacíos.
+ */
 function normalizeJsonArray(row: CsvRow, aliases: string[]) {
   return toArray(get(row, aliases)).filter(item => item != null && item !== '');
 }
 
+// ─── Operaciones principales ──────────────────────────────────────────
+/**
+ * Convierte una fila CSV en el contrato persistible de game_companies.
+ *
+ * @param row Fila CSV original.
+ * @returns Datos listos para importar o motivo de omisión.
+ */
 function normalizeCompany(row: CsvRow): { data?: ImportRow; skipped?: string } {
   const igdbId = toNumber(get(row, ['igdb_id', 'id', 'company_id']));
   const name = get(row, ['name']);
@@ -330,6 +442,12 @@ function normalizeCompany(row: CsvRow): { data?: ImportRow; skipped?: string } {
   };
 }
 
+/**
+ * Ejecuta el proceso completo de lectura, normalización e importación.
+ *
+ * Lee la ruta CSV desde argumentos de CLI y actualiza Supabase por lotes
+ * para evitar operaciones demasiado grandes.
+ */
 async function main() {
   loadEnv();
 

@@ -1,10 +1,34 @@
+/**
+ * SettingsCard.tsx — tarjeta contenedora reutilizable para secciones de ajustes.
+ *
+ * Proporciona una cabecera con título y descripción opcional, y un cuerpo
+ * para el contenido de cada sección de configuración. Exporta también
+ * ToggleRow, un componente de fila con interruptor para opciones booleanas.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { ReactNode } from 'react';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props de la tarjeta contenedora de ajustes. */
 interface Props {
-  title: string;
+  title:        string;
   description?: string;
-  children: ReactNode;
+  children:     ReactNode;
 }
+
+/** Props de la fila con interruptor toggle. */
+interface ToggleRowProps {
+  label:        string;
+  description?: string;
+  checked:      boolean;
+  onChange:     (v: boolean) => void;
+  disabled?:    boolean;
+}
+
+// ─── Componentes ─────────────────────────────────────────────────────────────
 
 export default function SettingsCard({ title, description, children }: Props) {
   return (
@@ -18,15 +42,7 @@ export default function SettingsCard({ title, description, children }: Props) {
   );
 }
 
-// Reusable toggle row
-interface ToggleRowProps {
-  label: string;
-  description?: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-}
-
+/** Fila horizontal con etiqueta, descripción opcional e interruptor toggle. */
 export function ToggleRow({ label, description, checked, onChange, disabled }: ToggleRowProps) {
   return (
     <div className="flex items-center justify-between gap-4 py-3 border-b border-zinc-50 dark:border-zinc-800 last:border-0">

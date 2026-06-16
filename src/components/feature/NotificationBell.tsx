@@ -1,25 +1,60 @@
+/**
+ * NotificationBell.tsx — panel de notificaciones inteligentes del usuario.
+ *
+ * Genera sugerencias contextuales basadas en el estado del tracker y las
+ * estadísticas del dashboard (ítems sin puntuar, demasiados en progreso,
+ * hitos de completado, etc.). Cada notificación se puede descartar
+ * individualmente; los IDs descartados persisten en localStorage para
+ * que no reaparezcan en sesiones futuras.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+
+// ─── Librerías externas ───────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ───────────────────────────────────────────────────────────────────
+
 import { useTracker } from '@/hooks/useTracker';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Clave de localStorage compartida con useNotificationCount para leer las notificaciones descartadas. */
 const STORAGE_KEY = 'vaultly_dismissed_notifications';
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/** Notificación contextual generada a partir del estado del tracker. */
 interface Notification {
+  /** Identificador único, también usado como clave de descarte en localStorage */
   id: string;
+  /** Tipo de notificación — determina el color del icono y el punto indicador */
   type: 'warning' | 'info' | 'success' | 'tip';
+  /** Clase de icono Remix Icons */
   icon: string;
+  /** Título corto de la notificación */
   title: string;
+  /** Descripción ampliada con el contexto de la notificación */
   description: string;
+  /** Enlace de acción opcional que cierra el panel al hacer clic */
   action?: { label: string; to: string };
 }
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Clases Tailwind por tipo de notificación para el punto indicador y el icono. */
 const TYPE_STYLES = {
   warning: { dot: 'bg-amber-400', icon: 'text-amber-500', iconBg: 'bg-amber-100 dark:bg-amber-900/40' },
-  info: { dot: 'bg-sky-400', icon: 'text-sky-500', iconBg: 'bg-sky-100 dark:bg-sky-900/40' },
+  info:    { dot: 'bg-sky-400',   icon: 'text-sky-500',   iconBg: 'bg-sky-100 dark:bg-sky-900/40' },
   success: { dot: 'bg-emerald-400', icon: 'text-emerald-500', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40' },
-  tip: { dot: 'bg-brand-dark', icon: 'text-brand dark:text-brand-dark', iconBg: 'bg-brand/10 dark:bg-brand-dark/15' },
+  tip:     { dot: 'bg-brand-dark', icon: 'text-brand dark:text-brand-dark', iconBg: 'bg-brand/10 dark:bg-brand-dark/15' },
 };
+
+// ─── Funciones auxiliares ────────────────────────────────────────────────────
 
 function getDismissed(): Set<string> {
   try {
@@ -36,14 +71,26 @@ function saveDismissed(set: Set<string>) {
   } catch { /* ignore */ }
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
+/**
+ * Botón de campana con panel desplegable de notificaciones.
+ *
+ * Las notificaciones se generan en un useMemo sobre el estado del tracker
+ * y las estadísticas del dashboard; los IDs descartados se excluyen antes
+ * de renderizar la lista visible.
+ */
 export default function NotificationBell() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const { entries } = useTracker();
   const { stats, loading } = useDashboardStats();
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(getDismissed);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -53,6 +100,8 @@ export default function NotificationBell() {
     if (open) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
+
+  // ─── Datos derivados ──────────────────────────────────────────────────────────
 
   const notifications = useMemo((): Notification[] => {
     if (!stats || loading) return [];
@@ -147,6 +196,8 @@ export default function NotificationBell() {
     [notifications, dismissed]
   );
 
+  // ─── Handlers ────────────────────────────────────────────────────────────────
+
   const dismiss = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setDismissed(prev => {
@@ -165,12 +216,16 @@ export default function NotificationBell() {
 
   const count = visible.length;
 
+  // ─── Renderizado ──────────────────────────────────────────────────────────────
+
   return (
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(p => !p)}
         className="relative w-9 h-9 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
         aria-label="Notificaciones"
+        aria-expanded={open}
+        aria-haspopup="true"
       >
         <i className="ri-notification-3-line text-lg"></i>
         {count > 0 && (
@@ -181,10 +236,10 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden z-50"
-          style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.10)' }}
+        <div className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden z-[999]"
+          style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
         >
-          {/* Header */}
+          {/* Cabecera del panel */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
             <div className="flex items-center gap-2">
               <i className="ri-notification-3-line text-zinc-500 text-sm"></i>
@@ -205,7 +260,7 @@ export default function NotificationBell() {
             )}
           </div>
 
-          {/* List */}
+          {/* Lista de notificaciones */}
           <div className="max-h-[360px] overflow-y-auto">
             {visible.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 px-4 gap-3">
@@ -222,12 +277,10 @@ export default function NotificationBell() {
                     key={notif.id}
                     className={`flex items-start gap-3 px-4 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors group ${idx < visible.length - 1 ? 'border-b border-zinc-50 dark:border-zinc-800' : ''}`}
                   >
-                    {/* Icon */}
                     <div className={`w-8 h-8 flex items-center justify-center rounded-xl flex-shrink-0 mt-0.5 ${styles.iconBg}`}>
                       <i className={`${notif.icon} text-sm ${styles.icon}`}></i>
                     </div>
 
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-zinc-900 dark:text-white leading-snug">{notif.title}</p>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">{notif.description}</p>
@@ -243,7 +296,6 @@ export default function NotificationBell() {
                       )}
                     </div>
 
-                    {/* Dismiss */}
                     <button
                       onClick={(e) => dismiss(notif.id, e)}
                       className="w-6 h-6 flex items-center justify-center rounded-md text-zinc-300 hover:text-zinc-500 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer flex-shrink-0 opacity-0 group-hover:opacity-100 mt-0.5"
@@ -257,7 +309,7 @@ export default function NotificationBell() {
             )}
           </div>
 
-          {/* Footer */}
+          {/* Pie del panel */}
           <div className="px-4 py-2.5 border-t border-zinc-100 dark:border-zinc-800">
             <Link
               to="/dashboard"

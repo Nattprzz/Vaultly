@@ -1,29 +1,54 @@
+/**
+ * ItemReviews.tsx — sección de reseñas públicas de un ítem.
+ *
+ * Combina el listado de reseñas de la comunidad con un formulario
+ * para que el usuario autenticado escriba o edite su propia reseña
+ * (vinculada a su entrada del tracker). Permite ordenar por más
+ * recientes o mejor valoradas, y expandir el listado completo.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useTracker } from '@/hooks/useTracker';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useAuth }        from '@/hooks/useAuth';
+import { useTracker }     from '@/hooks/useTracker';
 import { useItemReviews } from '@/hooks/useReviews';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props de la sección de reseñas. */
 interface Props {
-  itemId: string;
-  totalReviews: number;
+  itemId:          string;
+  totalReviews:    number;
   communityRating: number;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ItemReviews({ itemId, totalReviews, communityRating }: Props) {
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
   const { isLoggedIn, profile } = useAuth();
+  void profile;
   const { getEntry, addOrUpdate } = useTracker();
-  const entry = getEntry(itemId);
-  const { reviews, loading } = useItemReviews(itemId);
+  const entry                     = getEntry(itemId);
+  const { reviews, loading }      = useItemReviews(itemId);
 
-  const [showForm, setShowForm] = useState(false);
-  const [reviewText, setReviewText] = useState(entry?.review ?? '');
+  const [showForm,    setShowForm]    = useState(false);
+  const [reviewText,  setReviewText]  = useState(entry?.review ?? '');
   const [hoverRating, setHoverRating] = useState<number | null>(null);
-  const [formRating, setFormRating] = useState<number | null>(entry?.rating ?? null);
-  const [saving, setSaving] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [sortBy, setSortBy] = useState<'recent' | 'top'>('recent');
-  const [showAll, setShowAll] = useState(false);
+  const [formRating,  setFormRating]  = useState<number | null>(entry?.rating ?? null);
+  const [saving,      setSaving]      = useState(false);
+  const [submitted,   setSubmitted]   = useState(false);
+  const [sortBy,      setSortBy]      = useState<'recent' | 'top'>('recent');
+  const [showAll,     setShowAll]     = useState(false);
 
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  /** Guarda la reseña en el tracker del usuario y cierra el formulario. */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewText.trim() || !entry) return;
@@ -34,25 +59,27 @@ export default function ItemReviews({ itemId, totalReviews, communityRating }: P
     setShowForm(false);
   };
 
-  const displayRating = hoverRating ?? formRating;
+  // ─── Datos derivados ──────────────────────────────────────────────────────
 
-  // Merge real reviews with community count fallback
-  const allReviews = reviews;
-  const realCount = allReviews.length;
+  const displayRating = hoverRating ?? formRating;
+  const allReviews    = reviews;
+  const realCount     = allReviews.length;
   const publicRatings = allReviews.filter(r => r.rating !== null);
-  const displayCount = realCount > 0 ? realCount : totalReviews;
-  const displayAvg = publicRatings.length > 0
+  const displayCount  = realCount > 0 ? realCount : totalReviews;
+  const displayAvg    = publicRatings.length > 0
     ? (publicRatings.reduce((s, r) => s + (r.rating ?? 0), 0) / publicRatings.length).toFixed(1)
     : communityRating;
 
-  const sorted = sortBy === 'top'
+  const sorted  = sortBy === 'top'
     ? [...allReviews].sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1))
     : allReviews;
   const visible = showAll ? sorted : sorted.slice(0, 3);
 
+  // ─── Renderizado ──────────────────────────────────────────────────────────
+
   return (
     <div>
-      {/* Header */}
+      {/* Encabezado con contador y CTA de escritura */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Reseñas públicas</h2>
@@ -75,7 +102,7 @@ export default function ItemReviews({ itemId, totalReviews, communityRating }: P
         )}
       </div>
 
-      {/* Write review form */}
+      {/* Formulario de reseña */}
       {showForm && (
         <form onSubmit={handleSubmit} className="mb-6 p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
           <p className="text-sm font-bold text-zinc-900 dark:text-white mb-4">Tu reseña</p>
@@ -126,6 +153,7 @@ export default function ItemReviews({ itemId, totalReviews, communityRating }: P
         </form>
       )}
 
+      {/* Confirmación tras publicar */}
       {submitted && (
         <div className="mb-6 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 flex items-center gap-3">
           <i className="ri-checkbox-circle-fill text-emerald-500 text-xl"></i>
@@ -136,7 +164,7 @@ export default function ItemReviews({ itemId, totalReviews, communityRating }: P
         </div>
       )}
 
-      {/* Sort tabs */}
+      {/* Pestañas de ordenación */}
       <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 mb-5 w-fit">
         {(['recent', 'top'] as const).map(s => (
           <button
@@ -151,7 +179,7 @@ export default function ItemReviews({ itemId, totalReviews, communityRating }: P
         ))}
       </div>
 
-      {/* Reviews list */}
+      {/* Listado de reseñas */}
       {loading ? (
         <div className="flex flex-col gap-4">
           {Array.from({ length: 3 }).map((_, i) => (

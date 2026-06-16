@@ -1,35 +1,174 @@
+/**
+ * PublicTrackerList.tsx — listado del tracker público de otro usuario.
+ *
+ * Permite filtrar por categoría, estado y búsqueda de texto, y alternar
+ * entre vista en cuadrícula (GridView) y lista (ListView). El listado
+ * se agrupa por categoría cuando se muestra "Todo". Respeta los flags de
+ * privacidad: si show_item_status es false, oculta los badges de estado.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useMemo } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { usePublicTracker, type PublicEntry } from '@/hooks/usePublicTracker';
-import { useCategories } from '@/hooks/useCategoryColors';
+import { useCategories }                      from '@/hooks/useCategoryColors';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { PublicPrivacyFlags } from '@/types/privacy';
+import type { CategoryStatus }     from '@/constants/tracker-statuses';
+
+// ─── Constantes ──────────────────────────────────────────────────────────────
+
 import {
   STATUS_CONFIG,
   getStatusLabel,
   getStatusIcon,
 } from '@/constants/tracker-statuses';
-import type { CategoryStatus } from '@/constants/tracker-statuses';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Modo de visualización del listado. */
+type ViewMode = 'grid' | 'list';
+
+/** Props del listado del tracker público. */
 interface Props {
   userId:  string | null;
   privacy: PublicPrivacyFlags;
 }
 
-type ViewMode = 'grid' | 'list';
+// ─── Sub-componentes ─────────────────────────────────────────────────────────
+
+/**
+ * Vista en cuadrícula con portadas y badges de estado/puntuación.
+ * @param items      - Entradas filtradas del tracker público.
+ * @param showStatus - Si mostrar el badge de estado sobre la portada.
+ */
+function GridView({ items, showStatus }: { items: PublicEntry[]; showStatus: boolean }) {
+  return (
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+      {items.map(item => {
+        const status = item.status as CategoryStatus | null;
+        const cfg    = status && STATUS_CONFIG[status] ? STATUS_CONFIG[status] : null;
+        const icon   = status ? getStatusIcon(status, item.category) : null;
+        const title  = item.title || item.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+        return (
+          <Link key={item.id} to={`/catalog/${item.category}/${item.item_slug}`} className="group cursor-pointer">
+            <div className="relative rounded-xl overflow-hidden mb-2 aspect-[2/3] flex items-center justify-center" style={{ background: `${item.categoryAccent}15` }}>
+              {item.cover ? (
+                <img src={item.cover} alt={title} className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105" />
+              ) : (
+                <div className="flex flex-col items-center gap-1 p-2">
+                  <i className={`${item.categoryIcon} text-3xl`} style={{ color: item.categoryAccent }} />
+                </div>
+              )}
+              {showStatus && cfg && icon && (
+                <div
+                  className="absolute top-1.5 left-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md backdrop-blur-sm"
+                  style={{ background: cfg.bg }}
+                >
+                  <i className={`${icon} text-xs`} style={{ color: cfg.color }} />
+                </div>
+              )}
+              {item.rating !== null && (
+                <div className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-sm">
+                  <i className="ri-star-fill text-amber-400 text-xs" />
+                  <span className="text-white text-xs font-bold">{item.rating}</span>
+                </div>
+              )}
+            </div>
+            <p className="text-xs font-semibold text-zinc-900 dark:text-white line-clamp-2 leading-tight">{title}</p>
+            <p className="text-xs text-zinc-400 mt-0.5">{item.categoryLabel}</p>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Vista en lista horizontal con portada, título, estado y puntuación.
+ * @param items      - Entradas filtradas del tracker público.
+ * @param showStatus - Si mostrar el badge de estado al final de la fila.
+ */
+function ListView({ items, showStatus }: { items: PublicEntry[]; showStatus: boolean }) {
+  return (
+    <div className="flex flex-col gap-2">
+      {items.map((item, idx) => {
+        const status = item.status as CategoryStatus | null;
+        const cfg    = status && STATUS_CONFIG[status] ? STATUS_CONFIG[status] : null;
+        const icon   = status ? getStatusIcon(status, item.category) : null;
+        const label  = status ? getStatusLabel(status, item.category) : null;
+        const title  = item.title || item.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+        return (
+          <Link
+            key={item.id}
+            to={`/catalog/${item.category}/${item.item_slug}`}
+            className="group flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 transition-all cursor-pointer"
+          >
+            <span className="text-sm font-black text-zinc-300 dark:text-zinc-700 w-5 text-center flex-shrink-0">{idx + 1}</span>
+            {item.cover ? (
+              <img src={item.cover} alt={title} className="w-10 h-14 rounded-lg object-cover object-top flex-shrink-0" />
+            ) : (
+              <div className="w-10 h-14 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${item.categoryAccent}15` }}>
+                <i className={`${item.categoryIcon} text-xl`} style={{ color: item.categoryAccent }} />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-zinc-900 dark:text-white group-hover:text-brand dark:group-hover:text-brand-dark transition-colors line-clamp-1">{title}</p>
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block" style={{ background: `${item.categoryAccent}15`, color: item.categoryAccent }}>
+                {item.categoryLabel}
+              </span>
+            </div>
+            {showStatus && cfg && icon && label ? (
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0" style={{ background: cfg.bg, color: cfg.color }}>
+                <i className={icon} />
+                {label}
+              </div>
+            ) : <div className="hidden sm:block w-24 flex-shrink-0" />}
+            {item.rating !== null ? (
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <i className="ri-star-fill text-amber-400 text-sm" />
+                <span className="text-sm font-bold text-zinc-900 dark:text-white">{item.rating}</span>
+                <span className="text-xs text-zinc-400">/10</span>
+              </div>
+            ) : <div className="w-12 flex-shrink-0" />}
+            <i className="ri-arrow-right-s-line text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function PublicTrackerList({ userId, privacy }: Props) {
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
   const CATEGORIES = useCategories();
   const { entries, loading, hidden } = usePublicTracker(userId, privacy);
   const showStatus = privacy.show_item_status !== false;
+
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeStatus,   setActiveStatus]   = useState('all');
-  const [viewMode,       setViewMode]       = useState<ViewMode>('grid');
-  const [search,         setSearch]         = useState('');
+  const [viewMode,       setViewMode]        = useState<ViewMode>('grid');
+  const [search,         setSearch]          = useState('');
 
-  // Category filter pills from actual data
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const categoryFilters = useMemo(() => {
     const cats = [...new Set(entries.map(e => e.category))];
-    const all = [{ id: 'all', label: 'Todo', icon: 'ri-apps-line', accent: '#71717a' }];
+    const all  = [{ id: 'all', label: 'Todo', icon: 'ri-apps-line', accent: '#71717a' }];
     const rest = cats.map(catId => {
       const meta = CATEGORIES.find(c => c.id === catId);
       return { id: catId, label: meta?.label ?? catId, icon: meta?.icon ?? 'ri-stack-line', accent: meta?.accent ?? '#6b7280' };
@@ -37,7 +176,6 @@ export default function PublicTrackerList({ userId, privacy }: Props) {
     return [...all, ...rest];
   }, [entries, CATEGORIES]);
 
-  // Status filter pills from actual data
   const statusFilters = useMemo(() => {
     if (!showStatus) return [];
     const CANONICAL: CategoryStatus[] = [
@@ -80,6 +218,8 @@ export default function PublicTrackerList({ userId, privacy }: Props) {
     [filtered],
   );
 
+  // ─── Renderizado ──────────────────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
@@ -119,7 +259,7 @@ export default function PublicTrackerList({ userId, privacy }: Props) {
 
   return (
     <div>
-      {/* Category pills */}
+      {/* Pills de categoría */}
       <div className="flex items-center gap-2 flex-wrap mb-5">
         {categoryFilters.map(cat => (
           <button
@@ -136,7 +276,7 @@ export default function PublicTrackerList({ userId, privacy }: Props) {
         ))}
       </div>
 
-      {/* Toolbar */}
+      {/* Barra de búsqueda, estado y vista */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
         <div className="relative flex-1 w-full sm:max-w-xs">
           <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm" />
@@ -190,6 +330,7 @@ export default function PublicTrackerList({ userId, privacy }: Props) {
           <p className="text-sm text-zinc-500">Sin resultados. Prueba con otros filtros.</p>
         </div>
       ) : activeCategory === 'all' ? (
+        /* Vista agrupada por categoría cuando se muestra todo */
         <div className="flex flex-col gap-10">
           {Object.entries(grouped).map(([catLabel, items]) => (
             <div key={catLabel}>
@@ -209,100 +350,6 @@ export default function PublicTrackerList({ userId, privacy }: Props) {
       ) : (
         <ListView items={filtered} showStatus={showStatus} />
       )}
-    </div>
-  );
-}
-
-function GridView({ items, showStatus }: { items: PublicEntry[]; showStatus: boolean }) {
-  return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-      {items.map(item => {
-        const status = item.status as CategoryStatus | null;
-        const cfg    = status && STATUS_CONFIG[status] ? STATUS_CONFIG[status] : null;
-        const icon   = status ? getStatusIcon(status, item.category) : null;
-        const title  = item.title || item.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-        return (
-          <Link key={item.id} to={`/catalog/${item.category}/${item.item_slug}`} className="group cursor-pointer">
-            <div className="relative rounded-xl overflow-hidden mb-2 aspect-[2/3] flex items-center justify-center" style={{ background: `${item.categoryAccent}15` }}>
-              {item.cover ? (
-                <img src={item.cover} alt={title} className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105" />
-              ) : (
-                <div className="flex flex-col items-center gap-1 p-2">
-                  <i className={`${item.categoryIcon} text-3xl`} style={{ color: item.categoryAccent }} />
-                </div>
-              )}
-              {showStatus && cfg && icon && (
-                <div
-                  className="absolute top-1.5 left-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md backdrop-blur-sm"
-                  style={{ background: cfg.bg }}
-                >
-                  <i className={`${icon} text-xs`} style={{ color: cfg.color }} />
-                </div>
-              )}
-              {item.rating !== null && (
-                <div className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-sm">
-                  <i className="ri-star-fill text-amber-400 text-xs" />
-                  <span className="text-white text-xs font-bold">{item.rating}</span>
-                </div>
-              )}
-            </div>
-            <p className="text-xs font-semibold text-zinc-900 dark:text-white line-clamp-2 leading-tight">{title}</p>
-            <p className="text-xs text-zinc-400 mt-0.5">{item.categoryLabel}</p>
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
-function ListView({ items, showStatus }: { items: PublicEntry[]; showStatus: boolean }) {
-  return (
-    <div className="flex flex-col gap-2">
-      {items.map((item, idx) => {
-        const status = item.status as CategoryStatus | null;
-        const cfg    = status && STATUS_CONFIG[status] ? STATUS_CONFIG[status] : null;
-        const icon   = status ? getStatusIcon(status, item.category) : null;
-        const label  = status ? getStatusLabel(status, item.category) : null;
-        const title  = item.title || item.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-        return (
-          <Link
-            key={item.id}
-            to={`/catalog/${item.category}/${item.item_slug}`}
-            className="group flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 transition-all cursor-pointer"
-          >
-            <span className="text-sm font-black text-zinc-300 dark:text-zinc-700 w-5 text-center flex-shrink-0">{idx + 1}</span>
-            {item.cover ? (
-              <img src={item.cover} alt={title} className="w-10 h-14 rounded-lg object-cover object-top flex-shrink-0" />
-            ) : (
-              <div className="w-10 h-14 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${item.categoryAccent}15` }}>
-                <i className={`${item.categoryIcon} text-xl`} style={{ color: item.categoryAccent }} />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-zinc-900 dark:text-white group-hover:text-brand dark:group-hover:text-brand-dark transition-colors line-clamp-1">{title}</p>
-              <span className="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block" style={{ background: `${item.categoryAccent}15`, color: item.categoryAccent }}>
-                {item.categoryLabel}
-              </span>
-            </div>
-            {showStatus && cfg && icon && label ? (
-              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0" style={{ background: cfg.bg, color: cfg.color }}>
-                <i className={icon} />
-                {label}
-              </div>
-            ) : <div className="hidden sm:block w-24 flex-shrink-0" />}
-            {item.rating !== null ? (
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <i className="ri-star-fill text-amber-400 text-sm" />
-                <span className="text-sm font-bold text-zinc-900 dark:text-white">{item.rating}</span>
-                <span className="text-xs text-zinc-400">/10</span>
-              </div>
-            ) : <div className="w-12 flex-shrink-0" />}
-            <i className="ri-arrow-right-s-line text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
-          </Link>
-        );
-      })}
     </div>
   );
 }

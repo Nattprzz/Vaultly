@@ -1,8 +1,21 @@
+/**
+ * settings/page.tsx — página de configuración del usuario.
+ *
+ * Muestra un sidebar de secciones y el contenido de la sección activa.
+ * Las secciones se dividen en públicas (accesibles sin login) y privadas
+ * (solo para usuarios autenticados). Si el usuario cierra sesión mientras
+ * está en una sección privada, se redirige a 'appearance' automáticamente.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState } from 'react';
 import { useEffect } from 'react';
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
 import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
-import { useAuth } from '@/hooks/useAuth';
 import SettingsSidebar, { Section } from './components/SettingsSidebar';
 import AppearanceSection from './components/AppearanceSection';
 import CategoriesSection from './components/CategoriesSection';
@@ -11,6 +24,13 @@ import NotificationsSection from './components/NotificationsSection';
 import PrivacySection from './components/PrivacySection';
 import AccountSection from './components/AccountSection';
 
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useAuth } from '@/hooks/useAuth';
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Título y subtítulo para la cabecera de cada sección de configuración. */
 const SECTION_TITLES: Record<Section, { title: string; subtitle: string }> = {
   appearance:    { title: 'Apariencia',     subtitle: 'Personaliza el aspecto visual de Vaultly.' },
   categories:    { title: 'Categorías',     subtitle: 'Elige qué categorías aparecen en tu tracker.' },
@@ -20,9 +40,15 @@ const SECTION_TITLES: Record<Section, { title: string; subtitle: string }> = {
   account:       { title: 'Cuenta',         subtitle: 'Gestiona tu información personal y seguridad.' },
 };
 
+/** Secciones accesibles sin autenticación. */
 const PUBLIC_SECTIONS: Section[] = ['appearance', 'language'];
-const PRIVATE_SECTIONS: Section[] = ['notifications', 'privacy', 'account'];
 
+/** Secciones que requieren usuario autenticado. */
+const PRIVATE_SECTIONS: Section[] = ['categories', 'notifications', 'privacy', 'account'];
+
+// ─── Sub-componente ───────────────────────────────────────────────────────────
+
+/** Renderiza el componente de contenido correspondiente a la sección activa. */
 function SectionContent({ section }: { section: Section }) {
   switch (section) {
     case 'appearance':    return <AppearanceSection />;
@@ -34,10 +60,16 @@ function SectionContent({ section }: { section: Section }) {
   }
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function SettingsPage() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const { isLoggedIn } = useAuth();
   const [activeSection, setActiveSection] = useState<Section>('appearance');
   const availableSections = isLoggedIn ? [...PUBLIC_SECTIONS, ...PRIVATE_SECTIONS] : PUBLIC_SECTIONS;
+
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!isLoggedIn && !PUBLIC_SECTIONS.includes(activeSection)) {
@@ -45,7 +77,11 @@ export default function SettingsPage() {
     }
   }, [activeSection, isLoggedIn]);
 
+  // ─── Datos derivados ─────────────────────────────────────────────────────────
+
   const { title, subtitle } = SECTION_TITLES[activeSection];
+
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)]">
@@ -58,7 +94,7 @@ export default function SettingsPage() {
       <Sidebar />
       <main className="pt-14 md:pt-0 md:pl-64">
         <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-10">
-          {/* Page header */}
+          {/* Cabecera de página */}
           <div className="mb-8">
             <h1
               className="text-3xl md:text-4xl font-black text-zinc-900 dark:text-white"
@@ -72,12 +108,11 @@ export default function SettingsPage() {
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar */}
+            {/* Sidebar de secciones */}
             <SettingsSidebar active={activeSection} onChange={setActiveSection} items={availableSections} />
 
-            {/* Content */}
+            {/* Contenido de la sección activa */}
             <div className="flex-1 min-w-0">
-              {/* Section header */}
               <div className="mb-6">
                 <h2
                   className="text-xl font-bold text-zinc-900 dark:text-white"
@@ -88,7 +123,6 @@ export default function SettingsPage() {
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitle}</p>
               </div>
 
-              {/* Section content */}
               <SectionContent section={activeSection} />
             </div>
           </div>

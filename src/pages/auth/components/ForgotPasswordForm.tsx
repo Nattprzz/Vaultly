@@ -1,25 +1,56 @@
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+/**
+ * ForgotPasswordForm.tsx — formulario de recuperación de contraseña.
+ *
+ * Envía un email de recuperación usando `resetPasswordForEmail` de Supabase,
+ * con redirectTo apuntando a `/reset-password`. Acepta un email pre-rellenado
+ * desde LoginForm si el usuario ya había escrito su correo antes de hacer clic
+ * en "¿Olvidaste tu contraseña?". Muestra un estado de éxito tras el envío.
+ */
 
+// ─── React ───────────────────────────────────────────────────────────────────
+
+import { useState } from 'react';
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
+import { supabase } from '@/lib/supabase';
+import { PASSWORD_RECOVERY_ROUTE } from '@/lib/passwordRecovery';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/** Props del formulario de recuperación de contraseña. */
 interface ForgotPasswordFormProps {
+  /** Callback para volver al formulario de login. */
   onBack: () => void;
+  /** Email con el que pre-rellenar el campo si viene de LoginForm. */
   prefillEmail?: string;
 }
 
+// ─── Validación ───────────────────────────────────────────────────────────────
+
+/** Valida el formato del correo electrónico. */
 function validateEmail(val: string): string {
   if (!val) return 'El correo electrónico es obligatorio.';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return 'Introduce un correo válido.';
   return '';
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ForgotPasswordForm({ onBack, prefillEmail = '' }: ForgotPasswordFormProps) {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const [email, setEmail] = useState(prefillEmail);
   const [touched, setTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [serverError, setServerError] = useState('');
 
+  // ─── Validación ───────────────────────────────────────────────────────────────
+
   const emailError = validateEmail(email);
+
+  // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +61,7 @@ export default function ForgotPasswordForm({ onBack, prefillEmail = '' }: Forgot
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: `${window.location.origin}${PASSWORD_RECOVERY_ROUTE}`,
       });
 
       if (error) {
@@ -46,6 +77,8 @@ export default function ForgotPasswordForm({ onBack, prefillEmail = '' }: Forgot
     }
   };
 
+  // ─── Estilos de inputs ────────────────────────────────────────────────────────
+
   const inputBase = 'w-full py-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none transition-colors';
   const inputNormal = 'border-zinc-200 dark:border-zinc-700 focus:border-brand dark:focus:border-brand-dark';
   const inputErrorClass = 'border-red-400 dark:border-red-500 focus:border-red-400 dark:focus:border-red-500 bg-red-50/40 dark:bg-red-950/10';
@@ -57,10 +90,12 @@ export default function ForgotPasswordForm({ onBack, prefillEmail = '' }: Forgot
     return inputNormal;
   };
 
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
+
   if (sent) {
     return (
       <div className="flex flex-col gap-6">
-        {/* Success state */}
+        {/* Estado de éxito tras el envío */}
         <div className="flex flex-col items-center gap-4 py-4 text-center">
           <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center">
             <i className="ri-mail-send-line text-3xl text-emerald-500"></i>
@@ -106,7 +141,7 @@ export default function ForgotPasswordForm({ onBack, prefillEmail = '' }: Forgot
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-      {/* Description */}
+      {/* Descripción del flujo */}
       <div className="flex items-start gap-3 px-4 py-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700">
         <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 rounded-lg bg-brand/10 dark:bg-brand-dark/15">
           <i className="ri-lock-password-line text-brand dark:text-brand-dark text-sm"></i>
@@ -116,7 +151,7 @@ export default function ForgotPasswordForm({ onBack, prefillEmail = '' }: Forgot
         </p>
       </div>
 
-      {/* Email field */}
+      {/* Campo de email */}
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
           Correo electrónico <span className="text-red-500">*</span>

@@ -1,14 +1,38 @@
+/**
+ * TrackerTimeline.tsx — línea de tiempo de actividad reciente del tracker.
+ *
+ * Consume `useDashboardStats()` directamente (sin recibir props) para mostrar
+ * los últimos ítems modificados como eventos en una línea de tiempo vertical.
+ * Cada evento muestra el icono y color del estado, el texto de acción via
+ * `getActionText()`, el título del ítem y su categoría. El hilo vertical
+ * entre eventos se renderiza con un `::before` absoluto excepto en el último.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useDashboardStats, timeAgo } from '@/hooks/useDashboardStats';
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
 import { STATUS_CONFIG, getActionText } from '@/constants/tracker-statuses';
 import type { CategoryStatus } from '@/constants/tracker-statuses';
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function TrackerTimeline() {
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const { recentActivity, loading } = useDashboardStats();
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-      {/* Header */}
+      {/* Cabecera */}
       <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
         <div className="flex items-center gap-2">
           <i className="ri-time-line text-[var(--text-secondary)]" />
@@ -22,7 +46,7 @@ export default function TrackerTimeline() {
         </Link>
       </div>
 
-      {/* Content */}
+      {/* Contenido */}
       {loading ? (
         <div className="flex flex-col gap-0 p-5">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -36,6 +60,7 @@ export default function TrackerTimeline() {
           ))}
         </div>
       ) : recentActivity.length === 0 ? (
+        /* Estado vacío */
         <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-sunken)]">
             <i className="ri-history-line text-xl text-[var(--text-tertiary)]" />
@@ -49,6 +74,7 @@ export default function TrackerTimeline() {
           </Link>
         </div>
       ) : (
+        /* Lista de eventos con hilo vertical */
         <div className="p-5">
           {recentActivity.map((item, i) => {
             const statusKey = item.status_en as CategoryStatus;
@@ -60,6 +86,7 @@ export default function TrackerTimeline() {
 
             return (
               <div key={item.id} className="relative flex gap-3.5">
+                {/* Hilo vertical entre eventos */}
                 {!isLast && (
                   <div className="absolute left-[17px] top-10 bottom-0 w-px bg-[var(--border)]" />
                 )}

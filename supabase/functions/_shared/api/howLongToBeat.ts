@@ -1,3 +1,11 @@
+/**
+ * howLongToBeat.ts — cliente compartido de HowLongToBeat.
+ *
+ * Obtiene tiempos de juego y calcula similitud frente al título solicitado.
+ *
+ * Utilizado para enriquecer videojuegos antes de guardarlos en catálogo.
+ */
+
 export interface HowLongToBeatResult {
   id: number | null;
   name: string | null;
@@ -29,6 +37,12 @@ const EDITION_PATTERN = [
   'remake',
 ].join('|');
 
+/**
+ * Reduce un título a una forma más estable para búsquedas en HowLongToBeat.
+ *
+ * @param title Título original del videojuego.
+ * @returns Título normalizado para comparación.
+ */
 export function normalizeHltbSearchTitle(title: string) {
   const original = title.trim();
   if (!original) return '';
@@ -112,6 +126,13 @@ function normalizeResult(result: Record<string, unknown>, query: string): HowLon
   };
 }
 
+/**
+ * Consulta metadatos de duración de juego para un título de IGDB.
+ *
+ * @param title Título del videojuego.
+ * @param igdbSlug Slug opcional de IGDB para mejorar coincidencias.
+ * @returns Resultado normalizado de duración o valores vacíos.
+ */
 export async function getHowLongToBeatMetadata(
   title?: string | null,
   igdbSlug?: string | null,

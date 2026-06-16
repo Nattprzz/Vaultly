@@ -1,16 +1,40 @@
+/**
+ * ItemTrailerSection.tsx — sección del tráiler oficial de un ítem.
+ *
+ * Muestra una miniatura de YouTube obtenida mediante la clave del vídeo.
+ * Al hacer click en el botón de reproducción, sustituye la miniatura
+ * por un iframe de YouTube con autoplay. Si la miniatura HD no existe,
+ * cae automáticamente a la versión estándar via onError.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState } from 'react';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props de la sección del tráiler. */
 interface Props {
+  /** Identificador del vídeo en YouTube. */
   trailerKey: string;
+  /** Título del ítem, usado como aria-label del iframe. */
   title: string;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ItemTrailerSection({ trailerKey, title }: Props) {
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
   const [playing, setPlaying] = useState(false);
+
+  // ─── Datos derivados ──────────────────────────────────────────────────────
 
   const thumbHd  = `https://img.youtube.com/vi/${trailerKey}/maxresdefault.jpg`;
   const thumbFb  = `https://img.youtube.com/vi/${trailerKey}/hqdefault.jpg`;
   const embedUrl = `https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0&modestbranding=1`;
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div>
@@ -43,6 +67,7 @@ export default function ItemTrailerSection({ trailerKey, title }: Props) {
                 <i className="ri-play-fill text-3xl text-white ml-1"></i>
               </div>
             </div>
+            {/* Badge de YouTube en la esquina inferior izquierda */}
             <div className="absolute bottom-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm">
               <span className="w-3 h-2 bg-red-600 rounded-sm inline-block"></span>
               <span className="text-white text-xs font-bold tracking-wide">YouTube</span>

@@ -1,3 +1,14 @@
+-- ============================================================================
+-- Nombre: fix_auth_signup_trigger.sql
+-- Descripción:
+-- Ajusta el trigger de alta de usuarios autenticados para crear perfiles correctamente.
+--
+-- Tablas afectadas:
+-- - profiles
+--
+-- Autor: Vaultly
+-- ============================================================================
+
 create or replace function public.normalize_username(value text, fallback text)
 returns text
 language sql

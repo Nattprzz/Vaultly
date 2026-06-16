@@ -1,3 +1,14 @@
+-- ============================================================================
+-- Nombre: add_game_tracking_fields.sql
+-- Descripción:
+-- Añade campos específicos para seguimiento avanzado de videojuegos.
+--
+-- Tablas afectadas:
+-- - tracker_entries
+--
+-- Autor: Vaultly
+-- ============================================================================
+
 -- ============================================================
 -- Vaultly — Migración: campos de seguimiento para videojuegos
 -- ============================================================

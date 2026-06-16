@@ -1,8 +1,38 @@
+/**
+ * contact/page.tsx — página de contacto con formulario y FAQ.
+ *
+ * Combina un formulario de contacto con validación inline y envío a Readdy,
+ * tarjetas de canales de contacto por email, FAQ por categorías con acordeón,
+ * y sidebar con tiempos de respuesta estimados. Usa navbar inline sin Sidebar.
+ * La validación se ejecuta sobre `touched` para evitar errores prematuros.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useRef } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
 import SeoHead from '@/components/feature/SeoHead';
+import { LogoMark } from '@/components/branding/Logo';
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useTheme } from '@/hooks/useTheme';
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/** Estado del envío del formulario de contacto. */
+type SubmitStatus = 'idle' | 'sending' | 'success' | 'error';
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Preguntas frecuentes agrupadas por categoría. */
 const FAQ_CATEGORIES = [
   {
     id: 'cuenta',
@@ -109,8 +139,7 @@ const FAQ_CATEGORIES = [
   },
 ];
 
-type SubmitStatus = 'idle' | 'sending' | 'success' | 'error';
-
+/** Opciones de motivo de contacto disponibles en el formulario. */
 const TOPICS = [
   { value: 'soporte-tecnico', label: 'Soporte técnico', icon: 'ri-tools-line' },
   { value: 'reporte-bug', label: 'Reportar un bug', icon: 'ri-bug-line' },
@@ -120,6 +149,7 @@ const TOPICS = [
   { value: 'otro', label: 'Otro', icon: 'ri-chat-3-line' },
 ];
 
+/** Canales de contacto por email con sus iconos y colores. */
 const CONTACT_CARDS = [
   {
     icon: 'ri-mail-line',
@@ -159,7 +189,11 @@ const CONTACT_CARDS = [
   },
 ];
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ContactPage() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const { theme, toggleTheme } = useTheme();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -171,6 +205,8 @@ export default function ContactPage() {
   const [touched, setTouched] = useState({ topic: false, name: false, email: false, message: false });
   const [faqCategory, setFaqCategory] = useState('cuenta');
   const [openFaq, setOpenFaq] = useState<string | null>(null);
+
+  // ─── Validación ───────────────────────────────────────────────────────────────
 
   const touch = (field: keyof typeof touched) =>
     setTouched(prev => ({ ...prev, [field]: true }));
@@ -185,9 +221,13 @@ export default function ContactPage() {
   const hasErrors = Object.values(errors).some(Boolean);
   const charsLeft = 500 - message.length;
 
+  // ─── Estilos de inputs ────────────────────────────────────────────────────────
+
   const inputBase = 'w-full py-3 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none transition-colors';
   const inputNormal = 'border-zinc-200 dark:border-zinc-700 focus:border-brand dark:focus:border-brand-dark';
   const inputErr = 'border-red-400 dark:border-red-500 bg-red-50/40 dark:bg-red-950/10 focus:border-red-400';
+
+  // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,6 +262,8 @@ export default function ContactPage() {
     }
   };
 
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--bg)]">
       <SeoHead
@@ -236,19 +278,29 @@ export default function ContactPage() {
         <div className="max-w-screen-xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 cursor-pointer">
             <div className="w-8 h-8 rounded-xl bg-brand dark:bg-brand-dark flex items-center justify-center">
-              <i className="ri-archive-2-line text-white text-sm"></i>
+              <LogoMark size={20} />
             </div>
             <span className="font-bold text-zinc-900 dark:text-white text-base" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Vaultly
             </span>
           </Link>
           <div className="flex items-center gap-3">
-            <button
-              onClick={toggleTheme}
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-            >
-              <i className={theme === 'dark' ? 'ri-sun-line' : 'ri-moon-line'}></i>
-            </button>
+            <div className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]">
+              <span>{theme === "dark" ? "Modo claro" : "Modo oscuro"}</span>
+
+              <AnimatedThemeToggler
+                theme={theme === "dark" ? "dark" : "light"}
+                onThemeChange={(newTheme) => {
+                  if (newTheme !== theme) {
+                    toggleTheme()
+                  }
+                }}
+                variant="circle"
+                duration={500}
+                className="flex size-8 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text-primary)] [&_svg]:size-4"
+              />
+            </div>
+
             <Link
               to="/auth"
               className="px-4 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
@@ -275,7 +327,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Contact cards */}
+      {/* Tarjetas de canales de contacto */}
       <section className="border-b border-zinc-100 dark:border-zinc-800 py-10 px-4 md:px-6 bg-zinc-50/50 dark:bg-zinc-900/20">
         <div className="max-w-screen-xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {CONTACT_CARDS.map(card => (
@@ -297,12 +349,12 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Main content: form + sidebar */}
+      {/* Formulario + sidebar */}
       <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-12 md:py-16 flex flex-col lg:flex-row gap-10 lg:gap-16">
 
-        {/* Sidebar info */}
+        {/* Sidebar informativo */}
         <aside className="w-full lg:w-72 flex-shrink-0 flex flex-col gap-6">
-          {/* Response time */}
+          {/* Tiempos de respuesta */}
           <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-5 border border-zinc-100 dark:border-zinc-800">
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">Tiempos de respuesta</p>
             <div className="flex flex-col gap-3">
@@ -320,7 +372,7 @@ export default function ContactPage() {
             </div>
           </div>
 
-          {/* FAQ links */}
+          {/* Links de ayuda rápida */}
           <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-5 border border-zinc-100 dark:border-zinc-800">
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">Antes de escribirnos</p>
             <div className="flex flex-col gap-2">
@@ -345,7 +397,7 @@ export default function ContactPage() {
             </div>
           </div>
 
-          {/* Social */}
+          {/* Redes sociales */}
           <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-5 border border-zinc-100 dark:border-zinc-800">
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">Síguenos</p>
             <div className="flex gap-3">
@@ -368,7 +420,7 @@ export default function ContactPage() {
           </div>
         </aside>
 
-        {/* Form */}
+        {/* Formulario */}
         <main className="flex-1 min-w-0">
           {submitStatus === 'success' ? (
             <div className="flex flex-col items-center gap-6 py-16 text-center">
@@ -408,7 +460,7 @@ export default function ContactPage() {
                 <p className="text-sm text-zinc-500">Rellena el formulario y te responderemos en breve.</p>
               </div>
 
-              {/* Topic selector */}
+              {/* Selector de motivo */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                   Motivo de contacto <span className="text-red-500">*</span>
@@ -447,9 +499,9 @@ export default function ContactPage() {
                 )}
               </div>
 
-              {/* Name + Email row */}
+              {/* Nombre + Email */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Name */}
+                {/* Nombre */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                     Nombre <span className="text-red-500">*</span>
@@ -516,7 +568,7 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              {/* Message */}
+              {/* Mensaje */}
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
@@ -544,7 +596,7 @@ export default function ContactPage() {
                 )}
               </div>
 
-              {/* Error banner */}
+              {/* Banner de error de envío */}
               {submitStatus === 'error' && (
                 <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
                   <i className="ri-error-warning-line text-red-500 flex-shrink-0"></i>
@@ -555,7 +607,7 @@ export default function ContactPage() {
                 </div>
               )}
 
-              {/* Submit */}
+              {/* Botón de envío */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <button
                   type="submit"
@@ -586,10 +638,9 @@ export default function ContactPage() {
         </main>
       </div>
 
-      {/* FAQ Section */}
+      {/* Sección FAQ */}
       <section id="faq" className="border-t border-zinc-100 dark:border-zinc-800 py-14 md:py-20 px-4 md:px-6 bg-zinc-50/50 dark:bg-zinc-900/20">
         <div className="max-w-screen-xl mx-auto">
-          {/* Header */}
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand/10 dark:bg-brand-dark/15 border border-brand/20 dark:border-brand-dark/25 mb-4">
@@ -603,7 +654,7 @@ export default function ContactPage() {
                 Puede que tu duda ya esté resuelta aquí. Si no, usa el formulario de arriba.
               </p>
             </div>
-            {/* Category tabs */}
+            {/* Pestañas de categoría FAQ */}
             <div className="flex flex-wrap gap-2">
               {FAQ_CATEGORIES.map(cat => (
                 <button
@@ -622,7 +673,7 @@ export default function ContactPage() {
             </div>
           </div>
 
-          {/* Accordion */}
+          {/* Acordeón de preguntas */}
           <div className="max-w-3xl">
             {FAQ_CATEGORIES.find(c => c.id === faqCategory)?.items.map((item, idx) => {
               const key = `${faqCategory}-${idx}`;
@@ -644,7 +695,7 @@ export default function ContactPage() {
                     </div>
                   </button>
 
-                  {/* Answer — animated with max-height trick */}
+                  {/* Respuesta — animada con max-height */}
                   <div
                     className="overflow-hidden transition-all duration-300 ease-in-out"
                     style={{ maxHeight: isOpen ? '300px' : '0px', opacity: isOpen ? 1 : 0 }}
@@ -669,7 +720,7 @@ export default function ContactPage() {
             })}
           </div>
 
-          {/* Still need help CTA */}
+          {/* CTA de soporte adicional */}
           <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-4 px-5 py-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 max-w-3xl">
             <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/30 flex items-center justify-center flex-shrink-0">
               <i className="ri-customer-service-2-line text-sky-500 text-base"></i>
@@ -694,7 +745,7 @@ export default function ContactPage() {
         <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-brand dark:bg-brand-dark flex items-center justify-center">
-              <i className="ri-archive-2-line text-white text-xs"></i>
+              <LogoMark size={15} />
             </div>
             <span className="font-semibold text-zinc-900 dark:text-white text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Vaultly</span>
           </div>

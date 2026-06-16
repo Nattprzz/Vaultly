@@ -1,45 +1,76 @@
+/**
+ * ProfileShowcase.tsx — vitrina con los mejores ítems del usuario.
+ *
+ * Presenta dos secciones calculadas sobre las entradas del tracker:
+ * "Mejor valorados" (hasta 6 ítems completados con puntuación),
+ * y "Completados recientemente" (hasta 4 ítems ordenados por updatedAt).
+ * Cada ítem enlaza a su página de detalle en el catálogo.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
-import { useTracker } from '@/hooks/useTracker';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useTracker }    from '@/hooks/useTracker';
 import { useCategories } from '@/hooks/useCategoryColors';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { CategoryConfig } from '@/lib/categoryConfig';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Entrada del tracker enriquecida con los datos visuales de su categoría. */
 interface EnrichedItem {
-  itemId: string;
-  category: string;
-  title: string;
-  cover: string;
-  year: number;
-  genre: string;
-  rating: number | null;
-  status: string;
+  itemId:    string;
+  category:  string;
+  title:     string;
+  cover:     string;
+  year:      number;
+  genre:     string;
+  rating:    number | null;
+  status:    string;
   catAccent: string;
-  catIcon: string;
+  catIcon:   string;
 }
 
+// ─── Utilidades ──────────────────────────────────────────────────────────────
+
+/**
+ * Enriquece una entrada del tracker con los datos de su categoría.
+ * @param entry      - Entrada del tracker del usuario.
+ * @param categories - Lista de categorías disponibles con accent e icono.
+ * @returns Objeto EnrichedItem, o null si la categoría no se encuentra.
+ */
 function enrichItem(entry: ReturnType<typeof useTracker>['entries'][string], categories: CategoryConfig[]): EnrichedItem | null {
   const category = entry.category;
-  const cat = categories.find(c => c.id === category);
+  const cat      = categories.find(c => c.id === category);
   if (!cat) return null;
   return {
-    itemId: entry.itemId,
+    itemId:    entry.itemId,
     category,
-    rating: entry.rating,
-    status: entry.status,
-    title: entry.title,
-    cover: entry.cover,
-    year: entry.year,
-    genre: entry.genre,
+    rating:    entry.rating,
+    status:    entry.status,
+    title:     entry.title,
+    cover:     entry.cover,
+    year:      entry.year,
+    genre:     entry.genre,
     catAccent: cat.accent,
-    catIcon: cat.icon,
+    catIcon:   cat.icon,
   };
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ProfileShowcase() {
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const categories = useCategories();
   const { entries } = useTracker();
   const all = Object.values(entries);
 
-  // Top rated (completed with rating)
   const topRated = all
     .filter(e => e.rating !== null && e.status === 'completed')
     .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
@@ -47,7 +78,6 @@ export default function ProfileShowcase() {
     .map(e => enrichItem(e, categories))
     .filter(Boolean) as EnrichedItem[];
 
-  // Recently completed
   const recentCompleted = all
     .filter(e => e.status === 'completed')
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
@@ -55,9 +85,11 @@ export default function ProfileShowcase() {
     .map(e => enrichItem(e, categories))
     .filter(Boolean) as EnrichedItem[];
 
+  // ─── Renderizado ──────────────────────────────────────────────────────────
+
   return (
     <div className="flex flex-col gap-8">
-      {/* Top rated */}
+      {/* Cuadrícula de los mejor valorados */}
       {topRated.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-5">
@@ -73,10 +105,12 @@ export default function ProfileShowcase() {
                     alt={item.title}
                     className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
                   />
+                  {/* Badge de puntuación */}
                   <div className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-sm">
                     <i className="ri-star-fill text-amber-400 text-xs"></i>
                     <span className="text-white text-xs font-bold">{item.rating}</span>
                   </div>
+                  {/* Badge de categoría */}
                   <div className="absolute top-1.5 left-1.5">
                     <div className="w-5 h-5 flex items-center justify-center rounded-md backdrop-blur-sm" style={{ background: `${item.catAccent}40` }}>
                       <i className={`${item.catIcon} text-xs`} style={{ color: item.catAccent }}></i>
@@ -90,7 +124,7 @@ export default function ProfileShowcase() {
         </div>
       )}
 
-      {/* Recently completed */}
+      {/* Listado de completados recientemente */}
       {recentCompleted.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-5">
@@ -138,4 +172,3 @@ export default function ProfileShowcase() {
     </div>
   );
 }
-

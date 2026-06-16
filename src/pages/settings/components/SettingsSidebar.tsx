@@ -1,26 +1,45 @@
+/**
+ * SettingsSidebar.tsx — barra lateral de navegación de la página de ajustes.
+ *
+ * Renderiza el listado de secciones de configuración disponibles y marca
+ * la activa. Acepta un subconjunto de secciones mediante la prop `items`
+ * para contextos donde no todas las secciones son relevantes.
+ */
+
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Identificadores de las secciones de ajustes. */
 type Section = 'appearance' | 'categories' | 'language' | 'notifications' | 'privacy' | 'account';
 
+/** Entrada de navegación en la barra lateral. */
 interface NavItem {
-  id: Section;
-  label: string;
-  icon: string;
+  id:          Section;
+  label:       string;
+  icon:        string;
   description: string;
 }
 
+/** Props del componente de barra lateral. */
+interface Props {
+  active:   Section;
+  onChange: (s: Section) => void;
+  /** Si se pasa, solo se muestran las secciones incluidas en este array. */
+  items?:   Section[];
+}
+
+// ─── Constantes ──────────────────────────────────────────────────────────────
+
+/** Listado completo de secciones de ajustes con sus metadatos de navegación. */
 const NAV_ITEMS: NavItem[] = [
-  { id: 'appearance',    label: 'Apariencia',    icon: 'ri-palette-line',       description: 'Tema, colores y fuentes' },
-  { id: 'categories',   label: 'Categorías',    icon: 'ri-apps-2-line',        description: 'Gestiona tu tracker' },
-  { id: 'language',     label: 'Idioma',        icon: 'ri-translate-2',        description: 'Idioma de la aplicación' },
-  { id: 'notifications',label: 'Notificaciones',icon: 'ri-notification-3-line',description: 'Alertas y avisos' },
-  { id: 'privacy',      label: 'Privacidad',    icon: 'ri-shield-check-line',  description: 'Visibilidad de tu perfil' },
-  { id: 'account',      label: 'Cuenta',        icon: 'ri-user-settings-line', description: 'Datos y seguridad' },
+  { id: 'appearance',     label: 'Apariencia',     icon: 'ri-palette-line',        description: 'Tema, colores y fuentes'   },
+  { id: 'categories',     label: 'Categorías',     icon: 'ri-apps-2-line',         description: 'Gestiona tu tracker'      },
+  { id: 'language',       label: 'Idioma',         icon: 'ri-translate-2',         description: 'Idioma de la aplicación'  },
+  { id: 'notifications',  label: 'Notificaciones', icon: 'ri-notification-3-line', description: 'Alertas y avisos'         },
+  { id: 'privacy',        label: 'Privacidad',     icon: 'ri-shield-check-line',   description: 'Visibilidad de tu perfil' },
+  { id: 'account',        label: 'Cuenta',         icon: 'ri-user-settings-line',  description: 'Datos y seguridad'        },
 ];
 
-interface Props {
-  active: Section;
-  onChange: (s: Section) => void;
-  items?: Section[];
-}
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function SettingsSidebar({ active, onChange, items }: Props) {
   const visibleItems = items ? NAV_ITEMS.filter(item => items.includes(item.id)) : NAV_ITEMS;

@@ -1,7 +1,28 @@
+/**
+ * AdminCatalog.tsx — gestión del catálogo de ítems del panel de administración.
+ *
+ * Muestra una tabla paginada (30 ítems/página) con búsqueda y filtro por
+ * categoría. Cada fila tiene un menú desplegable con acciones: ver página,
+ * editar y eliminar. El modal de edición/creación incluye dos pestañas:
+ * info (campos del ítem) y entidades vinculadas (vía ItemEntitiesEditor).
+ * CRUD completo con feedback de toast y confirmación de eliminación.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useRef, useEffect } from 'react';
-import { useAdminCatalog, CatalogItem, CatalogItemFormData, EMPTY_CATALOG_FORM } from '@/hooks/useAdminCatalog';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useAdminCatalog, type CatalogItem, type CatalogItemFormData, EMPTY_CATALOG_FORM } from '@/hooks/useAdminCatalog';
+
+// ─── Componentes ─────────────────────────────────────────────────────────────
+
 import ItemEntitiesEditor from './ItemEntitiesEditor';
 
+// ─── Constantes ──────────────────────────────────────────────────────────────
+
+/** Categorías del catálogo con metadatos visuales locales. */
 const CATEGORIES = [
   { id: 'videojuegos', label: 'Videojuegos', icon: 'ri-gamepad-line',   color: '#8b5cf6' },
   { id: 'peliculas',   label: 'Películas',   icon: 'ri-film-line',       color: '#f43f5e' },
@@ -10,8 +31,15 @@ const CATEGORIES = [
   { id: 'conciertos',  label: 'Conciertos',  icon: 'ri-music-2-line',    color: '#ec4899' },
 ];
 
+/** Mapa de id → categoría para acceso O(1). */
 const CAT_MAP = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
 
+// ─── Sub-componentes ─────────────────────────────────────────────────────────
+
+/**
+ * Hint de ejemplo de metadata JSON para una categoría concreta.
+ * @param category - Id de la categoría seleccionada en el formulario.
+ */
 function MetaHint({ category }: { category: string }) {
   const hints: Record<string, string> = {
     videojuegos: '{"rating": 4.5, "developers": ["Rockstar"], "publishers": ["Take-Two"]}',
@@ -25,28 +53,39 @@ function MetaHint({ category }: { category: string }) {
   return <p className="text-xs text-zinc-600 mt-1 font-mono truncate">Ej: {hint}</p>;
 }
 
+/** Props del modal de creación/edición de ítem. */
 interface ItemModalProps {
   editTarget: CatalogItem | null;
-  saving: boolean;
-  onClose: () => void;
-  onSave: (form: CatalogItemFormData) => Promise<void>;
+  saving:     boolean;
+  onClose:    () => void;
+  onSave:     (form: CatalogItemFormData) => Promise<boolean>;
 }
 
+/**
+ * Modal con pestañas de información general y entidades vinculadas.
+ * @param editTarget - Ítem a editar, o `null` para crear uno nuevo.
+ * @param saving     - Si hay una operación de guardado en curso.
+ * @param onClose    - Callback para cerrar el modal.
+ * @param onSave     - Callback con los datos del formulario al guardar.
+ */
 function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
   const [form, setForm] = useState<CatalogItemFormData>(
     editTarget
       ? {
-          title: editTarget.title,
-          category: editTarget.category,
-          description: (editTarget as any).description ?? '',
-          image_url: editTarget.image_url ?? '',
+          title:        editTarget.title,
+          category:     editTarget.category,
+          description:  editTarget.description ?? '',
+          image_url:    editTarget.image_url ?? '',
           release_date: editTarget.release_date ?? '',
           metadata_raw: editTarget.metadata ? JSON.stringify(editTarget.metadata, null, 2) : '',
         }
       : EMPTY_CATALOG_FORM
   );
-  const [metaError, setMetaError] = useState('');
-  const [activeTab, setActiveTab] = useState<'info' | 'entities'>('info');
+  const [metaError,  setMetaError]  = useState('');
+  const [saveError,  setSaveError]  = useState('');
+  const [activeTab,  setActiveTab]  = useState<'info' | 'entities'>('info');
+
+  const isEdit = !!editTarget;
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
@@ -57,17 +96,17 @@ function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
       }
     }
     setMetaError('');
-    await onSave(form);
+    setSaveError('');
+    const ok = await onSave(form);
+    if (!ok) setSaveError('No se pudieron guardar los cambios. Comprueba la conexión e inténtalo de nuevo.');
   };
-
-  const isEdit = !!editTarget;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70" onClick={() => !saving && onClose()}></div>
       <div className="relative z-10 bg-zinc-900 rounded-2xl border border-zinc-800 w-full max-w-2xl max-h-[92vh] flex flex-col">
 
-        {/* Header */}
+        {/* Cabecera y pestañas */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-800 flex-shrink-0">
           <div>
             <h3 className="text-white font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -85,13 +124,26 @@ function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
           </button>
         </div>
 
-        {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto">
+        {isEdit && (
+          <div className="flex items-center gap-1 px-6 pt-4 pb-0 flex-shrink-0">
+            {(['info', 'entities'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                  activeTab === tab ? 'bg-white/10 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {tab === 'info' ? 'Información' : 'Entidades'}
+              </button>
+            ))}
+          </div>
+        )}
 
-          {/* ── Info tab ── */}
+        {/* Cuerpo scrollable */}
+        <div className="flex-1 overflow-y-auto">
           {activeTab === 'info' && (
             <div className="px-6 py-5 flex flex-col gap-5">
-              {/* Title */}
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
                   Título <span className="text-red-400">*</span>
@@ -104,7 +156,6 @@ function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
                 />
               </div>
 
-              {/* Category */}
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
                   Categoría <span className="text-red-400">*</span>
@@ -130,7 +181,6 @@ function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
                 </div>
               </div>
 
-              {/* Image URL */}
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1.5">URL de imagen / portada</label>
                 <input
@@ -154,7 +204,6 @@ function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
                 )}
               </div>
 
-              {/* Release date */}
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Fecha de lanzamiento</label>
                 <input
@@ -165,7 +214,6 @@ function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
                 />
               </div>
 
-              {/* Description */}
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Descripción</label>
                 <textarea
@@ -179,7 +227,6 @@ function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
                 <p className="text-xs text-zinc-600 mt-1 text-right">{form.description.length}/500</p>
               </div>
 
-              {/* Metadata JSON */}
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
                   Metadata <span className="text-zinc-600">(JSON opcional)</span>
@@ -201,7 +248,6 @@ function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
             </div>
           )}
 
-          {/* ── Entities tab ── */}
           {activeTab === 'entities' && isEdit && (
             <div className="px-6 py-5">
               <ItemEntitiesEditor itemId={editTarget.id} />
@@ -209,9 +255,16 @@ function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
           )}
         </div>
 
-        {/* Footer — only show save on info tab */}
+        {/* Pie: botones de acción según pestaña activa */}
         {activeTab === 'info' && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800 flex-shrink-0">
+          <div className="flex flex-col gap-2 px-6 py-4 border-t border-zinc-800 flex-shrink-0">
+            {saveError && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-950/50 border border-red-800 text-xs text-red-300">
+                <i className="ri-error-warning-line flex-shrink-0"></i>
+                {saveError}
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-3">
             <button
               onClick={() => !saving && onClose()}
               disabled={saving}
@@ -236,10 +289,10 @@ function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
                 </>
               )}
             </button>
+            </div>
           </div>
         )}
 
-        {/* Footer — entities tab: just close */}
         {activeTab === 'entities' && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800 flex-shrink-0">
             <p className="text-xs text-zinc-600">Los cambios se guardan automáticamente</p>
@@ -256,6 +309,8 @@ function ItemModal({ editTarget, saving, onClose, onSave }: ItemModalProps) {
   );
 }
 
+// ─── Componente principal ─────────────────────────────────────────────────────
+
 export default function AdminCatalog() {
   const {
     items, total, loading, saving, error,
@@ -266,17 +321,17 @@ export default function AdminCatalog() {
     createItem, updateItem, deleteItem,
   } = useAdminCatalog();
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<CatalogItem | null>(null);
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
+  const [modalOpen,     setModalOpen]     = useState(false);
+  const [editTarget,    setEditTarget]    = useState<CatalogItem | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [actionMenu, setActionMenu] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
+  const [actionMenu,    setActionMenu]    = useState<string | null>(null);
+  const [toast,         setToast]         = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
+
   const actionRef = useRef<HTMLDivElement>(null);
 
-  const showToast = (msg: string, type: 'ok' | 'err' = 'ok') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  // ─── Efectos ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (error) showToast(error, 'err');
@@ -292,22 +347,32 @@ export default function AdminCatalog() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const openCreate = () => { setEditTarget(null); setModalOpen(true); };
-  const openEdit = (item: CatalogItem) => { setEditTarget(item); setActionMenu(null); setModalOpen(true); };
+  // ─── Handlers ─────────────────────────────────────────────────────────────
 
-  const handleSave = async (form: CatalogItemFormData) => {
+  /** Muestra un toast efímero de 3 segundos. */
+  const showToast = (msg: string, type: 'ok' | 'err' = 'ok') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const openCreate = () => { setEditTarget(null); setModalOpen(true); };
+  const openEdit   = (item: CatalogItem) => { setEditTarget(item); setActionMenu(null); setModalOpen(true); };
+
+  /** Crea o actualiza un ítem del catálogo según si `editTarget` está definido. */
+  const handleSave = async (form: CatalogItemFormData): Promise<boolean> => {
     let ok: boolean;
     if (editTarget) {
       ok = await updateItem(editTarget.id, form);
-      if (ok) showToast('Ítem actualizado correctamente');
+      if (ok) { showToast('Ítem actualizado correctamente'); setModalOpen(false); }
     } else {
       ok = await createItem(form);
-      if (ok) showToast('Ítem creado correctamente');
+      if (ok) { showToast('Ítem creado correctamente'); setModalOpen(false); }
     }
-    if (ok) setModalOpen(false);
-    else showToast('Error al guardar el ítem', 'err');
+    if (!ok) showToast('Error al guardar el ítem', 'err');
+    return ok;
   };
 
+  /** Elimina un ítem y cierra el modal de confirmación. */
   const handleDelete = async (id: string) => {
     const ok = await deleteItem(id);
     if (ok) showToast('Ítem eliminado');
@@ -316,11 +381,15 @@ export default function AdminCatalog() {
     setActionMenu(null);
   };
 
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const totalPages = Math.ceil(total / 30);
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Toast */}
+      {/* Toast de feedback */}
       {toast && (
         <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold transition-all ${
           toast.type === 'ok'
@@ -332,7 +401,7 @@ export default function AdminCatalog() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Cabecera */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-white font-bold text-base" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -351,7 +420,7 @@ export default function AdminCatalog() {
         </button>
       </div>
 
-      {/* Toolbar */}
+      {/* Barra de herramientas */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
@@ -379,7 +448,7 @@ export default function AdminCatalog() {
         </button>
       </div>
 
-      {/* Table */}
+      {/* Tabla */}
       <div className="bg-zinc-900 rounded-2xl border border-zinc-800">
         <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-zinc-800 text-xs font-semibold text-zinc-500 uppercase tracking-wider rounded-t-2xl overflow-hidden">
           <div className="col-span-6 lg:col-span-5">Ítem</div>
@@ -412,11 +481,11 @@ export default function AdminCatalog() {
         ) : (
           <div className="divide-y divide-zinc-800" ref={actionRef}>
             {items.map(item => {
-              const cat = CAT_MAP[item.category];
+              const cat    = CAT_MAP[item.category];
               const rating = item.metadata?.rating as number | undefined;
               return (
                 <div key={item.id} className="grid grid-cols-12 gap-4 px-5 py-4 items-center hover:bg-white/5 transition-colors">
-                  {/* Item */}
+                  {/* Ítem */}
                   <div className="col-span-10 md:col-span-6 lg:col-span-5 flex items-center gap-3 min-w-0">
                     {item.image_url ? (
                       <div className="w-10 h-14 rounded-lg overflow-hidden flex-shrink-0">
@@ -453,7 +522,7 @@ export default function AdminCatalog() {
                     </div>
                   </div>
 
-                  {/* Category */}
+                  {/* Categoría */}
                   <div className="col-span-2 hidden md:flex items-center gap-1.5">
                     {cat && (
                       <>
@@ -465,7 +534,7 @@ export default function AdminCatalog() {
                     )}
                   </div>
 
-                  {/* Source */}
+                  {/* Fuente */}
                   <div className="col-span-2 hidden lg:block">
                     <span className="text-xs text-zinc-500 font-mono truncate block">{item.source}</span>
                     {item.source_item_id && (
@@ -473,14 +542,12 @@ export default function AdminCatalog() {
                     )}
                   </div>
 
-                  {/* Date */}
+                  {/* Fecha */}
                   <div className="col-span-2 hidden lg:block">
-                    <span className="text-xs text-zinc-500">
-                      {item.release_date ?? '—'}
-                    </span>
+                    <span className="text-xs text-zinc-500">{item.release_date ?? '—'}</span>
                   </div>
 
-                  {/* Actions */}
+                  {/* Acciones */}
                   <div className="col-span-2 md:col-span-2 lg:col-span-1 flex items-center justify-end relative">
                     <button
                       onClick={() => setActionMenu(prev => prev === item.id ? null : item.id)}
@@ -521,7 +588,7 @@ export default function AdminCatalog() {
         )}
       </div>
 
-      {/* Pagination */}
+      {/* Paginación */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-zinc-500">
@@ -546,7 +613,7 @@ export default function AdminCatalog() {
         </div>
       )}
 
-      {/* Delete confirm modal */}
+      {/* Modal de confirmación de eliminación */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" onClick={() => setDeleteConfirm(null)}></div>
@@ -578,7 +645,7 @@ export default function AdminCatalog() {
         </div>
       )}
 
-      {/* Create / Edit modal */}
+      {/* Modal de creación / edición */}
       {modalOpen && (
         <ItemModal
           editTarget={editTarget}

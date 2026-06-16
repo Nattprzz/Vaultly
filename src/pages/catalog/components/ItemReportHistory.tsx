@@ -1,19 +1,38 @@
+/**
+ * ItemReportHistory.tsx — historial de correcciones resueltas de un ítem.
+ *
+ * Muestra la lista de reportes ya procesados (resueltos o descartados)
+ * para el ítem indicado. La sección entera es colapsable con un click
+ * en la cabecera. Cada fila es expandible para ver la descripción original
+ * y la nota del administrador que lo resolvió.
+ * Solo visible si el ítem tiene reportes procesados.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState } from 'react';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useItemReportHistory, type ResolvedReport } from '@/hooks/useItemReportHistory';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del historial de reportes. */
 interface Props {
   itemId: string;
 }
 
-function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
+// ─── Utilidades ──────────────────────────────────────────────────────────────
 
+import { fmtDateShort as formatDate } from '@/lib/formatting';
+
+// ─── Sub-componente ──────────────────────────────────────────────────────────
+
+/**
+ * Fila individual de un reporte resuelto. Expande detalles al hacer click.
+ * @param report - Datos del reporte resuelto o descartado.
+ */
 function ReportHistoryRow({ report }: { report: ResolvedReport }) {
   const [expanded, setExpanded] = useState(false);
   const isResolved = report.status === 'resolved';
@@ -84,9 +103,15 @@ function ReportHistoryRow({ report }: { report: ResolvedReport }) {
   );
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ItemReportHistory({ itemId }: Props) {
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
   const { reports, loading, error } = useItemReportHistory(itemId);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed]   = useState(false);
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -131,12 +156,12 @@ export default function ItemReportHistory({ itemId }: Props) {
     );
   }
 
-  const resolved = reports.filter(r => r.status === 'resolved').length;
+  const resolved  = reports.filter(r => r.status === 'resolved').length;
   const dismissed = reports.filter(r => r.status === 'dismissed').length;
 
   return (
     <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800">
-      {/* Header */}
+      {/* Cabecera colapsable con contadores de estado */}
       <button
         type="button"
         onClick={() => setCollapsed(v => !v)}
@@ -163,7 +188,6 @@ export default function ItemReportHistory({ itemId }: Props) {
         </div>
       </button>
 
-      {/* List */}
       {!collapsed && (
         <div className="flex flex-col gap-3">
           {reports.map(report => (

@@ -1,10 +1,28 @@
+/**
+ * CurrentlyTracking.tsx — sección de ítems actualmente en progreso del dashboard.
+ *
+ * Muestra hasta 4 ítems con estado `in_progress` en un grid de portadas.
+ * Si el usuario no tiene ítems en progreso, el componente no renderiza nada.
+ * Cada tarjeta enlaza al tracker de su categoría.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { CurrentlyTrackingItem } from '@/hooks/useDashboardStats';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del componente de ítems en progreso. */
 interface Props {
   items: CurrentlyTrackingItem[];
   loading: boolean;
 }
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function CurrentlyTracking({ items, loading }: Props) {
   if (!loading && items.length === 0) return null;
@@ -23,6 +41,7 @@ export default function CurrentlyTracking({ items, loading }: Props) {
 
       <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
         {loading ? (
+          /* Esqueleto de carga */
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex flex-col gap-2">
               <div className="aspect-[3/4] rounded-xl bg-zinc-100 dark:bg-zinc-800 animate-pulse"></div>
@@ -53,7 +72,7 @@ export default function CurrentlyTracking({ items, loading }: Props) {
                     </div>
                   </div>
                 )}
-                {/* In progress badge */}
+                {/* Badge "en progreso" */}
                 <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md text-white text-xs font-semibold" style={{ background: item.accent }}>
                   <i className="ri-loader-4-line"></i>
                 </div>

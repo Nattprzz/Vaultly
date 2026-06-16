@@ -1,36 +1,83 @@
+/**
+ * EntityPopularityStats.tsx — estadísticas de popularidad de una entidad.
+ *
+ * Panel de tres columnas con resumen numérico, evolución temporal de ratings
+ * (gráfica SVG de línea con área rellena) y distribución de géneros + histograma
+ * de ratings por puntuación. Solo se renderiza si la entidad tiene al menos un ítem.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useMemo } from 'react';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import type { EntityItem } from '@/hooks/useEntity';
 import { useCategories } from '@/hooks/useCategoryColors';
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
 import { toAppCategory } from '@/lib/categories';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del componente. */
 interface Props {
+  /** Lista de ítems vinculados a la entidad. */
   items: EntityItem[];
 }
 
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
+/**
+ * Extrae el rating numérico de un ítem.
+ *
+ * @param item - Ítem del catálogo.
+ * @returns Número del rating o `null`.
+ */
 function getItemRating(item: EntityItem): number | null {
   const r = item.metadata?.rating;
   return r != null ? Number(r) : null;
 }
+
+/**
+ * Extrae el año de lanzamiento de un ítem como número.
+ *
+ * @param item - Ítem del catálogo.
+ * @returns Año numérico o `null`.
+ */
 function getItemYear(item: EntityItem): number | null {
   const y = item.release_date?.slice(0, 4);
   return y ? Number(y) : null;
 }
+
+/**
+ * Extrae el primer género del ítem desde `metadata.genres` o `metadata.genre`.
+ *
+ * @param item - Ítem del catálogo.
+ * @returns Nombre del género o cadena vacía.
+ */
 function getItemGenre(item: EntityItem): string {
   const g = item.metadata?.genres ?? item.metadata?.genre;
   if (Array.isArray(g)) return g[0] ?? '';
   return String(g ?? '');
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function EntityPopularityStats({ items }: Props) {
   const CATEGORIES = useCategories();
+
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const ratedItems = useMemo(() => items.filter(i => getItemRating(i) != null), [items]);
 
-  // ── Rating distribution (0-10 buckets of 1) ──
+  /** Distribución de ratings en cubos de 1 punto (1-10). */
   const ratingBuckets = useMemo(() => {
     const buckets: Record<string, number> = {};
     for (let i = 1; i <= 10; i++) buckets[String(i)] = 0;
     ratedItems.forEach(item => {
-      const r = getItemRating(item) ?? 0;
+      const r      = getItemRating(item) ?? 0;
       const bucket = Math.min(10, Math.max(1, Math.round(r)));
       buckets[String(bucket)] = (buckets[String(bucket)] ?? 0) + 1;
     });
@@ -39,7 +86,7 @@ export default function EntityPopularityStats({ items }: Props) {
 
   const maxBucketCount = Math.max(...ratingBuckets.map(b => b.count), 1);
 
-  // ── Timeline: avg rating per year ──
+  /** Rating medio por año de lanzamiento, ordenado cronológicamente. */
   const timeline = useMemo(() => {
     const byYear: Record<number, number[]> = {};
     ratedItems.forEach(item => {
@@ -52,14 +99,14 @@ export default function EntityPopularityStats({ items }: Props) {
     });
     return Object.entries(byYear)
       .map(([year, ratings]) => ({
-        year: Number(year),
-        avg: ratings.reduce((a, b) => a + b, 0) / ratings.length,
+        year:  Number(year),
+        avg:   ratings.reduce((a, b) => a + b, 0) / ratings.length,
         count: ratings.length,
       }))
       .sort((a, b) => a.year - b.year);
   }, [ratedItems]);
 
-  // ── Genre breakdown ──
+  /** Top 8 géneros por número de ítems. */
   const genreBreakdown = useMemo(() => {
     const counts: Record<string, number> = {};
     items.forEach(item => {
@@ -74,7 +121,7 @@ export default function EntityPopularityStats({ items }: Props) {
 
   const maxGenreCount = Math.max(...genreBreakdown.map(g => g.count), 1);
 
-  // ── Category breakdown ──
+  /** Desglose de ítems por categoría de Vaultly. */
   const categoryBreakdown = useMemo(() => {
     const counts: Record<string, number> = {};
     items.forEach(item => {
@@ -90,24 +137,28 @@ export default function EntityPopularityStats({ items }: Props) {
   }, [items, CATEGORIES]);
 
   const totalItems = items.length;
+
   const avgRating = ratedItems.length > 0
     ? ratedItems.reduce((s, i) => s + (getItemRating(i) ?? 0), 0) / ratedItems.length
     : null;
+
   const topRated = ratedItems.length > 0
-    ? ratedItems.reduce((best, i) => (getItemRating(i) ?? 0) > (getItemRating(best) ?? 0) ? i : best, ratedItems[0])
+    ? ratedItems.reduce((best, i) => (getItemRating(i) ?? 0)  > (getItemRating(best) ?? 0)  ? i : best, ratedItems[0])
     : null;
+
   const lowestRated = ratedItems.length > 0
     ? ratedItems.reduce((worst, i) => (getItemRating(i) ?? 10) < (getItemRating(worst) ?? 10) ? i : worst, ratedItems[0])
     : null;
 
   if (items.length === 0) return null;
 
-  // ── Timeline chart dimensions ──
+  // ─── Cálculo de puntos SVG para la gráfica de línea ──────────────────────
+
   const chartH = 80;
   const chartW = 300;
   const minAvg = timeline.length > 0 ? Math.min(...timeline.map(t => t.avg)) : 0;
   const maxAvg = timeline.length > 0 ? Math.max(...timeline.map(t => t.avg)) : 10;
-  const range = maxAvg - minAvg || 1;
+  const range  = maxAvg - minAvg || 1;
 
   const points = timeline.map((t, i) => {
     const x = timeline.length > 1 ? (i / (timeline.length - 1)) * chartW : chartW / 2;
@@ -120,10 +171,12 @@ export default function EntityPopularityStats({ items }: Props) {
     ? `M${points[0].x},${chartH} ${points.map(p => `L${p.x},${p.y}`).join(' ')} L${points[points.length - 1].x},${chartH} Z`
     : '';
 
+  // ─── Renderizado ──────────────────────────────────────────────────────────
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
 
-      {/* ── Left: Summary stats ── */}
+      {/* Columna izquierda: resumen numérico y desglose por categoría */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6 flex flex-col gap-5">
         <h3
           className="text-sm font-bold text-zinc-900 dark:text-white"
@@ -171,7 +224,7 @@ export default function EntityPopularityStats({ items }: Props) {
           )}
         </div>
 
-        {/* Category breakdown */}
+        {/* Barras de porcentaje por categoría */}
         {categoryBreakdown.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Por categoría</p>
@@ -185,7 +238,7 @@ export default function EntityPopularityStats({ items }: Props) {
                     <div
                       className="h-full rounded-full transition-all duration-700"
                       style={{
-                        width: `${(count / totalItems) * 100}%`,
+                        width:      `${(count / totalItems) * 100}%`,
                         background: cat?.accent ?? '#888',
                       }}
                     />
@@ -198,7 +251,7 @@ export default function EntityPopularityStats({ items }: Props) {
         )}
       </div>
 
-      {/* ── Center: Rating timeline ── */}
+      {/* Columna central: gráfica SVG de evolución de rating por año */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
         <h3
           className="text-sm font-bold text-zinc-900 dark:text-white mb-1"
@@ -218,7 +271,7 @@ export default function EntityPopularityStats({ items }: Props) {
             >
               <defs>
                 <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.3" />
+                  <stop offset="0%"   stopColor="#f59e0b" stopOpacity="0.3" />
                   <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
                 </linearGradient>
               </defs>
@@ -236,7 +289,7 @@ export default function EntityPopularityStats({ items }: Props) {
               ))}
             </svg>
 
-            {/* Year labels */}
+            {/* Etiquetas de año en el eje X */}
             <div className="flex justify-between mt-2">
               {points.map((p, i) => (
                 <span key={i} className="text-xs text-zinc-400" style={{ fontSize: 10 }}>
@@ -245,7 +298,7 @@ export default function EntityPopularityStats({ items }: Props) {
               ))}
             </div>
 
-            {/* Data points list */}
+            {/* Lista de puntos de datos con barra proporcional */}
             <div className="mt-4 flex flex-col gap-1.5 max-h-32 overflow-y-auto">
               {[...points].reverse().map((p, i) => (
                 <div key={i} className="flex items-center justify-between text-xs">
@@ -273,9 +326,9 @@ export default function EntityPopularityStats({ items }: Props) {
         )}
       </div>
 
-      {/* ── Right: Genre breakdown + rating distribution ── */}
+      {/* Columna derecha: géneros + histograma de distribución de ratings */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6 flex flex-col gap-5">
-        {/* Genre breakdown */}
+        {/* Géneros */}
         {genreBreakdown.length > 0 && (
           <div>
             <h3
@@ -301,7 +354,7 @@ export default function EntityPopularityStats({ items }: Props) {
           </div>
         )}
 
-        {/* Rating distribution histogram */}
+        {/* Histograma de ratings (cubos 1-10) */}
         {ratedItems.length > 0 && (
           <div>
             <h3
@@ -313,9 +366,9 @@ export default function EntityPopularityStats({ items }: Props) {
             <div className="flex items-end gap-1 h-16">
               {ratingBuckets.map(({ score, count }) => {
                 const heightPct = maxBucketCount > 0 ? (count / maxBucketCount) * 100 : 0;
-                const isHigh = score >= 9;
-                const isMid = score >= 7 && score < 9;
-                const barColor = isHigh ? 'bg-emerald-400' : isMid ? 'bg-amber-400' : 'bg-zinc-300 dark:bg-zinc-600';
+                const isHigh    = score >= 9;
+                const isMid     = score >= 7 && score < 9;
+                const barColor  = isHigh ? 'bg-emerald-400' : isMid ? 'bg-amber-400' : 'bg-zinc-300 dark:bg-zinc-600';
                 return (
                   <div key={score} className="flex-1 flex flex-col items-center gap-1">
                     <div className="w-full flex items-end justify-center" style={{ height: 52 }}>
@@ -336,4 +389,3 @@ export default function EntityPopularityStats({ items }: Props) {
     </div>
   );
 }
-

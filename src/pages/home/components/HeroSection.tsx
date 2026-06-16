@@ -1,6 +1,27 @@
-import { Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+/**
+ * HeroSection.tsx — sección hero de la landing page de Vaultly.
+ *
+ * Muestra el titular principal y un panel de tracker simulado con entradas estáticas
+ * que ilustran cómo luce el tracker real. El CTA cambia entre "Crear cuenta"
+ * e "Ir a mi Tracker" según si el usuario ha iniciado sesión.
+ */
 
+// ─── Router ───────────────────────────────────────────────────────────────────
+
+import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useAuth } from '@/hooks/useAuth';
+import { LogoMark } from '@/components/branding/Logo';
+
+// ─── Componentes ────────────────────────────────────────────────────────────────────
+
+import { InteractiveHoverLink } from "@/components/ui/interactive-hover-button"
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Entradas estáticas del panel de tracker ilustrativo. */
 const TRACKER_ENTRIES = [
   {
     id: '1',
@@ -64,12 +85,15 @@ const TRACKER_ENTRIES = [
   },
 ] as const;
 
+/** Mapa de etiquetas y colores para cada estado de una entrada del tracker. */
 type Status = 'completed' | 'in_progress' | 'pending';
 const STATUS: Record<Status, { label: string; dot: string }> = {
   completed:   { label: 'Completado',  dot: 'bg-emerald-500' },
   in_progress: { label: 'En progreso', dot: 'bg-orange-500' },
   pending:     { label: 'Pendiente',   dot: 'bg-zinc-600' },
 };
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function HeroSection() {
   const { isLoggedIn } = useAuth();
@@ -79,10 +103,9 @@ export default function HeroSection() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_40%_at_50%_-5%,rgba(37,99,235,0.10),transparent)]" />
 
       <div className="relative mx-auto max-w-screen-xl px-4 md:px-6">
-        {/* Fixed height — does not consume full viewport */}
         <div className="grid grid-cols-1 items-center gap-12 py-14 md:py-20 lg:grid-cols-[1fr_460px] lg:gap-20">
 
-          {/* Copy */}
+          {/* Columna izquierda — copy */}
           <div>
             <p className="mb-5 text-[12px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
               Tu historial cultural personal
@@ -101,39 +124,44 @@ export default function HeroSection() {
             </p>
             <div className="flex flex-wrap items-center gap-3">
               {isLoggedIn ? (
-                <Link
+                <InteractiveHoverLink
                   to="/tracker"
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-[14px] font-bold text-white transition-colors hover:bg-blue-500"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-6 py-3 text-[14px] font-bold text-white transition-colors"
+                  fillClassName="bg-brand-hover"
+                  showArrow={false}
                 >
                   Ir a mi Tracker <i className="ri-arrow-right-line" />
-                </Link>
+                </InteractiveHoverLink>
               ) : (
-                <Link
+                <InteractiveHoverLink
                   to="/auth"
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-[14px] font-bold text-white transition-colors hover:bg-blue-500"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-6 py-3 text-[14px] font-bold text-white transition-colors"
+                  fillClassName="bg-brand-hover"
+                  showArrow={true}
                 >
-                  Crear cuenta gratis <i className="ri-arrow-right-line" />
-                </Link>
+                  Crear cuenta gratis
+                </InteractiveHoverLink>
               )}
-              <Link
+              <InteractiveHoverLink
                 to="/catalog"
                 className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 px-6 py-3 text-[14px] font-semibold text-zinc-400 transition-colors hover:border-white/20 hover:text-white"
+                showArrow={true}
               >
                 Explorar catálogo
-              </Link>
+              </InteractiveHoverLink>
             </div>
           </div>
 
-          {/* Tracker panel */}
+          {/* Columna derecha — panel de tracker ilustrativo */}
           <div className="relative">
             <div className="pointer-events-none absolute -inset-8 rounded-3xl bg-blue-600/5 blur-3xl" />
             <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-[#0d1117] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9)]">
 
-              {/* Panel header */}
+              {/* Cabecera del panel */}
               <div className="flex items-center justify-between border-b border-white/6 bg-[#0d1117] px-5 py-3.5">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-600">
-                    <i className="ri-archive-2-line text-[9px] text-white" />
+                    <LogoMark size={12} />
                   </div>
                   <span className="text-[13px] font-semibold text-white">Mi Tracker</span>
                   <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] font-medium text-white/40">
@@ -146,7 +174,7 @@ export default function HeroSection() {
                 </div>
               </div>
 
-              {/* List */}
+              {/* Lista de entradas */}
               <div className="divide-y divide-white/[0.04]">
                 {TRACKER_ENTRIES.map(entry => {
                   const s = STATUS[entry.status];
@@ -188,7 +216,7 @@ export default function HeroSection() {
                 })}
               </div>
 
-              {/* Footer */}
+              {/* Pie del panel */}
               <div className="border-t border-white/6 bg-[#0a0e14] px-5 py-3">
                 <p className="text-[11px] text-zinc-600">
                   3 completados · 1 en progreso · 1 pendiente

@@ -1,37 +1,76 @@
+/**
+ * useReviews.ts — hooks para reseñas de ítems del catálogo.
+ *
+ * Exporta tres hooks especializados:
+ * - useMyReviews: reseñas del usuario autenticado.
+ * - usePublicReviews: reseñas de un perfil público (con filtros de privacidad).
+ * - useItemReviews: reseñas de la comunidad para un ítem concreto.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect, useCallback } from 'react';
+
+// ─── Servicios ───────────────────────────────────────────────────────────────
+
 import { supabase } from '@/lib/supabase';
+
+// ─── Hooks ───────────────────────────────────────────────────────────────────
+
 import { useAuth } from '@/hooks/useAuth';
 import { useCategories } from '@/hooks/useCategoryColors';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { CategoryConfig } from '@/lib/categoryConfig';
 import type { PublicPrivacyFlags } from '@/types/privacy';
 
+/**
+ * Reseña enriquecida con metadatos de categoría e información del ítem.
+ */
 export interface ReviewEntry {
+  /** ID de la fila en user_item_tracking */
   id: string;
+  /** ID del usuario que escribió la reseña */
   user_id: string;
+  /** Slug del ítem reseñado */
   item_slug: string;
+  /** Categoría del ítem */
   category: string;
+  /** Nombre legible de la categoría */
   categoryLabel: string;
+  /** Icono de la categoría */
   categoryIcon: string;
+  /** Color de acento de la categoría */
   categoryAccent: string;
+  /** Puntuación del usuario (null si la privacidad lo oculta) */
   rating: number | null;
+  /** Texto de la reseña */
   review: string;
+  /** Fecha de la última actualización (ISO) */
   updated_at: string;
+  /** Título del ítem reseñado */
   title: string;
+  /** URL de la portada del ítem */
   cover: string;
-  // profile info (for public display)
+  /** Nombre visible del revisor (para reseñas de comunidad) */
   display_name?: string;
+  /** Iniciales del revisor (para reseñas de comunidad) */
   initials?: string;
 }
+
+// ─── Funciones auxiliares ────────────────────────────────────────────────────
 
 function getCatMeta(catId: string, categories: CategoryConfig[]) {
   return categories.find(c => c.id === catId) ?? { label: catId, icon: 'ri-stack-line', accent: '#6b7280' };
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-}
+// ─── Hooks ───────────────────────────────────────────────────────────────────
 
-// Hook: reviews for the current logged-in user (from user_item_tracking)
+/**
+ * Devuelve las reseñas escritas por el usuario autenticado.
+ * Solo incluye entradas con reseña y puntuación.
+ */
 export function useMyReviews() {
   const { user } = useAuth();
   const categories = useCategories();
@@ -88,11 +127,18 @@ export function useMyReviews() {
   return { reviews, loading, refresh: load };
 }
 
-// Hook: reviews for a public profile (by user_id, from user_item_tracking)
+/**
+ * Devuelve las reseñas de un perfil público, respetando sus flags de privacidad.
+ * No carga nada si el perfil no existe o es privado.
+ *
+ * @param userId UUID del usuario propietario del perfil.
+ * @param privacy Flags de privacidad del perfil.
+ */
 export function usePublicReviews(userId: string | null, privacy?: PublicPrivacyFlags | null) {
   const categories = useCategories();
   const [reviews, setReviews] = useState<ReviewEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  /** true si el perfil existe pero la privacidad impide mostrar las reseñas. */
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
@@ -108,7 +154,7 @@ export function usePublicReviews(userId: string | null, privacy?: PublicPrivacyF
       setHidden(false);
       setReviews([]);
       const { data } = await supabase
-        .from('user_item_tracking')
+        .from('public_user_item_tracking')
         .select('id, user_id, item_slug, category, rating, review, updated_at')
         .eq('user_id', userId)
         .not('review', 'is', null)
@@ -157,7 +203,12 @@ export function usePublicReviews(userId: string | null, privacy?: PublicPrivacyF
   return { reviews, loading, hidden };
 }
 
-// Hook: community reviews for a specific item (from user_item_tracking by item_slug)
+/**
+ * Devuelve las reseñas de la comunidad para un ítem concreto.
+ * Solo incluye reseñas de usuarios con perfiles públicos que permiten mostrar reseñas.
+ *
+ * @param itemSlug Slug del ítem del catálogo.
+ */
 export function useItemReviews(itemSlug: string) {
   const categories = useCategories();
   const [reviews, setReviews] = useState<ReviewEntry[]>([]);
@@ -168,9 +219,9 @@ export function useItemReviews(itemSlug: string) {
 
     const load = async () => {
       setLoading(true);
-      // Get tracking entries with reviews for this item
+
       const { data: trackingData } = await supabase
-        .from('user_item_tracking')
+        .from('public_user_item_tracking')
         .select('id, user_id, item_slug, category, rating, review, updated_at')
         .eq('item_slug', itemSlug)
         .not('review', 'is', null)
@@ -184,10 +235,10 @@ export function useItemReviews(itemSlug: string) {
         return;
       }
 
-      // Fetch profile info for each reviewer
+      // Obtener perfiles de los autores (solo los que permiten reseñas públicas)
       const userIds = [...new Set(trackingData.map(r => r.user_id))];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('public_profiles')
         .select('id, display_name, initials, is_public, show_reviews, show_ratings')
         .in('id', userIds);
 
@@ -233,5 +284,3 @@ export function useItemReviews(itemSlug: string) {
 
   return { reviews, loading };
 }
-
-export { formatDate };

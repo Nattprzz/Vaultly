@@ -1,8 +1,26 @@
+/**
+ * gameCompanies.ts — servicio cliente de compañías de videojuegos.
+ *
+ * Obtiene compañías desde Supabase y normaliza filas para el contrato de UI.
+ *
+ * Utilizado por hooks y páginas que muestran información pública de compañías.
+ */
+
+// ─── Framework ─────────────────────────────────────────────────────────
 import { supabase } from '@/lib/supabase';
+
+// ─── Tipos ─────────────────────────────────────────────────────────────
 import type { GameCompany, GameCompanyFacet, GameCompanyGame, RelatedGameCompany } from '@/types/gameCompany';
 
 type RawCompanyRow = Record<string, unknown>;
 
+/**
+ * Convierte valores heterogéneos de Supabase a número seguro.
+ *
+ * @param value Valor recibido desde la fila.
+ * @param fallback Valor usado cuando no se puede convertir.
+ * @returns Número finito para el contrato de compañía.
+ */
 function toNumber(value: unknown, fallback = 0): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string' && value.trim()) {
@@ -120,6 +138,12 @@ function normalizeRelatedCompanies(value: unknown): RelatedGameCompany[] {
     .filter(Boolean) as RelatedGameCompany[];
 }
 
+/**
+ * Normaliza una fila de game_companies al contrato consumido por la aplicación.
+ *
+ * @param row Fila sin tipar devuelta por Supabase.
+ * @returns Compañía con listas, métricas y enlaces saneados.
+ */
 function normalizeCompany(row: RawCompanyRow): GameCompany {
   return {
     id: toStringOrNull(row.id) ?? undefined,
@@ -159,6 +183,12 @@ function normalizeCompany(row: RawCompanyRow): GameCompany {
   };
 }
 
+/**
+ * Obtiene una compañía de videojuegos por slug.
+ *
+ * @param slug Identificador amigable de la compañía.
+ * @returns Compañía encontrada o null.
+ */
 export async function getGameCompanyBySlug(slug: string): Promise<GameCompany | null> {
   const { data, error } = await supabase
     .from('game_companies')

@@ -1,71 +1,109 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/lib/supabase';
-import SettingsCard, { ToggleRow } from './SettingsCard';
+/**
+ * PrivacySection.tsx — sección de configuración de privacidad del perfil.
+ *
+ * Gestiona los flags de visibilidad del perfil público: visibilidad global,
+ * compartir tracker, mostrar puntuaciones, reseñas y estado de los ítems.
+ * Los tres primeros se guardan en `profiles`; `show_item_status` en
+ * `user_tracker_settings`. Desactivar el perfil público deshabilita en
+ * cascada todas las opciones dependientes.
+ */
 
+// ─── React ───────────────────────────────────────────────────────────────────
+
+import { useState, useEffect } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
+import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useAuth }    from '@/hooks/useAuth';
+
+// ─── Librerías externas ──────────────────────────────────────────────────────
+
+import { supabase }   from '@/lib/supabase';
+
+// ─── Componentes ─────────────────────────────────────────────────────────────
+
+import SettingsCard, { ToggleRow } from './SettingsCard';
+import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button"
+
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Flags de privacidad del perfil público. */
 interface PrivacyState {
-  is_public: boolean;
-  share_tracker: boolean;
-  show_ratings: boolean;
-  show_reviews: boolean;
+  is_public:        boolean;
+  share_tracker:    boolean;
+  show_ratings:     boolean;
+  show_reviews:     boolean;
   show_item_status: boolean;
 }
 
+/** Estados del guardado para el botón de acción. */
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function PrivacySection() {
   const { profile, refreshProfile } = useAuth();
 
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
   const [priv, setPriv] = useState<PrivacyState>({
-    is_public: true,
-    share_tracker: true,
-    show_ratings: true,
-    show_reviews: true,
+    is_public:        true,
+    share_tracker:    true,
+    show_ratings:     true,
+    show_reviews:     true,
     show_item_status: true,
   });
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+
+  // ─── Efectos ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!profile) return;
 
     setPriv(prev => ({
       ...prev,
-      is_public: profile.is_public ?? true,
-      share_tracker: profile.share_tracker ?? true,
-      show_ratings: profile.show_ratings ?? true,
-      show_reviews: profile.show_reviews ?? true,
+      is_public:     profile.is_public     ?? true,
+      share_tracker: profile.share_tracker  ?? true,
+      show_ratings:  profile.show_ratings   ?? true,
+      show_reviews:  profile.show_reviews   ?? true,
     }));
 
-    // show_item_status is stored in user_tracker_settings, not profiles
+    // show_item_status está en user_tracker_settings, no en profiles
     supabase
       .from('user_tracker_settings')
       .select('show_item_status')
       .eq('user_id', profile.id)
       .maybeSingle()
       .then(({ data, error }) => {
-        if (error) return; // column missing or RLS error — keep default true
-        setPriv(prev => ({
-          ...prev,
-          show_item_status: data?.show_item_status ?? true,
-        }));
+        if (error) return;
+        setPriv(prev => ({ ...prev, show_item_status: data?.show_item_status ?? true }));
       });
   }, [profile]);
 
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  /**
+   * Actualiza un flag de privacidad y aplica las restricciones en cascada
+   * cuando el perfil pasa a privado.
+   */
   const update = (key: keyof PrivacyState, value: boolean) => {
     setPriv(prev => {
       const next = { ...prev, [key]: value };
-      // If profile goes private, disable dependent options
       if (key === 'is_public' && !value) {
-        next.share_tracker = false;
-        next.show_ratings = false;
-        next.show_reviews = false;
+        next.share_tracker    = false;
+        next.show_ratings     = false;
+        next.show_reviews     = false;
         next.show_item_status = false;
       }
       return next;
     });
   };
 
+  /** Persiste los flags en Supabase (profiles + user_tracker_settings en paralelo). */
   const handleSave = async () => {
     if (!profile) return;
     setSaveStatus('saving');
@@ -74,11 +112,11 @@ export default function PrivacySection() {
       supabase
         .from('profiles')
         .update({
-          is_public: priv.is_public,
+          is_public:     priv.is_public,
           share_tracker: priv.share_tracker,
-          show_ratings: priv.show_ratings,
-          show_reviews: priv.show_reviews,
-          updated_at: new Date().toISOString(),
+          show_ratings:  priv.show_ratings,
+          show_reviews:  priv.show_reviews,
+          updated_at:    new Date().toISOString(),
         })
         .eq('id', profile.id),
       supabase
@@ -98,12 +136,16 @@ export default function PrivacySection() {
     }
   };
 
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const profileUsername = profile?.username ?? profile?.email?.split('@')[0] ?? 'usuario';
-  const shareUrl = `${window.location.origin}/u/${profileUsername}`;
+  const shareUrl        = `${window.location.origin}/u/${profileUsername}`;
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Visibility */}
+      {/* Visibilidad del perfil */}
       <SettingsCard
         title="Visibilidad del perfil"
         description="Controla qué pueden ver otros usuarios de tu actividad en Vaultly."
@@ -145,7 +187,6 @@ export default function PrivacySection() {
           />
         </div>
 
-        {/* Status banner */}
         {!priv.is_public && (
           <div className="mt-4 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
             <i className="ri-lock-line text-zinc-500 text-sm flex-shrink-0"></i>
@@ -155,7 +196,6 @@ export default function PrivacySection() {
           </div>
         )}
 
-        {/* Error */}
         {saveStatus === 'error' && (
           <div className="mt-4 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
             <i className="ri-error-warning-line text-red-500 text-sm flex-shrink-0"></i>
@@ -175,13 +215,12 @@ export default function PrivacySection() {
           >
             {saveStatus === 'saving' && <><i className="ri-loader-4-line animate-spin"></i> Guardando...</>}
             {saveStatus === 'saved'  && <><i className="ri-checkbox-circle-line"></i> Guardado</>}
-            {saveStatus === 'error'  && <><i className="ri-save-line"></i> Guardar cambios</>}
-            {saveStatus === 'idle'   && <><i className="ri-save-line"></i> Guardar cambios</>}
+            {(saveStatus === 'error' || saveStatus === 'idle') && <><i className="ri-save-line"></i> Guardar cambios</>}
           </button>
         </div>
       </SettingsCard>
 
-      {/* Share link */}
+      {/* Enlace compartible del perfil público */}
       <SettingsCard
         title="Enlace de tu perfil público"
         description="Comparte tu perfil público o en redes sociales."
@@ -204,8 +243,8 @@ export default function PrivacySection() {
           <div className="flex flex-wrap items-center gap-2 mt-4">
             {[
               { icon: 'ri-twitter-x-line', label: 'X / Twitter', href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}` },
-              { icon: 'ri-whatsapp-line',  label: 'WhatsApp',    href: `https://wa.me/?text=${encodeURIComponent(shareUrl)}` },
-              { icon: 'ri-telegram-line',  label: 'Telegram',    href: `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}` },
+              { icon: 'ri-whatsapp-line',  label: 'WhatsApp',    href: `https://wa.me/?text=${encodeURIComponent(shareUrl)}`                   },
+              { icon: 'ri-telegram-line',  label: 'Telegram',    href: `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}`             },
             ].map(s => (
               <a
                 key={s.label}
@@ -228,7 +267,7 @@ export default function PrivacySection() {
         )}
       </SettingsCard>
 
-      {/* Info card */}
+      {/* Explicación del sistema de privacidad */}
       <div className="flex items-start gap-3 px-5 py-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
         <i className="ri-information-line text-zinc-400 text-base flex-shrink-0 mt-0.5"></i>
         <div>
@@ -239,7 +278,7 @@ export default function PrivacySection() {
         </div>
       </div>
 
-      {/* Legal documents */}
+      {/* Documentos legales */}
       <SettingsCard
         title="Documentos legales"
         description="Consulta nuestras políticas y condiciones de uso en cualquier momento."
@@ -247,34 +286,34 @@ export default function PrivacySection() {
         <div className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
           {[
             {
-              to: '/privacy',
-              icon: 'ri-shield-check-line',
-              iconColor: 'text-brand dark:text-brand-dark',
-              iconBg: 'bg-brand/10 dark:bg-brand-dark/15',
-              title: 'Política de Privacidad',
-              desc: 'Cómo recopilamos, usamos y protegemos tus datos personales.',
-              badge: 'Actualizado abr. 2026',
-              badgeColor: 'bg-brand/10 dark:bg-brand-dark/15 text-brand dark:text-brand-dark',
+              to:          '/privacy',
+              icon:        'ri-shield-check-line',
+              iconColor:   'text-brand dark:text-brand-dark',
+              iconBg:      'bg-brand/10 dark:bg-brand-dark/15',
+              title:       'Política de Privacidad',
+              desc:        'Cómo recopilamos, usamos y protegemos tus datos personales.',
+              badge:       'Actualizado abr. 2026',
+              badgeColor:  'bg-brand/10 dark:bg-brand-dark/15 text-brand dark:text-brand-dark',
             },
             {
-              to: '/terms',
-              icon: 'ri-file-list-3-line',
-              iconColor: 'text-amber-500',
-              iconBg: 'bg-amber-50 dark:bg-amber-950/30',
-              title: 'Términos de Uso',
-              desc: 'Condiciones que regulan el acceso y uso de la plataforma.',
-              badge: 'Versión 3.0',
-              badgeColor: 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400',
+              to:          '/terms',
+              icon:        'ri-file-list-3-line',
+              iconColor:   'text-amber-500',
+              iconBg:      'bg-amber-50 dark:bg-amber-950/30',
+              title:       'Términos de Uso',
+              desc:        'Condiciones que regulan el acceso y uso de la plataforma.',
+              badge:       'Versión 3.0',
+              badgeColor:  'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400',
             },
             {
-              to: '/contact',
-              icon: 'ri-customer-service-2-line',
-              iconColor: 'text-sky-500',
-              iconBg: 'bg-sky-50 dark:bg-sky-950/30',
-              title: 'Contacto y soporte',
-              desc: 'Envíanos una consulta, reporta un bug o comparte una sugerencia.',
-              badge: 'Respuesta &lt; 48h',
-              badgeColor: 'bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400',
+              to:          '/contact',
+              icon:        'ri-customer-service-2-line',
+              iconColor:   'text-sky-500',
+              iconBg:      'bg-sky-50 dark:bg-sky-950/30',
+              title:       'Contacto y soporte',
+              desc:        'Envíanos una consulta, reporta un bug o comparte una sugerencia.',
+              badge:       'Respuesta &lt; 48h',
+              badgeColor:  'bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400',
             },
           ].map(item => (
             <Link

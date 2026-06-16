@@ -1,11 +1,34 @@
+/**
+ * CollectionSection.tsx — sección de catálogo por categoría en la landing page.
+ *
+ * Carga los 5 ítems más recientes de cada categoría desde Supabase y los muestra
+ * en tiras horizontales agrupadas. Si el catálogo está vacío, muestra un estado
+ * vacío con enlace al catálogo. Las tiras se revelan con IntersectionObserver.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect, useRef } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useCategories } from '@/hooks/useCategoryColors';
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
 import { supabase } from '@/lib/supabase';
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/** IDs de las cinco categorías del catálogo. */
 const CATEGORY_IDS = ['videojuegos', 'peliculas', 'series', 'libros', 'conciertos'] as const;
 type CategoryId = typeof CATEGORY_IDS[number];
 
+/** Ítem del catálogo normalizado para renderizado en esta sección. */
 interface CatalogItem {
   id: string;
   slug: string;
@@ -14,6 +37,8 @@ interface CatalogItem {
   year: string;
   cover: string | null;
 }
+
+// ─── Sub-componentes ──────────────────────────────────────────────────────────
 
 function CatalogCell({
   item,
@@ -69,12 +94,18 @@ function CatalogCell({
   );
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function CollectionSection() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const CATEGORIES = useCategories();
   const [byCat, setByCat] = useState<Record<string, CatalogItem[]>>({});
   const [loaded, setLoaded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -116,13 +147,17 @@ export default function CollectionSection() {
     void load();
   }, []);
 
+  // ─── Datos derivados ─────────────────────────────────────────────────────────
+
   const allEmpty = loaded && CATEGORY_IDS.every(cat => (byCat[cat] ?? []).length === 0);
+
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
 
   return (
     <section className="py-16 px-4 md:py-20 md:px-6 bg-zinc-950">
       <div className="mx-auto max-w-screen-xl" ref={ref}>
 
-        {/* Header */}
+        {/* Cabecera con enlace a catálogo completo */}
         <div
           className="mb-10 flex items-end justify-between transition-all duration-700"
           style={{ opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateY(14px)' }}
@@ -147,11 +182,12 @@ export default function CollectionSection() {
           </Link>
         </div>
 
-        {/* Content */}
+        {/* Contenido */}
         <div
           className="transition-all duration-700"
           style={{ opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateY(16px)', transitionDelay: '80ms' }}
         >
+          {/* Esqueleto de carga */}
           {!loaded && (
             <div className="flex flex-col gap-10">
               {[0, 1, 2].map(i => (
@@ -203,7 +239,7 @@ export default function CollectionSection() {
                       transition: `opacity 0.5s ease ${120 + stripIndex * 70}ms, transform 0.5s ease ${120 + stripIndex * 70}ms`,
                     }}
                   >
-                    {/* Category row header */}
+                    {/* Cabecera de fila de categoría */}
                     <div className="mb-3 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div
@@ -225,7 +261,7 @@ export default function CollectionSection() {
                       </Link>
                     </div>
 
-                    {/* Cards grid */}
+                    {/* Grid de portadas */}
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                       {catItems.map(item => (
                         <CatalogCell

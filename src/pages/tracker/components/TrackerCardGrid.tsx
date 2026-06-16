@@ -1,9 +1,26 @@
+/**
+ * TrackerCardGrid.tsx — grid de tarjetas del tracker (vista póster).
+ *
+ * Wrapper simple que distribuye las EnrichedEntry en un grid responsive
+ * de tarjetas de póster. Delega el renderizado individual a TrackerCard.
+ */
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
 import TrackerCard from './TrackerCard';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { EnrichedEntry } from './trackerEntryUtils';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del grid de tarjetas del tracker. */
 interface Props {
   enriched: EnrichedEntry[];
 }
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function TrackerCardGrid({ enriched }: Props) {
   return (

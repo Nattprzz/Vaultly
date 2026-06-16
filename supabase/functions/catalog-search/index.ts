@@ -1,8 +1,25 @@
+/**
+ * Función Edge: catalog-search
+ *
+ * Endpoint encargado de gestionar la operación serverless asociada dentro del backend de Vaultly.
+ *
+ * Flujo:
+ * 1. Valida categoría y texto de búsqueda.
+ * 2. Busca coincidencias en caché local.
+ * 3. Consulta el proveedor externo si la caché es insuficiente.
+ * 4. Normaliza la categoría de respuesta.
+ * 5. Devuelve origen y resultados.
+ */
+
+// ─── Framework ─────────────────────────────────────────────────────────
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+// ─── Servicios ─────────────────────────────────────────────────────────
 import { searchGoogleBooks } from '../_shared/api/googleBooks.ts';
 import { searchIgdbGames } from '../_shared/api/igdb.ts';
 import { searchTicketmasterEvents } from '../_shared/api/ticketmaster.ts';
 import { searchTmdbMovies, searchTmdbSeries } from '../_shared/api/tmdb.ts';
+import { checkRateLimit, clientIdentifier, parsePage, publicError, safeText } from '../_shared/security.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +34,14 @@ const CATEGORY_ENUM: Record<string, string> = {
   concerts: 'conciertos',
 };
 
+/**
+ * Despacha la búsqueda al proveedor externo correspondiente a la categoría.
+ *
+ * @param category Categoría de API solicitada.
+ * @param query Texto buscado por el usuario.
+ * @param page Página de resultados externa.
+ * @returns Lista normalizada de elementos o lista vacía.
+ */
 async function fetchExternalItems(category: string, query: string, page: number) {
   if (category === 'games') return searchIgdbGames(query, page);
   if (category === 'movies') return searchTmdbMovies(query, page);
@@ -32,13 +57,20 @@ Deno.serve(async req => {
   }
 
   try {
+    if (req.method !== 'GET') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const url = new URL(req.url);
-    const category = url.searchParams.get('category');
-    const query = url.searchParams.get('query');
-    const page = parseInt(url.searchParams.get('page') ?? '1', 10);
+    const category = safeText(url.searchParams.get('category'), 20);
+    const query = safeText(url.searchParams.get('query'), 120);
+    const page = parsePage(url.searchParams.get('page'), 25);
     const limit = 20;
 
-    if (!category || !query) {
+    if (!category || !query || !page) {
       return new Response(JSON.stringify({ error: 'category and query are required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -54,8 +86,22 @@ Deno.serve(async req => {
     }
 
     const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-    const safeQuery = query.replace(/[,%()]/g, ' ').trim();
-    const cachePattern = `%${safeQuery || query}%`;
+    const allowed = await checkRateLimit(db, 'catalog-search', clientIdentifier(req), 30, 60);
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Too many requests' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const normalizedQuery = query.replace(/[^a-zA-Z0-9\s._:-]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!normalizedQuery) {
+      return new Response(JSON.stringify({ error: 'query is invalid' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const cachePattern = `%${normalizedQuery}%`;
 
     const { data: cached } = await db
       .from('catalog_items')
@@ -72,7 +118,7 @@ Deno.serve(async req => {
       });
     }
 
-    const items = await fetchExternalItems(category, query, page);
+    const items = await fetchExternalItems(category, normalizedQuery, page);
     if (!items.length) {
       return new Response(JSON.stringify({ data: cached ?? [], source: cached?.length ? 'cache' : 'external' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -87,7 +133,7 @@ Deno.serve(async req => {
     });
   } catch (err) {
     console.error('catalog-search error:', err);
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    return new Response(JSON.stringify(publicError()), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -1,8 +1,32 @@
+/**
+ * FeaturedSection.tsx — sección de ítems destacados del catálogo en la landing page.
+ *
+ * Carga los 24 ítems más recientes de Supabase y permite filtrarlos por categoría.
+ * Al cambiar de filtro, las tarjetas actuales se desvanecen (FADE_OUT_MS) y las nuevas
+ * entran escalonadas (STAGGER_MS). Un IntersectionObserver dispara la animación inicial
+ * al entrar en viewport. Los temporizadores de stagger se limpian al desmontar para
+ * evitar actualizaciones de estado en componentes desmontados.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect, useRef, useCallback } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useCategories } from '@/hooks/useCategoryColors';
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
 import { supabase } from '@/lib/supabase';
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/** Ítem del catálogo normalizado para las tarjetas de esta sección. */
 interface FeaturedItem {
   id: string;
   slug: string;
@@ -14,14 +38,24 @@ interface FeaturedItem {
   status: string;
 }
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Clases de badge por estado — actualmente solo existe "Catalogo". */
 const STATUS_COLORS: Record<string, string> = {
   Catalogo: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400',
 };
 
+/** Duración del fade-out antes de intercambiar las tarjetas al cambiar filtro. */
 const FADE_OUT_MS = 180;
+
+/** Retraso entre la aparición de cada tarjeta al hacer stagger. */
 const STAGGER_MS = 70;
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function FeaturedSection() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const CATEGORIES = useCategories();
   const [activeFilter, setActiveFilter] = useState('all');
   const [displayFilter, setDisplayFilter] = useState('all');
@@ -33,6 +67,8 @@ export default function FeaturedSection() {
   const headerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
   const transitionTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const load = async () => {
@@ -57,9 +93,13 @@ export default function FeaturedSection() {
     void load();
   }, []);
 
+  // ─── Datos derivados ─────────────────────────────────────────────────────────
+
   const filtered = displayFilter === 'all'
     ? items.slice(0, 6)
     : items.filter(i => i.category === displayFilter).slice(0, 6);
+
+  // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const clearTimers = useCallback(() => {
     transitionTimers.current.forEach(clearTimeout);
@@ -134,6 +174,8 @@ export default function FeaturedSection() {
 
   useEffect(() => () => clearTimers(), [clearTimers]);
 
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
+
   return (
     <section className="py-24 px-4 md:px-6 bg-zinc-50 dark:bg-zinc-900">
       <div className="max-w-screen-xl mx-auto">
@@ -165,6 +207,7 @@ export default function FeaturedSection() {
             </h2>
           </div>
 
+          {/* Filtros de categoría */}
           <div
             className="flex items-center gap-2 flex-wrap transition-all duration-500"
             style={{
@@ -201,6 +244,7 @@ export default function FeaturedSection() {
           </div>
         </div>
 
+        {/* Grid de tarjetas */}
         <div
           ref={cardsRef}
           className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 transition-opacity"

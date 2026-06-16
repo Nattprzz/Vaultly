@@ -1,52 +1,92 @@
-import { Link } from 'react-router-dom';
+/**
+ * AdminOverview.tsx — panel de resumen general del sistema Vaultly.
+ *
+ * Muestra tarjetas KPI con conteos totales y variaciones semanales,
+ * un gráfico de barras apiladas con las entradas de tracker por día
+ * y categoría, barras de distribución por categoría y los últimos
+ * 5 registros del log de auditoría del sistema.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect } from 'react';
-import { useCategories } from '@/hooks/useCategoryColors';
-import { useAdminReports } from '@/hooks/useAdminReports';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
+import { Link } from 'react-router-dom';
+
+// ─── Librerías externas ──────────────────────────────────────────────────────
+
 import { supabase } from '@/lib/supabase';
 
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useCategories }    from '@/hooks/useCategoryColors';
+import { useAdminReports }  from '@/hooks/useAdminReports';
+
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Datos de una tarjeta KPI de métricas globales. */
 interface KpiCard {
-  label: string;
-  value: string;
-  delta: string;
-  icon: string;
-  bg: string;
+  label:  string;
+  value:  string;
+  delta:  string;
+  icon:   string;
+  bg:     string;
   accent: string;
   border: string;
 }
 
+/** Punto de datos de actividad diaria en el tracker. */
 interface WeeklyPoint {
-  day: string;
-  count: number;
+  day:        string;
+  count:      number;
   categories: Record<string, number>;
 }
 
+/** Distribución de ítems trackeados por categoría. */
 interface CategoryDistribution {
-  id: string;
-  pct: number;
+  id:    string;
+  pct:   number;
   count: string;
 }
 
+/** Entrada del log de actividad reciente del sistema. */
 interface ActivityLogItem {
-  id: string;
+  id:     string;
   action: string;
   detail: string;
-  time: string;
-  icon: string;
-  color: string;
+  time:   string;
+  icon:   string;
+  color:  string;
 }
 
+// ─── Utilidades ──────────────────────────────────────────────────────────────
+
+/**
+ * Formatea un número grande con sufijo `k` cuando supera los 1000.
+ * @param value - Número a compactar.
+ * @returns     - Cadena compacta (`"1.4k"` o `"842"`).
+ */
 function compactNumber(value: number): string {
   return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value);
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function AdminOverview() {
   const CATEGORIES = useCategories();
   const { pendingCount, newCount, markAllSeen } = useAdminReports();
-  const [pulse, setPulse] = useState(false);
-  const [kpiCards, setKpiCards] = useState<KpiCard[]>([]);
-  const [weeklySignups, setWeeklySignups] = useState<WeeklyPoint[]>([]);
+
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
+  const [pulse,                setPulse]                = useState(false);
+  const [kpiCards,             setKpiCards]             = useState<KpiCard[]>([]);
+  const [weeklySignups,        setWeeklySignups]        = useState<WeeklyPoint[]>([]);
   const [categoryDistribution, setCategoryDistribution] = useState<CategoryDistribution[]>([]);
-  const [activityLog, setActivityLog] = useState<ActivityLogItem[]>([]);
+  const [activityLog,          setActivityLog]          = useState<ActivityLogItem[]>([]);
+
+  // ─── Efectos ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (newCount > 0) {
@@ -82,7 +122,7 @@ export default function AdminOverview() {
       const trackerData = trackerRows.data ?? [];
       setKpiCards([
         { label: 'Usuarios totales', value: (profilesCount.count ?? 0).toLocaleString(), delta: `+${newProfilesCount.count ?? 0} esta semana`, icon: 'ri-group-line', bg: 'bg-brand/10', accent: '#3b82f6', border: 'border-brand/20' },
-        { label: 'Items en catalogo', value: (catalogCount.count ?? 0).toLocaleString(), delta: `+${newCatalogCount.count ?? 0} esta semana`, icon: 'ri-database-2-line', bg: 'bg-orange-950/30', accent: '#f97316', border: 'border-orange-900/40' },
+        { label: 'Items en catálogo', value: (catalogCount.count ?? 0).toLocaleString(), delta: `+${newCatalogCount.count ?? 0} esta semana`, icon: 'ri-database-2-line', bg: 'bg-orange-950/30', accent: '#f97316', border: 'border-orange-900/40' },
         { label: 'Reseñas totales', value: (reviewCount.count ?? 0).toLocaleString(), delta: `${pendingCount} reportes pendientes`, icon: 'ri-quill-pen-line', bg: 'bg-amber-950/40', accent: '#f59e0b', border: 'border-amber-900/50' },
         { label: 'Trackers activos', value: trackerData.length.toLocaleString(), delta: `${trackerData.filter(row => Date.now() - new Date(row.updated_at).getTime() < 24 * 60 * 60 * 1000).length} activos hoy`, icon: 'ri-bar-chart-box-line', bg: 'bg-emerald-950/40', accent: '#10b981', border: 'border-emerald-900/50' },
       ]);
@@ -92,6 +132,7 @@ export default function AdminOverview() {
       start.setDate(today.getDate() - 6);
       start.setHours(0, 0, 0, 0);
       const formatter = new Intl.DateTimeFormat('es-ES', { weekday: 'short' });
+
       setWeeklySignups(Array.from({ length: 7 }, (_, index) => {
         const day = new Date(start);
         day.setDate(start.getDate() + index);
@@ -117,22 +158,27 @@ export default function AdminOverview() {
       }));
 
       setActivityLog((auditRows.data ?? []).map(log => ({
-        id: log.id,
+        id:     log.id,
         action: `${log.action} ${log.entity}`,
         detail: log.entity_id ?? 'Sin identificador',
-        time: new Date(log.created_at).toLocaleString('es-ES'),
-        icon: 'ri-shield-check-line',
-        color: 'text-brand dark:text-brand-dark',
+        time:   new Date(log.created_at).toLocaleString('es-ES'),
+        icon:   'ri-shield-check-line',
+        color:  'text-brand dark:text-brand-dark',
       })));
     };
 
     void load();
   }, [pendingCount, CATEGORIES]);
 
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const maxSignups = Math.max(...weeklySignups.map(d => d.count), 1);
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Alerta de reportes pendientes */}
       {pendingCount > 0 && (
         <div className={`flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border transition-all duration-500 ${
           newCount > 0
@@ -152,11 +198,11 @@ export default function AdminOverview() {
               <p className={`text-sm font-bold ${newCount > 0 ? 'text-red-300' : 'text-amber-300'}`}>
                 {newCount > 0
                   ? `${newCount} reporte${newCount > 1 ? 's' : ''} nuevo${newCount > 1 ? 's' : ''} sin revisar`
-                  : `${pendingCount} reporte${pendingCount > 1 ? 's' : ''} pendiente${pendingCount > 1 ? 's' : ''} de revision`
+                  : `${pendingCount} reporte${pendingCount > 1 ? 's' : ''} pendiente${pendingCount > 1 ? 's' : ''} de revisión`
                 }
               </p>
               <p className="text-xs text-zinc-500 mt-0.5">
-                Usuarios han reportado problemas en items del catalogo
+                Usuarios han reportado problemas en ítems del catálogo
               </p>
             </div>
           </div>
@@ -184,6 +230,7 @@ export default function AdminOverview() {
         </div>
       )}
 
+      {/* Tarjetas KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiCards.map(card => (
           <div key={card.label} className={`rounded-2xl border ${card.border} ${card.bg} p-5`}>
@@ -201,7 +248,9 @@ export default function AdminOverview() {
         ))}
       </div>
 
+      {/* Gráfico semanal + distribución por categoría */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Barras apiladas por día */}
         <div className="lg:col-span-2 bg-zinc-900 rounded-2xl border border-zinc-800 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -221,9 +270,9 @@ export default function AdminOverview() {
                     <div
                       className="w-full rounded-t-lg overflow-hidden flex flex-col-reverse transition-all duration-500"
                       style={{
-                        height: `${pct}%`,
+                        height:    `${pct}%`,
                         minHeight: day.count > 0 ? '6px' : '0',
-                        opacity: day.count > 0 ? 1 : 0,
+                        opacity:   day.count > 0 ? 1 : 0,
                       }}
                     >
                       {CATEGORIES.map(cat => {
@@ -244,7 +293,7 @@ export default function AdminOverview() {
             })}
           </div>
 
-          {/* Legend */}
+          {/* Leyenda de categorías */}
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-4">
             {CATEGORIES.map(cat => (
               <div key={cat.id} className="flex items-center gap-1.5">
@@ -255,6 +304,7 @@ export default function AdminOverview() {
           </div>
         </div>
 
+        {/* Distribución por categoría */}
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6">
           <h3 className="font-bold text-white text-sm mb-5">Distribución por categoría</h3>
           <div className="flex flex-col gap-3">
@@ -286,6 +336,7 @@ export default function AdminOverview() {
         </div>
       </div>
 
+      {/* Actividad reciente del sistema */}
       <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
           <h3 className="font-bold text-white text-sm">Actividad reciente del sistema</h3>

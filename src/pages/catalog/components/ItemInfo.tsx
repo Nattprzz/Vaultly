@@ -1,110 +1,183 @@
+/**
+ * ItemInfo.tsx — ficha técnica completa de un ítem del catálogo.
+ *
+ * Renderiza la descripción expandible y las secciones de datos estructurados
+ * específicos por categoría: videojuegos, películas, series, libros y
+ * conciertos. Incluye además secciones opcionales de plataformas, Metacritic,
+ * HowLongToBeat, tráiler, palabras clave y setlist según disponibilidad.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState } from 'react';
-import type { ItemDetail } from '@/types/itemDetail';
-import type { CatalogItemFull } from '@/hooks/useCatalogItem';
-import { getPlatformStyle } from '@/constants/platformsGames';
+import { Link } from 'react-router-dom';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+import type { ItemDetail }       from '@/types/itemDetail';
+import type { CatalogItemFull }  from '@/hooks/useCatalogItem';
+
+// ─── Constantes ──────────────────────────────────────────────────────────────
+
+import { getPlatformStyle, getReadableTextColor } from '@/constants/platformsGames';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+import { fmtDate, fmtMoney } from '@/lib/formatting';
+
+/**
+ * Convierte un valor desconocido en array de strings no vacíos.
+ * @param v - Valor a normalizar (array, cadena u otro).
+ * @returns Array de cadenas saneadas.
+ */
 function safeArr(v: unknown): string[] {
   if (Array.isArray(v)) return (v as unknown[]).filter(x => typeof x === 'string' && x.trim() !== '').map(String);
   if (typeof v === 'string' && v.trim()) return [v.trim()];
   return [];
 }
 
+/**
+ * Convierte un valor desconocido en string no vacío o null.
+ * @param v - Valor a normalizar.
+ * @returns Cadena recortada, o null si está vacía.
+ */
 function safeStr(v: unknown): string | null {
   if (v === null || v === undefined || v === '') return null;
   if (typeof v === 'string') return v.trim() || null;
   return String(v) || null;
 }
 
+/**
+ * Convierte un valor desconocido en número o null.
+ * @param v - Valor a normalizar.
+ * @returns Número parseado, o null si no es un número válido.
+ */
 function safeNum(v: unknown): number | null {
   if (v === null || v === undefined || v === '') return null;
   const n = Number(v);
   return isNaN(n) ? null : n;
 }
 
+/** Mapa de códigos de idioma ISO 639-1 a etiquetas en español. */
 const LANG_LABELS: Record<string, string> = {
-  en: 'Inglés',  es: 'Español', fr: 'Francés', de: 'Alemán',
-  it: 'Italiano', pt: 'Portugués', ja: 'Japonés', ko: 'Coreano',
-  zh: 'Chino',   ru: 'Ruso',    ar: 'Árabe',   hi: 'Hindi',
-  tr: 'Turco',   nl: 'Holandés', pl: 'Polaco',  sv: 'Sueco',
-  da: 'Danés',   fi: 'Finés',
+  en: 'Inglés',   es: 'Español',   fr: 'Francés',  de: 'Alemán',
+  it: 'Italiano', pt: 'Portugués', ja: 'Japonés',  ko: 'Coreano',
+  zh: 'Chino',    ru: 'Ruso',      ar: 'Árabe',    hi: 'Hindi',
+  tr: 'Turco',    nl: 'Holandés',  pl: 'Polaco',   sv: 'Sueco',
+  da: 'Danés',    fi: 'Finés',
 };
+
+/**
+ * Traduce un código de idioma ISO a su nombre en español.
+ * @param code - Código ISO 639-1.
+ * @returns Nombre del idioma en español, o el código en mayúsculas.
+ */
 function langLabel(code: string): string {
   return LANG_LABELS[code?.toLowerCase()] ?? code?.toUpperCase() ?? '';
 }
 
-function fmtDate(date: string): string {
-  try {
-    return new Intl.DateTimeFormat('es-ES', {
-      day: 'numeric', month: 'long', year: 'numeric',
-    }).format(new Date(date));
-  } catch {
-    return date;
-  }
-}
-
-function fmtMoney(n: number): string {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B $`;
-  if (n >= 1_000_000)     return `${Math.round(n / 1_000_000)}M $`;
-  return `${n.toLocaleString('es-ES')} $`;
-}
-
+/**
+ * Devuelve las clases CSS para el badge de Metacritic según el score.
+ * @param score - Puntuación Metacritic (0-100).
+ * @returns Objeto con `bg` (fondo) y `text` (color de texto).
+ */
 function metacriticStyle(score: number) {
   if (score >= 75) return { bg: 'bg-emerald-500/15 border-emerald-500/30', text: 'text-emerald-400' };
   if (score >= 50) return { bg: 'bg-amber-500/15 border-amber-500/30',     text: 'text-amber-400'   };
   return               { bg: 'bg-red-500/15 border-red-500/30',            text: 'text-red-400'     };
 }
 
+/**
+ * Generates a URL-safe slug from a company name.
+ * Matches the logic used in RelatedPeople.tsx for consistency.
+ */
+function generateCompanySlug(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/-+/g, ' ')
+    .replace(/\s+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
+/** Etiquetas de fuentes de datos externas para mostrar al usuario. */
 const SOURCE_LABELS: Record<string, string> = {
-  igdb: 'IGDB',
-  tmdb: 'The Movie Database',
+  igdb:         'IGDB',
+  tmdb:         'The Movie Database',
   google_books: 'Google Books',
   ticketmaster: 'Ticketmaster',
-  manual: 'Vaultly',
+  manual:       'Vaultly',
 };
 
 // ─── InfoTable ────────────────────────────────────────────────────────────────
 
+/** Fila de la ficha técnica con etiqueta, icono y valor (texto o tags). */
 interface InfoRow {
   label: string;
   value: string | string[];
-  icon: string;
+  icon:  string;
   link?: string;
+  internalLink?: string;
+  companyLinks?: boolean;
 }
 
+/**
+ * Tabla de datos clave-valor para la ficha técnica del ítem.
+ * @param rows - Array de filas con etiqueta, icono y valor.
+ */
 function InfoTable({ rows }: { rows: InfoRow[] }) {
   if (rows.length === 0) return null;
   return (
-    <div className="flex flex-col divide-y divide-zinc-800/60">
+    <div className="flex flex-col divide-y divide-[var(--border)]">
       {rows.map(row => (
         <div key={row.label} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
           <div className="flex items-center gap-2 w-32 flex-shrink-0 pt-0.5">
-            <i className={`${row.icon} text-zinc-600 text-sm flex-shrink-0`} />
-            <span className="text-xs font-medium text-zinc-500 leading-tight">{row.label}</span>
+            <i className={`${row.icon} text-[var(--text-tertiary)] text-sm flex-shrink-0`} />
+            <span className="text-xs font-medium text-[var(--text-tertiary)] leading-tight">{row.label}</span>
           </div>
           <div className="flex-1 min-w-0">
             {Array.isArray(row.value) ? (
               <div className="flex flex-wrap gap-1">
                 {row.value.map(v => (
-                  <span key={v} className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-xs font-medium">
-                    {v}
-                  </span>
+                  row.companyLinks ? (
+                    <Link
+                      key={v}
+                      to={`/company/${generateCompanySlug(v)}`}
+                      className="px-2 py-0.5 rounded bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-secondary)] text-xs font-medium hover:bg-[var(--sidebar-active-bg)] hover:text-[var(--brand-accent)] hover:border-[var(--brand-accent)] transition-colors cursor-pointer"
+                    >
+                      {v}
+                    </Link>
+                  ) : (
+                    <span key={v} className="px-2 py-0.5 rounded bg-[var(--surface-raised)] text-[var(--text-secondary)] text-xs font-medium">
+                      {v}
+                    </span>
+                  )
                 ))}
               </div>
+            ) : row.internalLink ? (
+              <Link
+                to={row.internalLink}
+                className="text-sm text-[var(--text-primary)] font-medium hover:text-[var(--brand-accent)] transition-colors truncate block"
+              >
+                {row.value}
+                <i className="ri-arrow-right-s-line ml-0.5 text-xs text-[var(--text-tertiary)]" />
+              </Link>
             ) : row.link ? (
               <a
                 href={row.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-zinc-200 font-medium hover:text-blue-400 transition-colors truncate block"
+                className="text-sm text-[var(--text-primary)] font-medium hover:text-[var(--brand-accent)] transition-colors truncate block"
               >
                 {row.value}
-                <i className="ri-external-link-line ml-1 text-xs text-zinc-500" />
+                <i className="ri-external-link-line ml-1 text-xs text-[var(--text-tertiary)]" />
               </a>
             ) : (
-              <span className="text-sm text-zinc-200 font-medium">{row.value}</span>
+              <span className="text-sm text-[var(--text-primary)] font-medium">{row.value}</span>
             )}
           </div>
         </div>
@@ -113,29 +186,32 @@ function InfoTable({ rows }: { rows: InfoRow[] }) {
   );
 }
 
-// ─── Main component ────────────────────────────────────────────────────────────
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function ItemInfo({
   item,
   rawItem,
 }: {
-  item: ItemDetail;
+  item:     ItemDetail;
   rawItem?: CatalogItemFull;
 }) {
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
   const [descExpanded, setDescExpanded] = useState(false);
+
+  // ─── Datos derivados ──────────────────────────────────────────────────────
 
   const meta = (rawItem?.metadata ?? {}) as Record<string, unknown>;
 
-  // ── Description ──────────────────────────────────────────────────────────────
-  const desc = item.description ?? '';
-  const paragraphs = desc.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+  const desc         = item.description ?? '';
+  const paragraphs   = desc.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
   const isSingleLong = paragraphs.length <= 1 && desc.length > 500;
   const needsExpand  = paragraphs.length > 3 || isSingleLong;
 
-  // ── Build rows per category ───────────────────────────────────────────────────
   const rows: InfoRow[] = [];
 
-  // ── Videojuegos ───────────────────────────────────────────────────────────────
+  // ─── Filas por categoría: videojuegos ─────────────────────────────────────
+
   if (item.category === 'videojuegos') {
     const devsFromMeta  = safeArr(meta.developers);
     const pubsFromMeta  = safeArr(meta.publishers);
@@ -152,9 +228,9 @@ export default function ItemInfo({
     if (rd?.north_america)           rows.push({ label: 'Lanz. EEUU',    value: fmtDate(rd.north_america!),                                      icon: 'ri-flag-line'          });
     if (rd?.europe)                  rows.push({ label: 'Lanz. Europa',  value: fmtDate(rd.europe!),                                             icon: 'ri-global-line'        });
     if (rd?.japan)                   rows.push({ label: 'Lanz. Japón',   value: fmtDate(rd.japan!),                                              icon: 'ri-map-pin-line'       });
-    if (devs.length)                 rows.push({ label: 'Desarrollador', value: devs,                                                            icon: 'ri-code-box-line'      });
-    if (pubs.length)                 rows.push({ label: 'Publisher',     value: pubs,                                                            icon: 'ri-building-line'      });
-    if (franchise)                   rows.push({ label: 'Saga',          value: franchise,                                                       icon: 'ri-stack-line'         });
+    if (devs.length)                 rows.push({ label: 'Desarrollador', value: devs,                                                            icon: 'ri-code-box-line',      companyLinks: true });
+    if (pubs.length)                 rows.push({ label: 'Publisher',     value: pubs,                                                            icon: 'ri-building-line',      companyLinks: true });
+    if (franchise)                   rows.push({ label: 'Saga',          value: franchise,  internalLink: `/franchise/${generateCompanySlug(franchise)}`, icon: 'ri-stack-line' });
     if (modes.length)                rows.push({ label: 'Modos',         value: modes,                                                           icon: 'ri-team-line'          });
     if (item.esrb)                   rows.push({ label: 'Clasificación', value: item.esrb,                                                       icon: 'ri-shield-line'        });
     if (item.playtime != null)       rows.push({ label: 'Horas aprox.',  value: `~${item.playtime}h`,                                            icon: 'ri-timer-line'         });
@@ -165,7 +241,8 @@ export default function ItemInfo({
     if (igdbSlug)                    rows.push({ label: 'Ver en IGDB',   value: 'igdb.com',    link: `https://www.igdb.com/games/${igdbSlug}`,   icon: 'ri-external-link-line' });
   }
 
-  // ── Películas ─────────────────────────────────────────────────────────────────
+  // ─── Filas por categoría: películas ───────────────────────────────────────
+
   if (item.category === 'peliculas') {
     const ratingN       = safeNum(meta.rating_count ?? meta.vote_count);
     const extScore      = safeNum(meta.rating);
@@ -192,7 +269,8 @@ export default function ItemInfo({
     if (tmdbId)                      rows.push({ label: 'Ver en TMDB',    value: 'themoviedb.org', link: `https://www.themoviedb.org/movie/${tmdbId}`, icon: 'ri-external-link-line' });
   }
 
-  // ── Series ────────────────────────────────────────────────────────────────────
+  // ─── Filas por categoría: series ──────────────────────────────────────────
+
   if (item.category === 'series') {
     const ratingN       = safeNum(meta.rating_count ?? meta.vote_count);
     const extScore      = safeNum(meta.rating);
@@ -220,7 +298,8 @@ export default function ItemInfo({
     if (tmdbId)                      rows.push({ label: 'Ver en TMDB',    value: 'themoviedb.org', link: `https://www.themoviedb.org/tv/${tmdbId}`, icon: 'ri-external-link-line' });
   }
 
-  // ── Libros ────────────────────────────────────────────────────────────────────
+  // ─── Filas por categoría: libros ──────────────────────────────────────────
+
   if (item.category === 'libros') {
     const authorsFromMeta = safeArr(meta.authors);
     const authorVal       = authorsFromMeta.length ? authorsFromMeta : (item.authors ?? (item.author ? [item.author] : []));
@@ -246,7 +325,8 @@ export default function ItemInfo({
     if (ratingN != null)             rows.push({ label: 'Valoraciones',  value: ratingN.toLocaleString('es-ES'),                                icon: 'ri-user-line'          });
   }
 
-  // ── Conciertos ────────────────────────────────────────────────────────────────
+  // ─── Filas por categoría: conciertos ──────────────────────────────────────
+
   if (item.category === 'conciertos') {
     const artistsFromMeta = safeArr(meta.artists);
     const artists         = artistsFromMeta.length ? artistsFromMeta : (item.artist ? [item.artist] : []);
@@ -264,8 +344,8 @@ export default function ItemInfo({
     const priceStr = priceRanges?.length
       ? priceRanges
           .map(r => {
-            const mn = safeNum(r.min);
-            const mx = safeNum(r.max);
+            const mn  = safeNum(r.min);
+            const mx  = safeNum(r.max);
             const cur = String(r.currency ?? '');
             if (mn != null && mx != null) return `${mn} – ${mx} ${cur}`.trim();
             if (mn != null) return `desde ${mn} ${cur}`.trim();
@@ -294,9 +374,10 @@ export default function ItemInfo({
     if (officialUrl)                 rows.push({ label: 'Entradas',      value: 'Ver entradas', link: officialUrl,                              icon: 'ri-external-link-line'  });
   }
 
-  // ── Extra sections ────────────────────────────────────────────────────────────
-  const hltb         = meta.howlongtobeat as { main?: number | null; main_extra?: number | null; completionist?: number | null } | undefined;
-  const hasHLTB      = item.category === 'videojuegos' && !!hltb && (hltb.main != null || hltb.main_extra != null || hltb.completionist != null);
+  // ─── Flags de secciones opcionales ───────────────────────────────────────
+
+  const hltb          = meta.howlongtobeat as { main?: number | null; main_extra?: number | null; completionist?: number | null } | undefined;
+  const hasHLTB       = item.category === 'videojuegos' && !!hltb && (hltb.main != null || hltb.main_extra != null || hltb.completionist != null);
   const hasMetacritic = item.metacritic != null;
   const hasPlatforms  = item.category === 'videojuegos' && (item.platforms?.length ?? 0) > 0;
   const hasKeywords   = (item.keywords?.length ?? 0) > 0;
@@ -306,12 +387,14 @@ export default function ItemInfo({
 
   const sourceName = rawItem?.source ? (SOURCE_LABELS[rawItem.source] ?? rawItem.source) : null;
 
+  // ─── Renderizado ──────────────────────────────────────────────────────────
+
   return (
     <div className="flex flex-col gap-8">
 
-      {/* ── Description ─────────────────────────────────────────────────────── */}
+      {/* Descripción expandible */}
       <div>
-        <h2 className="text-lg font-bold text-white mb-3">Descripción</h2>
+        <h2 className="text-lg font-bold text-[var(--text-primary)] mb-3">Descripción</h2>
         <div className="relative">
           <div
             style={{
@@ -323,21 +406,21 @@ export default function ItemInfo({
             {paragraphs.length > 0 ? (
               <div className="flex flex-col gap-3">
                 {paragraphs.map((p, i) => (
-                  <p key={i} className="text-zinc-400 leading-relaxed text-sm">{p}</p>
+                  <p key={i} className="text-[var(--text-secondary)] leading-relaxed text-sm">{p}</p>
                 ))}
               </div>
             ) : (
-              <p className="text-zinc-500 text-sm italic">Sin descripción disponible.</p>
+              <p className="text-[var(--text-tertiary)] text-sm italic">Sin descripción disponible.</p>
             )}
           </div>
           {needsExpand && !descExpanded && (
-            <div className="absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-zinc-900 to-transparent pointer-events-none" />
+            <div className="absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-[var(--surface)] to-transparent pointer-events-none" />
           )}
         </div>
         {needsExpand && (
           <button
             onClick={() => setDescExpanded(v => !v)}
-            className="mt-3 flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+            className="mt-3 flex items-center gap-1 text-xs font-semibold text-[var(--brand-accent)] hover:text-[var(--brand-accent-hover)] transition-colors cursor-pointer"
           >
             <i className={descExpanded ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />
             {descExpanded ? 'Ver menos' : 'Ver más'}
@@ -345,46 +428,41 @@ export default function ItemInfo({
         )}
       </div>
 
-      {/* ── Ficha técnica ────────────────────────────────────────────────────── */}
+      {/* Ficha técnica por categoría */}
       {rows.length > 0 && (
         <div>
-          <h2 className="text-lg font-bold text-white mb-4">Ficha técnica</h2>
+          <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">Ficha técnica</h2>
           <InfoTable rows={rows} />
         </div>
       )}
 
-      {/* ── Plataformas (games) ──────────────────────────────────────────────── */}
+      {/* Plataformas disponibles (solo videojuegos) */}
       {hasPlatforms && (
         <div>
-          <h2 className="text-lg font-bold text-white mb-3">Plataformas</h2>
+          <h2 className="text-lg font-bold text-[var(--text-primary)] mb-3">Plataformas</h2>
           <div className="flex flex-wrap gap-2">
             {item.platforms!.map(p => {
               const ps = getPlatformStyle(p);
+              const textColor = getReadableTextColor(ps.color);
               return (
-                <div
+                <span
                   key={p}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800/80 border text-xs font-medium text-zinc-100 transition-all duration-200 hover:brightness-110 hover:scale-[1.02]"
-                  style={{
-                    borderColor: `${ps.color}55`,
-                    boxShadow: `0 0 10px ${ps.color}18`,
-                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 hover:brightness-110 hover:scale-[1.02]"
+                  style={{ backgroundColor: ps.color, color: textColor }}
                 >
-                  <i
-                    className={`${ps.icon} text-sm flex-shrink-0`}
-                    style={{ color: ps.color }}
-                  />
+                  <i className={`${ps.icon} text-sm flex-shrink-0`} />
                   {p}
-                </div>
+                </span>
               );
             })}
           </div>
         </div>
       )}
 
-      {/* ── Metacritic ───────────────────────────────────────────────────────── */}
+      {/* Puntuación Metacritic */}
       {hasMetacritic && (
         <div>
-          <h2 className="text-lg font-bold text-white mb-4">Metacritic</h2>
+          <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">Metacritic</h2>
           <div className="flex items-center gap-4">
             {(() => {
               const style = metacriticStyle(item.metacritic!);
@@ -395,71 +473,71 @@ export default function ItemInfo({
               );
             })()}
             <div>
-              <p className="text-sm font-semibold text-white">
+              <p className="text-sm font-semibold text-[var(--text-primary)]">
                 {item.metacritic! >= 75 ? 'Aclamación universal' :
                  item.metacritic! >= 50 ? 'Reseñas mixtas' :
                  'Reseñas desfavorables'}
               </p>
-              <p className="text-xs text-zinc-500 mt-0.5">Basado en crítica profesional · Escala 0–100</p>
+              <p className="text-xs text-[var(--text-tertiary)] mt-0.5">Basado en crítica profesional · Escala 0–100</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── HowLongToBeat ────────────────────────────────────────────────────── */}
+      {/* Tiempos estimados HowLongToBeat (solo videojuegos) */}
       {hasHLTB && (
         <div>
-          <h2 className="text-lg font-bold text-white mb-3">Tiempo estimado</h2>
+          <h2 className="text-lg font-bold text-[var(--text-primary)] mb-3">Tiempo estimado</h2>
           <div className="grid grid-cols-3 gap-3">
             {hltb!.main != null && (
-              <div className="flex flex-col items-center gap-1.5 py-4 rounded-xl bg-zinc-800 border border-zinc-700/60">
-                <span className="text-xl font-black text-white">{hltb!.main}h</span>
-                <span className="text-[11px] text-zinc-500 text-center leading-tight px-1">Historia<br />principal</span>
+              <div className="flex flex-col items-center gap-1.5 py-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--border)]">
+                <span className="text-xl font-black text-[var(--text-primary)]">{hltb!.main}h</span>
+                <span className="text-[11px] text-[var(--text-tertiary)] text-center leading-tight px-1">Historia<br />principal</span>
               </div>
             )}
             {hltb!.main_extra != null && (
-              <div className="flex flex-col items-center gap-1.5 py-4 rounded-xl bg-zinc-800 border border-zinc-700/60">
-                <span className="text-xl font-black text-white">{hltb!.main_extra}h</span>
-                <span className="text-[11px] text-zinc-500 text-center leading-tight px-1">Historia<br />+ extras</span>
+              <div className="flex flex-col items-center gap-1.5 py-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--border)]">
+                <span className="text-xl font-black text-[var(--text-primary)]">{hltb!.main_extra}h</span>
+                <span className="text-[11px] text-[var(--text-tertiary)] text-center leading-tight px-1">Historia<br />+ extras</span>
               </div>
             )}
             {hltb!.completionist != null && (
-              <div className="flex flex-col items-center gap-1.5 py-4 rounded-xl bg-zinc-800 border border-zinc-700/60">
-                <span className="text-xl font-black text-white">{hltb!.completionist}h</span>
-                <span className="text-[11px] text-zinc-500 text-center leading-tight px-1">Completista</span>
+              <div className="flex flex-col items-center gap-1.5 py-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--border)]">
+                <span className="text-xl font-black text-[var(--text-primary)]">{hltb!.completionist}h</span>
+                <span className="text-[11px] text-[var(--text-tertiary)] text-center leading-tight px-1">Completista</span>
               </div>
             )}
           </div>
-          <p className="text-xs text-zinc-600 mt-2">Fuente: HowLongToBeat</p>
+          <p className="text-xs text-[var(--text-tertiary)] mt-2">Fuente: HowLongToBeat</p>
         </div>
       )}
 
-      {/* ── Tráiler ──────────────────────────────────────────────────────────── */}
+      {/* Enlace al tráiler en YouTube */}
       {hasTrailer && (
         <div>
-          <h2 className="text-lg font-bold text-white mb-3">Tráiler</h2>
+          <h2 className="text-lg font-bold text-[var(--text-primary)] mb-3">Tráiler</h2>
           <a
             href={`https://www.youtube.com/watch?v=${item.trailer_key}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700/60 text-zinc-200 text-sm font-medium hover:bg-zinc-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--surface-sunken)] transition-colors"
           >
             <i className="ri-youtube-line text-red-500 text-lg" />
             Ver tráiler en YouTube
-            <i className="ri-external-link-line text-zinc-500 text-xs" />
+            <i className="ri-external-link-line text-[var(--text-tertiary)] text-xs" />
           </a>
         </div>
       )}
 
-      {/* ── Keywords ─────────────────────────────────────────────────────────── */}
+      {/* Palabras clave del ítem */}
       {hasKeywords && (
         <div>
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">Palabras clave</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-3">Palabras clave</h2>
           <div className="flex flex-wrap gap-1.5">
             {item.keywords!.map(kw => (
               <span
                 key={kw}
-                className="px-2.5 py-1 rounded-lg bg-zinc-800/60 border border-zinc-700/40 text-zinc-400 text-xs"
+                className="px-2.5 py-1 rounded-lg bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-secondary)] text-xs"
               >
                 {kw}
               </span>
@@ -468,42 +546,42 @@ export default function ItemInfo({
         </div>
       )}
 
-      {/* ── Setlist (concerts) ───────────────────────────────────────────────── */}
+      {/* Extracto del setlist (solo conciertos) */}
       {hasSetlist && (
         <div>
-          <h2 className="text-lg font-bold text-white mb-4">Setlist (extracto)</h2>
+          <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">Setlist (extracto)</h2>
           <ol className="flex flex-col">
             {item.setlist!.map((song, i) => (
               <li
                 key={song}
-                className="flex items-center gap-3 py-2.5 border-b border-zinc-800/60 last:border-0"
+                className="flex items-center gap-3 py-2.5 border-b border-[var(--border)] last:border-0"
               >
-                <span className="text-xs font-bold text-zinc-600 w-5 text-right flex-shrink-0">{i + 1}</span>
-                <i className="ri-music-2-line text-zinc-600 text-sm flex-shrink-0" />
-                <span className="text-sm text-zinc-200">{song}</span>
+                <span className="text-xs font-bold text-[var(--text-tertiary)] w-5 text-right flex-shrink-0">{i + 1}</span>
+                <i className="ri-music-2-line text-[var(--text-tertiary)] text-sm flex-shrink-0" />
+                <span className="text-sm text-[var(--text-secondary)]">{song}</span>
               </li>
             ))}
           </ol>
         </div>
       )}
 
-      {/* ── Empty state ──────────────────────────────────────────────────────── */}
+      {/* Estado vacío si no hay ningún dato estructurado */}
       {!anyStructured && (
         <div className="flex flex-col items-center gap-3 py-6 text-center">
-          <div className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800">
-            <i className="ri-information-line text-zinc-500 text-lg" />
+          <div className="w-10 h-10 flex items-center justify-center rounded-full bg-[var(--surface-raised)]">
+            <i className="ri-information-line text-[var(--text-tertiary)] text-lg" />
           </div>
-          <p className="text-sm text-zinc-500">No hay información adicional disponible para este ítem.</p>
+          <p className="text-sm text-[var(--text-tertiary)]">No hay información adicional disponible para este ítem.</p>
         </div>
       )}
 
-      {/* ── Fuente de datos ──────────────────────────────────────────────────── */}
+      {/* Atribución a la fuente de datos */}
       {sourceName && (
-        <div className="pt-2 border-t border-zinc-800/50">
-          <p className="text-xs text-zinc-600 flex items-center gap-1.5">
+        <div className="pt-2 border-t border-[var(--border)]">
+          <p className="text-xs text-[var(--text-tertiary)] flex items-center gap-1.5">
             <i className="ri-database-line" />
             Datos procedentes de{' '}
-            <span className="font-medium text-zinc-500">{sourceName}</span>
+            <span className="font-medium text-[var(--text-secondary)]">{sourceName}</span>
           </p>
         </div>
       )}

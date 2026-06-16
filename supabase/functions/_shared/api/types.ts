@@ -1,7 +1,34 @@
+/**
+ * types.ts — contratos normalizados de proveedores externos.
+ *
+ * Define las estructuras comunes que comparten las integraciones del backend.
+ *
+ * Utilizado por clientes compartidos y Edge Functions para mantener respuestas homogéneas.
+ */
+
 export interface BaseCatalogMetadata {
   genres?: string[];
   rating?: number | null;
   rating_count?: number | null;
+  screenshots?: string[];
+  artworks?: string[];
+  trailers?: Array<{
+    title?: string;
+    url: string;
+    thumbnail_url?: string;
+    source?: 'youtube' | 'vimeo' | 'igdb' | 'other';
+  }>;
+  interactive_map_url?: string;
+  interactive_map_source?: string;
+  related_games?: Array<{
+    source_item_id: string;
+    slug: string;
+    title: string;
+    image_url: string | null;
+    release_date: string | null;
+    score: number;
+    reasons: string[];
+  }>;
   howlongtobeat?: {
     id: number | null;
     main: number | null;
@@ -13,6 +40,9 @@ export interface BaseCatalogMetadata {
   [key: string]: unknown;
 }
 
+/**
+ * Referencia resumida a una compañía de videojuegos procedente de IGDB.
+ */
 export interface GameCompanyRef {
   igdb_id: number | null;
   name: string;
@@ -20,6 +50,9 @@ export interface GameCompanyRef {
   url: string;
 }
 
+/**
+ * Elemento de catálogo normalizado desde cualquier proveedor externo.
+ */
 export interface NormalizedCatalogItem {
   source: string;
   source_item_id: string;
@@ -31,6 +64,9 @@ export interface NormalizedCatalogItem {
   metadata: BaseCatalogMetadata;
 }
 
+/**
+ * Detalle enriquecido de una compañía de videojuegos normalizada desde IGDB.
+ */
 export interface NormalizedGameCompany {
   id?: string;
   igdb_id: number;

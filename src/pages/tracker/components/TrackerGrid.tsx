@@ -1,9 +1,35 @@
+/**
+ * TrackerGrid.tsx — vista de grid compacto del tracker (vista alternativa).
+ *
+ * Grid de tarjetas de portada con badge de estado en la esquina superior
+ * izquierda y badge de puntuación en la inferior derecha. Al hover muestra
+ * un overlay con botón de edición que abre AddToTrackerModal. Usa `useTracker`
+ * directamente en lugar de TrackerContext para ser independiente del proveedor.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { TrackerStatus, useTracker } from '@/hooks/useTracker';
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
 import AddToTrackerModal from '@/pages/catalog/components/AddToTrackerModal';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { EnrichedEntry } from './trackerEntryUtils';
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Etiqueta y clases de color para el badge de estado en el grid compacto. */
 const STATUS_BADGE: Partial<Record<TrackerStatus, { label: string; cls: string }>> = {
   wishlist:        { label: 'Wishlist',     cls: 'bg-slate-100 dark:bg-slate-800 text-slate-500' },
   pending:         { label: 'Pendiente',    cls: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500' },
@@ -22,13 +48,22 @@ const STATUS_BADGE: Partial<Record<TrackerStatus, { label: string; cls: string }
   missed:          { label: 'No asistido',  cls: 'bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-600' },
 };
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del grid compacto del tracker. */
 interface Props {
   enriched: EnrichedEntry[];
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function TrackerGrid({ enriched }: Props) {
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
   const { getEntry, addOrUpdate, remove } = useTracker();
   const [editItem, setEditItem] = useState<EnrichedEntry | null>(null);
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <>
@@ -44,17 +79,20 @@ export default function TrackerGrid({ enriched }: Props) {
                     alt={item.title}
                     className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
                   />
+                  {/* Badge de estado — arriba izquierda */}
                   <div className="absolute left-2 top-2">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${badge.cls}`}>
                       {badge.label}
                     </span>
                   </div>
+                  {/* Puntuación — abajo derecha */}
                   {item.rating !== null && (
                     <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-lg bg-black/60 px-2 py-1 backdrop-blur-sm">
                       <i className="ri-star-fill text-xs text-amber-400"></i>
                       <span className="text-xs font-semibold text-white">{item.rating}</span>
                     </div>
                   )}
+                  {/* Icono de categoría — arriba derecha */}
                   <div className="absolute right-2 top-2">
                     <div
                       className="flex h-6 w-6 items-center justify-center rounded-lg backdrop-blur-sm"
@@ -63,6 +101,7 @@ export default function TrackerGrid({ enriched }: Props) {
                       <i className={`${item.catIcon} text-xs`} style={{ color: item.catAccent }}></i>
                     </div>
                   </div>
+                  {/* Overlay con botón de edición al hover */}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                       onClick={e => { e.preventDefault(); setEditItem(item); }}
@@ -82,6 +121,7 @@ export default function TrackerGrid({ enriched }: Props) {
         })}
       </div>
 
+      {/* Modal de edición */}
       {editItem && (
         <AddToTrackerModal
           itemId={editItem.itemId}

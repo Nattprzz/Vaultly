@@ -1,23 +1,50 @@
+/**
+ * categoryConfig.ts — configuración estática de las cinco categorías de Vaultly.
+ *
+ * Define la forma CategoryConfig y el array CATEGORIES con los metadatos base
+ * (icono, gradiente, imagen de hero, descripción) de cada categoría.
+ * Los colores de acento se toman de categoryColors.ts para evitar duplicación;
+ * usa useCategories() en lugar de este array cuando necesites el color resuelto
+ * con las personalizaciones del usuario aplicadas.
+ */
+
+// ─── Librerías externas ──────────────────────────────────────────────────────
+
 import { DEFAULT_CATEGORY_COLORS } from './categoryColors';
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/**
+ * Configuración visual y descriptiva de una categoría de Vaultly.
+ * El campo `accent` refleja el color por defecto; para el color resuelto
+ * con personalizaciones del usuario usa useCategories().
+ */
 export type CategoryConfig = {
+  /** Identificador interno de la categoría */
   id: 'videojuegos' | 'peliculas' | 'series' | 'libros' | 'conciertos';
+  /** Nombre legible para mostrar en la interfaz */
   label: string;
+  /** Clase de icono remixicon */
   icon: string;
+  /** Clases Tailwind para el gradiente de color */
   color: string;
+  /** Color hexadecimal de acento (ver categoryColors.ts para overrides) */
   accent: string;
+  /** Contador de ítems (se rellena dinámicamente en runtime) */
   count: number;
+  /** Descripción breve de la categoría */
   description: string;
+  /** URL de imagen de hero para la página de catálogo */
   image: string;
 };
 
-// NOTE: `accent` here is the *default* brand color for each category — the
-// single source of truth lives in `src/lib/categoryColors.ts`
-// (DEFAULT_CATEGORY_COLORS) so Settings can offer per-user overrides without
-// duplicating the palette. Use `useCategories()` from `@/hooks/useCategoryColors`
-// instead of this array directly wherever the resolved (user-customised) accent
-// should be shown — it returns this same shape with `accent` swapped for the
-// user's chosen color when one is set.
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/**
+ * Lista estática de las cinco categorías de Vaultly en el orden de visualización.
+ * No usar directamente en componentes que deban reflejar colores personalizados;
+ * importar useCategories() de @/hooks/useCategoryColors en su lugar.
+ */
 export const CATEGORIES: CategoryConfig[] = [
   {
     id: 'videojuegos',

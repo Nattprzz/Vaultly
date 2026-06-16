@@ -1,18 +1,45 @@
+/**
+ * useAdminAuditLogs.ts — consulta paginada del registro de auditoría.
+ *
+ * Carga los registros de admin_audit_logs con soporte para filtros por acción,
+ * entidad, actor y rango de fechas. Enriquece cada fila con el username del
+ * actor consultando la tabla profiles. Expone las opciones únicas de cada
+ * campo de filtro para alimentar los desplegables del panel de administración.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect, useCallback } from 'react';
+
+// ─── Servicios ───────────────────────────────────────────────────────────────
+
 import { supabase } from '@/lib/supabase';
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/** Fila del log de auditoría enriquecida con datos del actor. */
 export interface AuditLog {
+  /** ID único del registro */
   id: string;
+  /** UUID del usuario que realizó la acción, o null si fue el sistema */
   actor_id: string | null;
+  /** Acción realizada (create, update, delete, etc.) */
   action: string;
+  /** Entidad afectada (catalog_items, profiles, item_reports, etc.) */
   entity: string;
+  /** ID del registro afectado, o null si no aplica */
   entity_id: string | null;
+  /** Metadatos adicionales de la acción */
   payload: Record<string, unknown> | null;
+  /** Fecha de creación del registro (ISO) */
   created_at: string;
+  /** Email del actor (puede estar vacío si no está disponible) */
   actor_email?: string;
+  /** Nombre de usuario del actor, o "Sistema" si fue automático */
   actor_username?: string;
 }
 
+/** Fila raw de admin_audit_logs antes de enriquecerla con datos de perfil. */
 interface AuditLogRow {
   id: string;
   user_id: string | null;
@@ -23,14 +50,23 @@ interface AuditLogRow {
   created_at: string;
 }
 
+/** Estado de los filtros activos para el log de auditoría. */
 export interface AuditFilters {
+  /** Filtrar por acción exacta */
   action: string;
+  /** Filtrar por entidad exacta */
   entity: string;
+  /** Filtrar por UUID del actor */
   actor_id: string;
+  /** Búsqueda de texto libre */
   search: string;
+  /** Fecha mínima (ISO, inclusive) */
   dateFrom: string;
+  /** Fecha máxima (ISO, inclusive) */
   dateTo: string;
 }
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 30;
 
@@ -43,7 +79,20 @@ const DEFAULT_FILTERS: AuditFilters = {
   dateTo: '',
 };
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
+/**
+ * Gestiona la carga paginada y filtrada del log de auditoría.
+ *
+ * Responsabilidades:
+ * - Cargar registros de admin_audit_logs con paginación y filtros combinados.
+ * - Enriquecer cada fila con el username del actor desde profiles.
+ * - Cargar las opciones únicas de acción y entidad para los desplegables de filtro.
+ * - Calcular el número de filtros activos para el badge del panel.
+ */
 export function useAdminAuditLogs() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -52,7 +101,8 @@ export function useAdminAuditLogs() {
   const [actionOptions, setActionOptions] = useState<string[]>([]);
   const [entityOptions, setEntityOptions] = useState<string[]>([]);
 
-  // Load distinct action/entity values for filter dropdowns
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     async function loadOptions() {
       const [actionsRes, entitiesRes] = await Promise.all([
@@ -70,6 +120,8 @@ export function useAdminAuditLogs() {
     }
     loadOptions();
   }, []);
+
+  // ─── Carga de datos ──────────────────────────────────────────────────────────
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -96,7 +148,6 @@ export function useAdminAuditLogs() {
       const { data, count, error } = await query;
       if (error) throw error;
 
-      // Enrich with profile data
       const rows = (data ?? []) as AuditLogRow[];
       const actorIds = [...new Set(rows.map((l) => l.user_id).filter(Boolean))] as string[];
       let profileMap: Record<string, { email: string; username: string }> = {};
@@ -135,6 +186,8 @@ export function useAdminAuditLogs() {
     fetchLogs();
   }, [fetchLogs]);
 
+  // ─── Handlers ────────────────────────────────────────────────────────────────
+
   const updateFilters = useCallback((partial: Partial<AuditFilters>) => {
     setFilters((prev) => ({ ...prev, ...partial }));
     setPage(1);
@@ -144,6 +197,8 @@ export function useAdminAuditLogs() {
     setFilters(DEFAULT_FILTERS);
     setPage(1);
   }, []);
+
+  // ─── Datos derivados ──────────────────────────────────────────────────────────
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const activeFilterCount = Object.entries(filters).filter(([, v]) => v !== '').length;

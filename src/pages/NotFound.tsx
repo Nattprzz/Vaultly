@@ -1,8 +1,19 @@
+/**
+ * NotFound.tsx — página de error 404.
+ *
+ * Muestra la ruta que no existe y un mensaje de error genérico.
+ * Se renderiza para cualquier ruta que no coincida con la tabla de rutas.
+ */
+
+// ─── Librerías externas ───────────────────────────────────────────────────────
+
 import { useLocation } from "react-router-dom";
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function NotFound() {
   const location = useLocation();
-  
+
   return (
     <div className="relative flex flex-col items-center justify-center h-screen text-center px-4">
       <h1 className="absolute bottom-0 text-9xl md:text-[12rem] font-black text-gray-50 select-none pointer-events-none z-0">

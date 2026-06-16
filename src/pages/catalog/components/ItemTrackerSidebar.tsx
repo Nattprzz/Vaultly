@@ -1,24 +1,55 @@
+/**
+ * ItemTrackerSidebar.tsx — panel lateral del tracker y reportes de un ítem.
+ *
+ * Muestra el estado del ítem en el tracker del usuario autenticado con
+ * acciones rápidas (añadir / editar entrada). Si el usuario no está
+ * autenticado, muestra un CTA de inicio de sesión. Los administradores
+ * ven además un indicador de reportes pendientes y el historial de
+ * correcciones del ítem. Cualquier usuario puede reportar un problema.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useRef, useEffect } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
-import type { ItemDetail } from '@/types/itemDetail';
-import { useAuth } from '@/hooks/useAuth';
-import { useTracker } from '@/hooks/useTracker';
-import type { TrackerStatus, GameData } from '@/hooks/useTracker';
-import { useItemReportCount } from '@/hooks/useItemReportCount';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+import type { ItemDetail }                          from '@/types/itemDetail';
+import type { TrackerStatus, GameData }             from '@/hooks/useTracker';
+import type { CategoryStatus }                      from '@/constants/tracker-statuses';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useAuth }             from '@/hooks/useAuth';
+import { useTracker }          from '@/hooks/useTracker';
+import { useItemReportCount }  from '@/hooks/useItemReportCount';
+
+// ─── Librerías externas ──────────────────────────────────────────────────────
+
 import { edgeFunctionUrl } from '@/lib/edgeFunctions';
-import AddToTrackerModal from './AddToTrackerModal';
-import ItemReportHistory from './ItemReportHistory';
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
+import AddToTrackerModal  from './AddToTrackerModal';
+import ItemReportHistory  from './ItemReportHistory';
+
+// ─── Constantes ──────────────────────────────────────────────────────────────
+
 import {
   getCategoryStatuses,
   getStatusLabel,
   getStatusIcon,
   STATUS_CONFIG,
-  getDefaultStatus,
 } from '@/constants/tracker-statuses';
-import type { CategoryStatus } from '@/constants/tracker-statuses';
 
+/** URL de la Edge Function para envío de reportes de ítems. */
 const ITEM_REPORTS_URL = edgeFunctionUrl('item-reports');
 
+/** Motivos predefinidos que el usuario puede seleccionar al reportar un ítem. */
 const REPORT_REASONS = [
   'Información incorrecta',
   'Imagen equivocada',
@@ -28,6 +59,9 @@ const REPORT_REASONS = [
   'Otro',
 ];
 
+// ─── Sub-componentes ─────────────────────────────────────────────────────────
+
+/** Props del modal de reporte de ítem. */
 interface ReportModalProps {
   itemTitle:    string;
   itemId:       string;
@@ -36,12 +70,16 @@ interface ReportModalProps {
   onClose:      () => void;
 }
 
+/**
+ * Modal para reportar un problema con el ítem al equipo de Vaultly.
+ * Requiere seleccionar un motivo; la descripción adicional es opcional.
+ */
 function ReportModal({ itemTitle, itemId, itemCategory, itemCover, onClose }: ReportModalProps) {
-  const { session } = useAuth();
-  const [reason,  setReason]  = useState('');
-  const [details, setDetails] = useState('');
-  const [status,  setStatus]  = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const { session }                   = useAuth();
+  const [reason,  setReason]          = useState('');
+  const [details, setDetails]         = useState('');
+  const [status,  setStatus]          = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const overlayRef                    = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -49,6 +87,7 @@ function ReportModal({ itemTitle, itemId, itemCategory, itemCover, onClose }: Re
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
+  /** Envía el reporte a la Edge Function y actualiza el estado del formulario. */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!reason) return;
@@ -170,6 +209,13 @@ function ReportModal({ itemTitle, itemId, itemCategory, itemCover, onClose }: Re
   );
 }
 
+// ─── Utilidades ──────────────────────────────────────────────────────────────
+
+/**
+ * Formatea una fecha ISO en español localizado para las fechas del tracker.
+ * @param iso - Cadena ISO de fecha.
+ * @returns Fecha en formato "d mmm yyyy", o los primeros 10 caracteres si falla.
+ */
 function fmtTrackerDate(iso: string): string {
   try {
     return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
@@ -178,37 +224,57 @@ function fmtTrackerDate(iso: string): string {
   }
 }
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del sidebar de tracker del ítem. */
 interface Props {
   item: ItemDetail;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ItemTrackerSidebar({ item }: Props) {
-  const { isLoggedIn, profile } = useAuth();
-  const isAdmin = profile?.role === 'admin';
-  const { getEntry, addOrUpdate, remove, error: trackerError } = useTracker();
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
+  const { isLoggedIn, profile }                                                 = useAuth();
+  const isAdmin                                                                 = profile?.role === 'admin';
+  const { getEntry, addOrUpdate, remove, error: trackerError }                  = useTracker();
   const { pending: reportsPending, total: reportsTotal, loading: reportsLoading } = useItemReportCount(isAdmin ? item.id : '');
   const [modalOpen,  setModalOpen]  = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [toast,      setToast]      = useState<string | null>(null);
 
-  const validStatuses = getCategoryStatuses(item.category);
-  const entry = getEntry(item.id);
+  // ─── Datos derivados ──────────────────────────────────────────────────────
 
-  // Current status display
-  const currentStatus = entry?.status as CategoryStatus | undefined;
-  const currentCfg    = currentStatus ? STATUS_CONFIG[currentStatus] : null;
-  const currentLabel  = currentStatus ? getStatusLabel(currentStatus, item.category) : null;
-  const currentIcon   = currentStatus ? getStatusIcon(currentStatus, item.category) : null;
+  const validStatuses  = getCategoryStatuses(item.category);
+  const entry          = getEntry(item.id);
+  const currentStatus  = entry?.status as CategoryStatus | undefined;
+  const currentCfg     = currentStatus ? STATUS_CONFIG[currentStatus] : null;
+  const currentLabel   = currentStatus ? getStatusLabel(currentStatus, item.category) : null;
+  const currentIcon    = currentStatus ? getStatusIcon(currentStatus, item.category) : null;
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
+  // ─── Efectos ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (trackerError) showToast(trackerError);
   }, [trackerError]);
 
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  /** Muestra un toast efímero de 2,5 segundos. */
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
+
+  /**
+   * Guarda o actualiza la entrada del tracker y muestra feedback al usuario.
+   * @param status   - Nuevo estado del ítem.
+   * @param rating   - Puntuación opcional.
+   * @param review   - Texto de reseña opcional.
+   * @param gameData - Datos adicionales específicos de videojuegos.
+   * @returns true si la operación se completó con éxito.
+   */
   const handleSave = async (status: TrackerStatus, rating: number | null, review: string, gameData?: GameData): Promise<boolean> => {
     const success = await addOrUpdate(item.id, item.category, status, rating, review, gameData);
     showToast(
@@ -219,28 +285,33 @@ export default function ItemTrackerSidebar({ item }: Props) {
     return success;
   };
 
+  /**
+   * Elimina la entrada del tracker y muestra feedback al usuario.
+   * @returns true si la operación se completó con éxito.
+   */
   const handleRemove = async (): Promise<boolean> => {
     const success = await remove(item.id);
     showToast(success ? 'Eliminado del tracker' : 'No se pudo eliminar. Inténtalo de nuevo.');
     return success;
   };
 
+  // ─── Renderizado ──────────────────────────────────────────────────────────
+
   return (
     <>
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-        {/* Header */}
         <div className="px-5 pt-5 pb-4 border-b border-zinc-100 dark:border-zinc-800">
           <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Mi tracker</h3>
         </div>
 
         <div className="p-5 flex flex-col gap-4">
 
-          {/* Tracker CTA */}
+          {/* CTA de tracker según estado de autenticación y seguimiento */}
           {isLoggedIn ? (
             <div className="flex flex-col gap-2">
               {entry && currentCfg ? (
                 <>
-                  {/* Current status badge */}
+                  {/* Badge del estado actual */}
                   <div
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
                     style={{ background: currentCfg.bg, color: currentCfg.color }}
@@ -255,7 +326,7 @@ export default function ItemTrackerSidebar({ item }: Props) {
                     )}
                   </div>
 
-                  {/* Entry dates */}
+                  {/* Fechas de la entrada */}
                   <div className="flex flex-col gap-1.5 px-1 py-1">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-zinc-500 flex items-center gap-1.5">
@@ -303,7 +374,7 @@ export default function ItemTrackerSidebar({ item }: Props) {
             </Link>
           )}
 
-          {/* Quick status buttons (logged in, not tracked) */}
+          {/* Acciones rápidas de estado (usuario sin entrada aún) */}
           {isLoggedIn && !entry && (
             <div className="grid grid-cols-2 gap-1.5">
               {validStatuses.map(s => {
@@ -328,7 +399,7 @@ export default function ItemTrackerSidebar({ item }: Props) {
             </div>
           )}
 
-          {/* Review snippet */}
+          {/* Extracto de la reseña del usuario */}
           {entry?.review && (
             <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800">
               <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Tu reseña</p>
@@ -338,7 +409,7 @@ export default function ItemTrackerSidebar({ item }: Props) {
             </div>
           )}
 
-          {/* Admin report indicator */}
+          {/* Indicador de reportes pendientes (solo admin) */}
           {isAdmin && !reportsLoading && (
             <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800">
               <Link
@@ -374,7 +445,7 @@ export default function ItemTrackerSidebar({ item }: Props) {
           )}
           {isAdmin && <ItemReportHistory itemId={item.id} />}
 
-          {/* Report button */}
+          {/* Botón de reporte de problema */}
           <div className={isAdmin ? '' : 'pt-3 border-t border-zinc-100 dark:border-zinc-800'}>
             <button
               onClick={() => setReportOpen(true)}
@@ -410,6 +481,7 @@ export default function ItemTrackerSidebar({ item }: Props) {
         />
       )}
 
+      {/* Toast de confirmación efímero */}
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl bg-zinc-800 border border-zinc-700 text-white text-sm font-medium flex items-center gap-2 shadow-xl">
           <i className="ri-checkbox-circle-line text-emerald-400" />

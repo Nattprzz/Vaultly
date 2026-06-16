@@ -1,6 +1,18 @@
+/**
+ * ActivitySection.tsx — sección de actividad reciente de la landing page.
+ *
+ * Muestra una línea de tiempo estática con los cuatro tipos de acción posibles
+ * en el tracker (completar, puntuar, añadir, reanudar). Las tarjetas se revelan
+ * mediante IntersectionObserver con animación escalonada al entrar en viewport.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useRef, useState, useEffect } from 'react';
 
-// 4 events cover the 4 key tracker actions. 5 was redundant.
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Eventos de actividad ilustrativos. Cubren las cuatro acciones clave del tracker. */
 const EVENTS = [
   {
     id: '1',
@@ -48,9 +60,15 @@ const EVENTS = [
   },
 ] as const;
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ActivitySection() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -61,12 +79,14 @@ export default function ActivitySection() {
     return () => obs.disconnect();
   }, []);
 
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
+
   return (
     <section className="px-4 py-16 md:py-20 md:px-6 bg-[var(--surface)] dark:bg-[var(--bg)]">
       <div className="mx-auto max-w-screen-xl">
         <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-[1fr_480px] lg:gap-20">
 
-          {/* Left — sticky heading, no inline CTA */}
+          {/* Columna izquierda — titular sticky */}
           <div
             className="lg:sticky lg:top-24 transition-all duration-700"
             style={{ opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateY(20px)' }}
@@ -86,7 +106,7 @@ export default function ActivitySection() {
             </p>
           </div>
 
-          {/* Right — timeline */}
+          {/* Columna derecha — línea de tiempo */}
           <div ref={ref}>
             <div className="relative">
               <div className="absolute left-[18px] top-5 bottom-5 w-px bg-zinc-200 dark:bg-zinc-800" />
@@ -101,7 +121,7 @@ export default function ActivitySection() {
                       transitionDelay: `${i * 80}ms`,
                     }}
                   >
-                    {/* Node */}
+                    {/* Nodo del evento */}
                     <div
                       className="relative z-10 mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full"
                       style={{ background: ev.bg, border: `1.5px solid ${ev.ring}` }}
@@ -109,7 +129,7 @@ export default function ActivitySection() {
                       <i className={`${ev.icon} text-[13px]`} style={{ color: ev.color }} />
                     </div>
 
-                    {/* Card */}
+                    {/* Tarjeta del evento */}
                     <div className="min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-[var(--shadow-sm)]">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-[13px] leading-snug text-zinc-900 dark:text-white">

@@ -1,10 +1,29 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { auditLog } from '@/lib/audit';
+/**
+ * AdminEntities.tsx — gestión de entidades del catálogo (personas y estudios).
+ *
+ * Lista todas las entidades con búsqueda, filtro por tipo, ordenación y
+ * filtros avanzados de mínimo de ítems vinculados. Incluye barra de tipos
+ * con conteos clicables, chips de filtros activos, paginación y CRUD
+ * completo con registro en el log de auditoría vía `auditLog`. La tabla
+ * muestra la barra de progreso relativa de ítems vinculados por fila.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
+import { useState, useEffect, useRef } from 'react';
+
+// ─── Librerías externas ──────────────────────────────────────────────────────
+
+import { supabase }   from '@/lib/supabase';
+import { auditLog }   from '@/lib/audit';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useAdminEntities, type AdminEntity, type SortField, type SortDir } from '@/hooks/useAdminEntities';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Constantes ──────────────────────────────────────────────────────────────
 
+/** Tipos de entidades admitidas con metadatos visuales. */
 const ENTITY_TYPES = [
   { value: 'developer', label: 'Desarrollador', icon: 'ri-code-box-line',    color: '#8b5cf6' },
   { value: 'publisher', label: 'Publisher',      icon: 'ri-building-line',    color: '#6366f1' },
@@ -16,47 +35,65 @@ const ENTITY_TYPES = [
   { value: 'studio',    label: 'Estudio',        icon: 'ri-film-line',        color: '#14b8a6' },
 ];
 
+/** Mapa de tipo → metadatos para acceso O(1). */
 const TYPE_META = Object.fromEntries(
   ENTITY_TYPES.map(t => [t.value, { icon: t.icon, color: t.color, label: t.label }])
 );
 
+/** Opciones de ordenación disponibles en el panel de filtros. */
 const SORT_OPTIONS: { value: SortField; label: string }[] = [
-  { value: 'created_at', label: 'Fecha de creación' },
-  { value: 'name',       label: 'Nombre (A-Z)' },
+  { value: 'created_at', label: 'Fecha de creación'    },
+  { value: 'name',       label: 'Nombre (A-Z)'         },
   { value: 'item_count', label: 'Más ítems vinculados' },
 ];
 
+/** Opciones de filtrado por número mínimo de ítems vinculados. */
 const MIN_ITEMS_OPTIONS = [
   { value: 0,  label: 'Cualquier cantidad' },
-  { value: 1,  label: 'Al menos 1 ítem' },
-  { value: 5,  label: 'Al menos 5 ítems' },
+  { value: 1,  label: 'Al menos 1 ítem'   },
+  { value: 5,  label: 'Al menos 5 ítems'  },
   { value: 10, label: 'Al menos 10 ítems' },
   { value: 25, label: 'Al menos 25 ítems' },
 ];
 
-// ─── Form types ───────────────────────────────────────────────────────────────
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
 
+/** Datos del formulario de creación/edición de entidad. */
 interface EntityFormData {
-  name: string;
-  type: string;
-  image_url: string;
-  bio: string;
+  name:         string;
+  type:         string;
+  image_url:    string;
+  bio:          string;
   metadata_raw: string;
 }
 
+/** Estado inicial del formulario de entidad. */
 const EMPTY_FORM: EntityFormData = { name: '', type: 'developer', image_url: '', bio: '', metadata_raw: '' };
 
+// ─── Utilidades ──────────────────────────────────────────────────────────────
+
+/**
+ * Genera el slug de una entidad a partir de su nombre y tipo.
+ * Normaliza caracteres unicode, elimina acentos y reemplaza espacios por guiones.
+ * @param name - Nombre de la entidad.
+ * @param type - Tipo de la entidad.
+ * @returns    - Slug en kebab-case.
+ */
 function generateSlug(name: string, type: string): string {
   return `${name}-${type}`
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Sub-componentes ─────────────────────────────────────────────────────────
 
+/**
+ * Ejemplo de estructura de metadata JSON para cada tipo de entidad.
+ * @param type - Tipo de entidad seleccionado en el formulario.
+ */
 function MetadataHint({ type }: { type: string }) {
   const hints: Record<string, string> = {
     developer: '{"founded": "1998", "country": "US"}',
@@ -71,6 +108,10 @@ function MetadataHint({ type }: { type: string }) {
   return <p className="text-xs text-zinc-600 mt-1 font-mono truncate">Ej: {hint}</p>;
 }
 
+/**
+ * Filas de skeleton mientras carga la tabla de entidades.
+ * @param count - Número de filas placeholder a renderizar.
+ */
 function SkeletonRows({ count = 8 }: { count?: number }) {
   return (
     <div className="divide-y divide-zinc-800">
@@ -93,20 +134,22 @@ function SkeletonRows({ count = 8 }: { count?: number }) {
   );
 }
 
-// ─── Advanced filters panel ───────────────────────────────────────────────────
-
+/** Props del panel de filtros avanzados. */
 interface FiltersPanelProps {
-  sortField: SortField;
-  sortDir: SortDir;
-  minItems: number;
+  sortField:   SortField;
+  sortDir:     SortDir;
+  minItems:    number;
   onSortField: (v: SortField) => void;
-  onSortDir: (v: SortDir) => void;
-  onMinItems: (v: number) => void;
-  onReset: () => void;
-  onClose: () => void;
+  onSortDir:   (v: SortDir) => void;
+  onMinItems:  (v: number) => void;
+  onReset:     () => void;
+  onClose:     () => void;
   activeCount: number;
 }
 
+/**
+ * Panel desplegable de filtros avanzados: ordenación, dirección y mínimo de ítems.
+ */
 function FiltersPanel({
   sortField, sortDir, minItems,
   onSortField, onSortDir, onMinItems,
@@ -114,29 +157,21 @@ function FiltersPanel({
 }: FiltersPanelProps) {
   return (
     <div className="absolute right-0 top-full mt-2 w-72 bg-zinc-900 border border-zinc-700 rounded-2xl z-30 overflow-hidden">
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
         <span className="text-sm font-bold text-white">Filtros avanzados</span>
         <div className="flex items-center gap-2">
           {activeCount > 0 && (
-            <button
-              onClick={onReset}
-              className="text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer whitespace-nowrap"
-            >
+            <button onClick={onReset} className="text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer whitespace-nowrap">
               Limpiar
             </button>
           )}
-          <button
-            onClick={onClose}
-            className="w-6 h-6 flex items-center justify-center rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
-          >
+          <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer">
             <i className="ri-close-line text-sm"></i>
           </button>
         </div>
       </div>
 
       <div className="p-4 flex flex-col gap-4">
-        {/* Sort field */}
         <div>
           <label className="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Ordenar por</label>
           <div className="flex flex-col gap-1">
@@ -157,7 +192,6 @@ function FiltersPanel({
           </div>
         </div>
 
-        {/* Sort direction */}
         <div>
           <label className="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Dirección</label>
           <div className="flex gap-2">
@@ -178,7 +212,6 @@ function FiltersPanel({
           </div>
         </div>
 
-        {/* Min items */}
         <div>
           <label className="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Ítems vinculados</label>
           <div className="flex flex-col gap-1">
@@ -203,23 +236,29 @@ function FiltersPanel({
   );
 }
 
-// ─── Entity form modal ────────────────────────────────────────────────────────
-
+/** Props del modal de creación/edición de entidad. */
 interface EntityModalProps {
   editTarget: AdminEntity | null;
-  saving: boolean;
-  onClose: () => void;
-  onSave: (form: EntityFormData) => Promise<void>;
+  saving:     boolean;
+  onClose:    () => void;
+  onSave:     (form: EntityFormData) => Promise<void>;
 }
 
+/**
+ * Modal de formulario para crear o editar una entidad.
+ * @param editTarget - Entidad a editar, o `null` para crear una nueva.
+ * @param saving     - Si hay una operación de guardado en curso.
+ * @param onClose    - Callback para cerrar sin guardar.
+ * @param onSave     - Callback con los datos del formulario al confirmar.
+ */
 function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) {
   const [form, setForm] = useState<EntityFormData>(
     editTarget
       ? {
-          name: editTarget.name,
-          type: editTarget.type,
-          image_url: editTarget.image ?? '',
-          bio: editTarget.bio ?? '',
+          name:         editTarget.name,
+          type:         editTarget.type,
+          image_url:    editTarget.image ?? '',
+          bio:          editTarget.bio ?? '',
           metadata_raw: editTarget.metadata ? JSON.stringify(editTarget.metadata, null, 2) : '',
         }
       : EMPTY_FORM
@@ -240,7 +279,7 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70" onClick={() => !saving && onClose()}></div>
       <div className="relative z-10 bg-zinc-900 rounded-2xl border border-zinc-800 w-full max-w-lg max-h-[90vh] flex flex-col">
-        {/* Header */}
+        {/* Cabecera */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-800 flex-shrink-0">
           <div>
             <h3 className="text-white font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -251,6 +290,7 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
             </p>
           </div>
           <button
+            type="button"
             onClick={() => !saving && onClose()}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
           >
@@ -258,9 +298,8 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
           </button>
         </div>
 
-        {/* Scrollable form */}
+        {/* Formulario scrollable */}
         <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
-          {/* Name */}
           <div>
             <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
               Nombre <span className="text-red-400">*</span>
@@ -273,7 +312,6 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
             />
           </div>
 
-          {/* Type */}
           <div>
             <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
               Tipo <span className="text-red-400">*</span>
@@ -299,7 +337,6 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
             </div>
           </div>
 
-          {/* Slug preview */}
           {form.name && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700">
               <i className="ri-link text-zinc-500 text-sm"></i>
@@ -308,7 +345,6 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
             </div>
           )}
 
-          {/* Image URL */}
           <div>
             <label className="block text-xs font-semibold text-zinc-400 mb-1.5">URL de imagen</label>
             <input
@@ -332,7 +368,6 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
             )}
           </div>
 
-          {/* Bio */}
           <div>
             <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Biografía / Descripción</label>
             <textarea
@@ -346,7 +381,6 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
             <p className="text-xs text-zinc-600 mt-1 text-right">{form.bio.length}/500</p>
           </div>
 
-          {/* Metadata JSON */}
           <div>
             <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
               Metadata <span className="text-zinc-600">(JSON opcional)</span>
@@ -367,9 +401,10 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Pie */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800 flex-shrink-0">
           <button
+            type="button"
             onClick={() => !saving && onClose()}
             disabled={saving}
             className="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-semibold hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50"
@@ -377,6 +412,7 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
             Cancelar
           </button>
           <button
+            type="button"
             onClick={handleSave}
             disabled={saving || !form.name.trim()}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-zinc-900 text-sm font-bold hover:bg-zinc-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
@@ -399,7 +435,7 @@ function EntityModal({ editTarget, saving, onClose, onSave }: EntityModalProps) 
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function AdminEntities() {
   const {
@@ -409,27 +445,26 @@ export default function AdminEntities() {
     fetchEntities, fetchTypeCounts,
   } = useAdminEntities();
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<AdminEntity | null>(null);
-  const [saving, setSaving] = useState(false);
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
+  const [modalOpen,     setModalOpen]     = useState(false);
+  const [editTarget,    setEditTarget]    = useState<AdminEntity | null>(null);
+  const [saving,        setSaving]        = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [actionMenu, setActionMenu] = useState<string | null>(null);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
+  const [actionMenu,    setActionMenu]    = useState<string | null>(null);
+  const [filtersOpen,   setFiltersOpen]   = useState(false);
+  const [deleting,      setDeleting]      = useState(false);
+  const [toast,         setToast]         = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
 
   const actionRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  const showToast = (msg: string, type: 'ok' | 'err' = 'ok') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  // ─── Efectos ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (error) showToast(error, 'err');
   }, [error]);
 
-  // Close menus on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (actionRef.current && !actionRef.current.contains(e.target as Node)) setActionMenu(null);
@@ -439,10 +474,18 @@ export default function AdminEntities() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const openCreate = () => { setEditTarget(null); setModalOpen(true); };
-  const openEdit = (entity: AdminEntity) => { setEditTarget(entity); setActionMenu(null); setModalOpen(true); };
+  // ─── Handlers ─────────────────────────────────────────────────────────────
 
-  const handleSave = async (form: { name: string; type: string; image_url: string; bio: string; metadata_raw: string }) => {
+  const showToast = (msg: string, type: 'ok' | 'err' = 'ok') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const openCreate = () => { setEditTarget(null); setModalOpen(true); };
+  const openEdit   = (entity: AdminEntity) => { setEditTarget(entity); setActionMenu(null); setModalOpen(true); };
+
+  /** Persiste una entidad nueva o actualizada en Supabase con log de auditoría. */
+  const handleSave = async (form: EntityFormData) => {
     setSaving(true);
     let parsedMeta: Record<string, unknown> | null = null;
     if (form.metadata_raw.trim()) {
@@ -450,59 +493,77 @@ export default function AdminEntities() {
       catch { showToast('JSON inválido', 'err'); setSaving(false); return; }
     }
 
-    const slug = generateSlug(form.name, form.type);
+    const slug    = generateSlug(form.name, form.type);
     const payload = {
-      name: form.name.trim(),
-      type: form.type,
+      name:     form.name.trim(),
+      type:     form.type,
       slug,
-      image: form.image_url.trim() || null,
-      bio: form.bio.trim() || null,
+      image:    form.image_url.trim() || null,
+      bio:      form.bio.trim() || null,
       metadata: parsedMeta,
     };
 
-    if (editTarget) {
-      const { error } = await supabase.from('entities').update(payload).eq('id', editTarget.id);
-      if (error) {
-        showToast(error.message.includes('unique') ? 'Ya existe una entidad con ese nombre y tipo' : 'Error al guardar', 'err');
+    try {
+      if (editTarget) {
+        const { error } = await supabase.from('entities').update(payload).eq('id', editTarget.id);
+        if (error) {
+          showToast(error.message.includes('unique') ? 'Ya existe una entidad con ese nombre y tipo' : 'Error al guardar', 'err');
+        } else {
+          await auditLog('update', 'entities', editTarget.id, { name: payload.name, type: payload.type });
+          showToast('Entidad actualizada correctamente');
+          setModalOpen(false);
+          fetchEntities();
+          fetchTypeCounts();
+        }
       } else {
-        await auditLog('update', 'entities', editTarget.id, { name: payload.name, type: payload.type });
-        showToast('Entidad actualizada correctamente');
-        setModalOpen(false);
-        fetchEntities();
-        fetchTypeCounts();
+        const { data: inserted, error } = await supabase.from('entities').insert(payload).select('id').maybeSingle();
+        if (error) {
+          showToast(error.message.includes('unique') ? 'Ya existe una entidad con ese nombre y tipo' : 'Error al crear', 'err');
+        } else {
+          await auditLog('create', 'entities', inserted?.id ?? 'unknown', { name: payload.name, type: payload.type });
+          showToast('Entidad creada correctamente');
+          setModalOpen(false);
+          fetchEntities();
+          fetchTypeCounts();
+        }
       }
-    } else {
-      const { data: inserted, error } = await supabase.from('entities').insert(payload).select('id').maybeSingle();
-      if (error) {
-        showToast(error.message.includes('unique') ? 'Ya existe una entidad con ese nombre y tipo' : 'Error al crear', 'err');
-      } else {
-        await auditLog('create', 'entities', inserted?.id ?? 'unknown', { name: payload.name, type: payload.type });
-        showToast('Entidad creada correctamente');
-        setModalOpen(false);
-        fetchEntities();
-        fetchTypeCounts();
-      }
+    } catch {
+      showToast('Error inesperado al guardar', 'err');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
+  /** Elimina una entidad y registra la acción en auditoría. */
   const handleDelete = async (id: string) => {
     const target = entities.find(e => e.id === id);
-    const { error } = await supabase.from('entities').delete().eq('id', id);
-    if (error) {
-      showToast('Error al eliminar', 'err');
-    } else {
-      await auditLog('delete', 'entities', id, { name: target?.name ?? null, type: target?.type ?? null });
-      showToast('Entidad eliminada');
-      fetchEntities();
-      fetchTypeCounts();
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from('entities').delete().eq('id', id);
+      if (error) {
+        showToast('Error al eliminar', 'err');
+      } else {
+        await auditLog('delete', 'entities', id, { name: target?.name ?? null, type: target?.type ?? null });
+        showToast('Entidad eliminada');
+        fetchEntities();
+        fetchTypeCounts();
+      }
+    } catch {
+      showToast('Error inesperado al eliminar', 'err');
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(null);
+      setActionMenu(null);
     }
-    setDeleteConfirm(null);
-    setActionMenu(null);
   };
 
-  const from = (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, total);
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
+  const from         = (page - 1) * pageSize + 1;
+  const to           = Math.min(page * pageSize, total);
+  const maxItemCount = entities.reduce((max, e) => Math.max(max, e.item_count), 1);
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-5">
@@ -518,7 +579,7 @@ export default function AdminEntities() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Cabecera */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-white font-bold text-base" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -537,7 +598,7 @@ export default function AdminEntities() {
         </button>
       </div>
 
-      {/* Type stats bar */}
+      {/* Barra de tipos con conteos — clic para filtrar */}
       <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
         {ENTITY_TYPES.map(t => (
           <button
@@ -558,12 +619,12 @@ export default function AdminEntities() {
         ))}
       </div>
 
-      {/* Toolbar */}
+      {/* Barra de herramientas */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search */}
         <div className="relative flex-1">
           <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
           <input
+            aria-label="Buscar entidad por nombre"
             value={filters.search}
             onChange={e => setFilter('search', e.target.value)}
             placeholder="Buscar entidad por nombre..."
@@ -579,19 +640,15 @@ export default function AdminEntities() {
           )}
         </div>
 
-        {/* Type select */}
         <select
           value={filters.type}
           onChange={e => setFilter('type', e.target.value)}
           className="px-3 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-zinc-300 focus:outline-none cursor-pointer"
         >
           <option value="all">Todos los tipos</option>
-          {ENTITY_TYPES.map(t => (
-            <option key={t.value} value={t.value}>{t.label}</option>
-          ))}
+          {ENTITY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
 
-        {/* Advanced filters button */}
         <div ref={filterRef} className="relative flex-shrink-0">
           <button
             onClick={() => setFiltersOpen(p => !p)}
@@ -625,7 +682,6 @@ export default function AdminEntities() {
           )}
         </div>
 
-        {/* Refresh */}
         <button
           onClick={fetchEntities}
           className="px-3 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors cursor-pointer"
@@ -635,7 +691,7 @@ export default function AdminEntities() {
         </button>
       </div>
 
-      {/* Active filter chips */}
+      {/* Chips de filtros activos */}
       {activeFilterCount > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           {filters.type !== 'all' && (
@@ -671,21 +727,14 @@ export default function AdminEntities() {
         </div>
       )}
 
-      {/* Stats row */}
+      {/* Resumen de paginación */}
       <div className="flex items-center gap-3 text-xs text-zinc-500">
-        {!loading && total > 0 && (
-          <>
-            <span>Mostrando {from}–{to} de {total.toLocaleString()}</span>
-            <span>·</span>
-            <span>Página {page} de {totalPages}</span>
-          </>
-        )}
+        {!loading && total > 0  && <><span>Mostrando {from}–{to} de {total.toLocaleString()}</span><span>·</span><span>Página {page} de {totalPages}</span></>}
         {!loading && total === 0 && <span>Sin resultados</span>}
       </div>
 
-      {/* Table */}
+      {/* Tabla */}
       <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
-        {/* Column headers */}
         <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-zinc-800 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
           <div className="col-span-5">Entidad</div>
           <div className="col-span-2 hidden md:block">Tipo</div>
@@ -722,18 +771,12 @@ export default function AdminEntities() {
                 : 'No se encontraron entidades con estos filtros'}
             </p>
             {activeFilterCount > 0 && (
-              <button
-                onClick={resetFilters}
-                className="mt-3 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer"
-              >
+              <button onClick={resetFilters} className="mt-3 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer">
                 Limpiar filtros
               </button>
             )}
             {total === 0 && !filters.search && filters.type === 'all' && (
-              <button
-                onClick={openCreate}
-                className="mt-4 px-4 py-2 rounded-xl bg-white text-zinc-900 text-sm font-bold hover:bg-zinc-100 transition-colors cursor-pointer"
-              >
+              <button onClick={openCreate} className="mt-4 px-4 py-2 rounded-xl bg-white text-zinc-900 text-sm font-bold hover:bg-zinc-100 transition-colors cursor-pointer">
                 Crear entidad
               </button>
             )}
@@ -744,7 +787,6 @@ export default function AdminEntities() {
               const meta = TYPE_META[entity.type] ?? { icon: 'ri-user-line', color: '#71717a', label: entity.type };
               return (
                 <div key={entity.id} className="grid grid-cols-12 gap-4 px-5 py-4 items-center hover:bg-white/5 transition-colors">
-                  {/* Entity */}
                   <div className="col-span-5 flex items-center gap-3 min-w-0">
                     {entity.image ? (
                       <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
@@ -757,13 +799,10 @@ export default function AdminEntities() {
                     )}
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-white truncate">{entity.name}</p>
-                      {entity.bio && (
-                        <p className="text-xs text-zinc-500 truncate mt-0.5">{entity.bio}</p>
-                      )}
+                      {entity.bio && <p className="text-xs text-zinc-500 truncate mt-0.5">{entity.bio}</p>}
                     </div>
                   </div>
 
-                  {/* Type */}
                   <div className="col-span-2 hidden md:flex items-center gap-1.5">
                     <div className="w-5 h-5 flex items-center justify-center">
                       <i className={`${meta.icon} text-sm`} style={{ color: meta.color }}></i>
@@ -771,12 +810,10 @@ export default function AdminEntities() {
                     <span className="text-xs text-zinc-400">{meta.label}</span>
                   </div>
 
-                  {/* Slug */}
                   <div className="col-span-2 hidden lg:block">
                     <span className="text-xs text-zinc-600 font-mono truncate block">{entity.slug}</span>
                   </div>
 
-                  {/* Item count */}
                   <div className="col-span-2 hidden lg:flex items-center gap-2">
                     <span className={`text-sm font-semibold ${entity.item_count > 0 ? 'text-white' : 'text-zinc-600'}`}>
                       {entity.item_count}
@@ -786,7 +823,7 @@ export default function AdminEntities() {
                         <div
                           className="h-full rounded-full"
                           style={{
-                            width: `${Math.min(100, (entity.item_count / Math.max(...entities.map(e => e.item_count), 1)) * 100)}%`,
+                            width:      `${Math.min(100, (entity.item_count / maxItemCount) * 100)}%`,
                             background: meta.color,
                           }}
                         ></div>
@@ -794,7 +831,6 @@ export default function AdminEntities() {
                     )}
                   </div>
 
-                  {/* Actions */}
                   <div className="col-span-7 md:col-span-3 lg:col-span-1 flex items-center justify-end relative">
                     <button
                       onClick={() => setActionMenu(prev => prev === entity.id ? null : entity.id)}
@@ -835,42 +871,21 @@ export default function AdminEntities() {
         )}
       </div>
 
-      {/* Pagination */}
+      {/* Paginación */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-xs text-zinc-500">
-            {from}–{to} de {total.toLocaleString()} entidades
-          </p>
+          <p className="text-xs text-zinc-500">{from}–{to} de {total.toLocaleString()} entidades</p>
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setPage(1)}
-              disabled={page === 1}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 text-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-              title="Primera página"
-            >
-              <i className="ri-skip-back-line text-xs"></i>
-            </button>
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 text-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-            >
-              <i className="ri-arrow-left-s-line"></i>
-            </button>
+            <button onClick={() => setPage(1)} disabled={page === 1} className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 text-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors" title="Primera página"><i className="ri-skip-back-line text-xs"></i></button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 text-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"><i className="ri-arrow-left-s-line"></i></button>
 
-            {/* Page numbers */}
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let p: number;
-                if (totalPages <= 5) {
-                  p = i + 1;
-                } else if (page <= 3) {
-                  p = i + 1;
-                } else if (page >= totalPages - 2) {
-                  p = totalPages - 4 + i;
-                } else {
-                  p = page - 2 + i;
-                }
+                if (totalPages <= 5)       { p = i + 1; }
+                else if (page <= 3)        { p = i + 1; }
+                else if (page >= totalPages - 2) { p = totalPages - 4 + i; }
+                else                       { p = page - 2 + i; }
                 return (
                   <button
                     key={p}
@@ -887,26 +902,13 @@ export default function AdminEntities() {
               })}
             </div>
 
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 text-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-            >
-              <i className="ri-arrow-right-s-line"></i>
-            </button>
-            <button
-              onClick={() => setPage(totalPages)}
-              disabled={page === totalPages}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 text-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-              title="Última página"
-            >
-              <i className="ri-skip-forward-line text-xs"></i>
-            </button>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 text-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"><i className="ri-arrow-right-s-line"></i></button>
+            <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 text-sm hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors" title="Última página"><i className="ri-skip-forward-line text-xs"></i></button>
           </div>
         </div>
       )}
 
-      {/* Delete confirm */}
+      {/* Modal de confirmación de eliminación */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" onClick={() => setDeleteConfirm(null)}></div>
@@ -914,31 +916,19 @@ export default function AdminEntities() {
             <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center mx-auto mb-4">
               <i className="ri-delete-bin-line text-red-400 text-xl"></i>
             </div>
-            <h3 className="text-white font-bold text-center mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              ¿Eliminar entidad?
-            </h3>
+            <h3 className="text-white font-bold text-center mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>¿Eliminar entidad?</h3>
             <p className="text-zinc-400 text-sm text-center mb-6">
               Se eliminarán también todas sus relaciones con ítems del catálogo. Esta acción no se puede deshacer.
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-semibold hover:bg-zinc-700 transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors cursor-pointer"
-              >
-                Eliminar
-              </button>
+              <button type="button" onClick={() => setDeleteConfirm(null)} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-semibold hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50">Cancelar</button>
+              <button type="button" onClick={() => handleDelete(deleteConfirm)} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-60">Eliminar</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Create / Edit modal */}
+      {/* Modal de creación / edición */}
       {modalOpen && (
         <EntityModal
           editTarget={editTarget}

@@ -1,19 +1,72 @@
+/**
+ * ItemEntitiesEditor.tsx — editor de entidades vinculadas a un ítem del catálogo.
+ *
+ * Permite buscar entidades (personas/estudios) con debounce de 350 ms y vincularlas
+ * a un ítem del catálogo con un rol específico. Muestra las entidades ya vinculadas
+ * agrupadas por rol en el orden canónico definido por `roleOrder`. Cada chip incluye
+ * un botón de desvinculación visible al pasar el cursor.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect, useRef } from 'react';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useAdminItemEntities, AVAILABLE_ROLES, type EntitySearchResult } from '@/hooks/useAdminItemEntities';
 import { ROLE_CONFIG } from '@/hooks/useItemEntities';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del componente principal. */
 interface Props {
+  /** ID del ítem de catálogo cuyas entidades se gestionan. */
   itemId: string;
 }
 
-// ─── Role selector ────────────────────────────────────────────────────────────
-function RoleSelector({
-  value,
-  onChange,
-}: {
+/** Props del selector de roles. */
+interface RoleSelectorProps {
+  /** Rol actualmente seleccionado. */
   value: string;
+  /** Callback al cambiar la selección. */
   onChange: (v: string) => void;
-}) {
+}
+
+/** Props de la fila de resultado de búsqueda. */
+interface SearchResultRowProps {
+  /** Entidad encontrada en la búsqueda. */
+  entity: EntitySearchResult;
+  /** Rol que se asignará al vincular. */
+  selectedRole: string;
+  /** Callback que recibe el ID de la entidad a vincular. */
+  onLink: (entityId: string) => void;
+  /** Indica si hay una vinculación en curso (deshabilita el botón). */
+  linking: boolean;
+}
+
+/** Props del chip de entidad vinculada. */
+interface LinkedEntityChipProps {
+  /** Nombre de la entidad. */
+  name: string;
+  /** URL de la imagen de la entidad, o `null` si no tiene. */
+  image: string | null;
+  /** Tipo de entidad (coincide con clave de `ROLE_CONFIG`). */
+  type: string;
+  /** Rol asignado al ítem (coincide con clave de `ROLE_CONFIG`). */
+  role: string;
+  /** Callback para desvincular esta entidad. */
+  onUnlink: () => void;
+}
+
+// ─── Sub-componentes ─────────────────────────────────────────────────────────
+
+/**
+ * Cuadrícula de 4 columnas para elegir el rol de la próxima vinculación.
+ *
+ * @param value    - Rol actualmente seleccionado.
+ * @param onChange - Callback al seleccionar un rol distinto.
+ */
+function RoleSelector({ value, onChange }: RoleSelectorProps) {
   return (
     <div className="grid grid-cols-4 gap-1.5">
       {AVAILABLE_ROLES.map(r => (
@@ -37,18 +90,15 @@ function RoleSelector({
   );
 }
 
-// ─── Entity search result row ─────────────────────────────────────────────────
-function SearchResultRow({
-  entity,
-  selectedRole,
-  onLink,
-  linking,
-}: {
-  entity: EntitySearchResult;
-  selectedRole: string;
-  onLink: (entityId: string) => void;
-  linking: boolean;
-}) {
+/**
+ * Fila de resultado de búsqueda con avatar, nombre, tipo/slug y botón "Vincular".
+ *
+ * @param entity       - Entidad encontrada.
+ * @param selectedRole - Rol que se usará al vincular.
+ * @param onLink       - Callback con el ID de la entidad a vincular.
+ * @param linking      - Bloquea el botón mientras hay una vinculación en curso.
+ */
+function SearchResultRow({ entity, selectedRole, onLink, linking }: SearchResultRowProps) {
   const roleConf = ROLE_CONFIG[entity.type] ?? ROLE_CONFIG['creator'];
 
   return (
@@ -67,13 +117,13 @@ function SearchResultRow({
         )}
       </div>
 
-      {/* Info */}
+      {/* Nombre y tipo */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white truncate">{entity.name}</p>
         <p className="text-xs text-zinc-500 truncate">{entity.type} · {entity.slug}</p>
       </div>
 
-      {/* Link button */}
+      {/* Botón de vinculación */}
       <button
         onClick={() => onLink(entity.id)}
         disabled={linking}
@@ -90,20 +140,17 @@ function SearchResultRow({
   );
 }
 
-// ─── Linked entity chip ───────────────────────────────────────────────────────
-function LinkedEntityChip({
-  name,
-  image,
-  type,
-  role,
-  onUnlink,
-}: {
-  name: string;
-  image: string | null;
-  type: string;
-  role: string;
-  onUnlink: () => void;
-}) {
+/**
+ * Chip de entidad ya vinculada con avatar, nombre, badge de rol y botón de desvinculación.
+ * El botón de desvinculación solo es visible cuando el cursor está sobre el chip.
+ *
+ * @param name     - Nombre de la entidad.
+ * @param image    - URL de la imagen o `null`.
+ * @param type     - Tipo de entidad para derivar el icono del avatar sin imagen.
+ * @param role     - Rol asignado para mostrar el badge de color.
+ * @param onUnlink - Callback al pulsar el botón de desvinculación.
+ */
+function LinkedEntityChip({ name, image, type, role, onUnlink }: LinkedEntityChipProps) {
   const roleConf = ROLE_CONFIG[role] ?? ROLE_CONFIG['creator'];
   const typeConf = ROLE_CONFIG[type] ?? roleConf;
 
@@ -123,7 +170,7 @@ function LinkedEntityChip({
         )}
       </div>
 
-      {/* Info */}
+      {/* Nombre y badge de rol */}
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold text-white truncate">{name}</p>
         <div className="flex items-center gap-1 mt-0.5">
@@ -136,7 +183,7 @@ function LinkedEntityChip({
         </div>
       </div>
 
-      {/* Remove */}
+      {/* Botón de desvinculación (visible al hover) */}
       <button
         onClick={onUnlink}
         className="w-6 h-6 flex items-center justify-center rounded-md text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer opacity-0 group-hover:opacity-100 flex-shrink-0"
@@ -148,7 +195,8 @@ function LinkedEntityChip({
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Componente principal ─────────────────────────────────────────────────────
+
 export default function ItemEntitiesEditor({ itemId }: Props) {
   const {
     linked, loadingLinked,
@@ -159,14 +207,19 @@ export default function ItemEntitiesEditor({ itemId }: Props) {
     unlinkEntity,
   } = useAdminItemEntities(itemId);
 
-  const [query, setQuery] = useState('');
-  const [selectedRole, setSelectedRole] = useState('actor');
-  const [showSearch, setShowSearch] = useState(false);
-  const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
+  // ─── Estado ───────────────────────────────────────────────────────────────
 
-  // Debounce search
+  const [query,        setQuery]        = useState('');
+  const [selectedRole, setSelectedRole] = useState('actor');
+  const [showSearch,   setShowSearch]   = useState(false);
+  const [toast,        setToast]        = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRef   = useRef<HTMLDivElement>(null);
+
+  // ─── Efectos ──────────────────────────────────────────────────────────────
+
+  /** Lanza la búsqueda con debounce de 350 ms cuando `query` cambia. */
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (query.trim().length >= 2) {
@@ -177,7 +230,7 @@ export default function ItemEntitiesEditor({ itemId }: Props) {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query, searchEntities]);
 
-  // Close dropdown on outside click
+  /** Cierra el desplegable de búsqueda al hacer clic fuera del contenedor. */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
@@ -188,7 +241,7 @@ export default function ItemEntitiesEditor({ itemId }: Props) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Show error as toast
+  /** Convierte errores del hook en toasts temporales de 3 segundos. */
   useEffect(() => {
     if (error) {
       setToast({ msg: error, type: 'err' });
@@ -197,6 +250,31 @@ export default function ItemEntitiesEditor({ itemId }: Props) {
     }
   }, [error, setError]);
 
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
+  /** Entidades vinculadas agrupadas por rol para renderizar por secciones. */
+  const groupedLinked = linked.reduce<Record<string, typeof linked>>((acc, e) => {
+    if (!acc[e.role]) acc[e.role] = [];
+    acc[e.role].push(e);
+    return acc;
+  }, {});
+
+  /** Orden canónico de roles; los roles desconocidos se colocan al final. */
+  const roleOrder   = ['director', 'developer', 'author', 'artist', 'creator', 'studio', 'publisher', 'actor'];
+  const sortedRoles = Object.keys(groupedLinked).sort((a, b) => {
+    const ia = roleOrder.indexOf(a);
+    const ib = roleOrder.indexOf(b);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  /**
+   * Vincula una entidad al ítem con el rol actualmente seleccionado.
+   * Muestra toast de éxito y limpia el campo de búsqueda.
+   *
+   * @param entityId - ID de la entidad a vincular.
+   */
   const handleLink = async (entityId: string) => {
     const ok = await linkEntity(entityId, selectedRole);
     if (ok) {
@@ -207,27 +285,21 @@ export default function ItemEntitiesEditor({ itemId }: Props) {
     }
   };
 
+  /**
+   * Desvincula una entidad del ítem.
+   *
+   * @param entityId - ID de la entidad.
+   * @param role     - Rol bajo el que está vinculada.
+   */
   const handleUnlink = async (entityId: string, role: string) => {
     await unlinkEntity(entityId, role);
   };
 
-  // Group linked by role for display
-  const groupedLinked = linked.reduce<Record<string, typeof linked>>((acc, e) => {
-    if (!acc[e.role]) acc[e.role] = [];
-    acc[e.role].push(e);
-    return acc;
-  }, {});
-
-  const roleOrder = ['director', 'developer', 'author', 'artist', 'creator', 'studio', 'publisher', 'actor'];
-  const sortedRoles = Object.keys(groupedLinked).sort((a, b) => {
-    const ia = roleOrder.indexOf(a);
-    const ib = roleOrder.indexOf(b);
-    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-  });
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Section header */}
+      {/* Cabecera de sección */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 flex items-center justify-center">
@@ -244,7 +316,7 @@ export default function ItemEntitiesEditor({ itemId }: Props) {
         </div>
       </div>
 
-      {/* Toast inline */}
+      {/* Toast de confirmación / error */}
       {toast && (
         <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
           toast.type === 'ok'
@@ -256,13 +328,13 @@ export default function ItemEntitiesEditor({ itemId }: Props) {
         </div>
       )}
 
-      {/* Role selector */}
+      {/* Selector de rol para la próxima vinculación */}
       <div>
         <p className="text-xs text-zinc-500 mb-2">Rol para la próxima vinculación:</p>
         <RoleSelector value={selectedRole} onChange={setSelectedRole} />
       </div>
 
-      {/* Search box */}
+      {/* Buscador de entidades con desplegable */}
       <div ref={searchRef} className="relative">
         <div className="relative">
           <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
@@ -280,7 +352,7 @@ export default function ItemEntitiesEditor({ itemId }: Props) {
           )}
         </div>
 
-        {/* Dropdown results */}
+        {/* Resultados del desplegable */}
         {showSearch && query.trim().length >= 2 && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-900 border border-zinc-700 rounded-xl z-30 overflow-hidden max-h-64 overflow-y-auto">
             {searching && searchResults.length === 0 ? (
@@ -306,7 +378,7 @@ export default function ItemEntitiesEditor({ itemId }: Props) {
         )}
       </div>
 
-      {/* Linked entities list */}
+      {/* Lista de entidades vinculadas agrupadas por rol */}
       {loadingLinked ? (
         <div className="flex flex-col gap-2">
           {[1, 2, 3].map(i => (
@@ -326,7 +398,7 @@ export default function ItemEntitiesEditor({ itemId }: Props) {
         <div className="flex flex-col gap-3">
           {sortedRoles.map(role => (
             <div key={role}>
-              {/* Role group label */}
+              {/* Etiqueta de grupo por rol */}
               <div className="flex items-center gap-1.5 mb-1.5">
                 <div className="w-4 h-4 flex items-center justify-center">
                   <i

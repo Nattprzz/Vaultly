@@ -1,23 +1,48 @@
+/**
+ * ItemGallery.tsx — galería de imágenes del ítem con lightbox.
+ *
+ * Muestra la imagen activa en formato aspect-video con flechas de navegación
+ * y un contador. Debajo presenta miniaturas clicables para saltar directamente
+ * a cualquier imagen. Al hacer click en la imagen principal se abre un lightbox
+ * a pantalla completa con las mismas flechas de navegación.
+ * Si no hay imágenes en la galería, el componente no renderiza nada.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState } from 'react';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { GalleryImage } from '@/types/itemDetail';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props de la galería de imágenes. */
 interface Props {
   gallery: GalleryImage[];
+  /** Título del ítem, usado en el pie del lightbox. */
   title: string;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ItemGallery({ gallery, title }: Props) {
-  const [active, setActive] = useState(0);
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
+  const [active, setActive]     = useState(0);
   const [lightbox, setLightbox] = useState(false);
 
   if (!gallery || gallery.length === 0) return null;
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <>
       <div>
         <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">Galería</h2>
 
-        {/* Main image */}
+        {/* Imagen principal con navegación y zoom */}
         <div
           className="relative w-full aspect-video rounded-2xl overflow-hidden mb-3 cursor-zoom-in group"
           onClick={() => setLightbox(true)}
@@ -33,7 +58,8 @@ export default function ItemGallery({ gallery, title }: Props) {
           <div className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg bg-black/50 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-opacity">
             <i className="ri-fullscreen-line text-sm"></i>
           </div>
-          {/* Nav arrows */}
+
+          {/* Flechas de navegación */}
           {gallery.length > 1 && (
             <>
               <button
@@ -50,13 +76,14 @@ export default function ItemGallery({ gallery, title }: Props) {
               </button>
             </>
           )}
-          {/* Counter */}
+
+          {/* Contador de imagen activa */}
           <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-sm text-white text-xs font-medium">
             {active + 1} / {gallery.length}
           </div>
         </div>
 
-        {/* Thumbnails */}
+        {/* Miniaturas */}
         {gallery.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {gallery.map((img, i) => (
@@ -74,7 +101,7 @@ export default function ItemGallery({ gallery, title }: Props) {
         )}
       </div>
 
-      {/* Lightbox */}
+      {/* Lightbox a pantalla completa */}
       {lightbox && (
         <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"

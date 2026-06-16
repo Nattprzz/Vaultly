@@ -1,6 +1,18 @@
+/**
+ * import-igdb-companies.ts — importación directa de compañías desde IGDB.
+ *
+ * Consulta IGDB por lotes, adapta columnas disponibles y actualiza game_companies.
+ *
+ * Utilizado en sincronizaciones administrativas de catálogo de compañías.
+ */
+
+// ─── Configuración ────────────────────────────────────────────────────
 import 'dotenv/config';
+
+// ─── Librerías externas ────────────────────────────────────────────────
 import { createClient } from '@supabase/supabase-js';
 
+// ─── Constantes ───────────────────────────────────────────────────────
 const SUPABASE_URL = process.env.SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const IGDB_CLIENT_ID = process.env.IGDB_CLIENT_ID!;
@@ -14,6 +26,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !IGDB_CLIENT_ID || !IGDB_CLIE
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+// ─── Tipos ─────────────────────────────────────────────────────────────
 type IgdbCompany = {
   id: number;
   name: string;
@@ -33,6 +46,12 @@ type IgdbCompany = {
 type NormalizedCompany = ReturnType<typeof normalizeCompany>;
 type ImportRow = Record<string, unknown> & { igdb_id: number };
 
+// ─── Helpers ──────────────────────────────────────────────────────────
+/**
+ * Solicita un token OAuth de Twitch para autenticar llamadas IGDB.
+ *
+ * @returns Token de acceso válido para la API de IGDB.
+ */
 async function getIgdbToken() {
   const res = await fetch(
     `https://id.twitch.tv/oauth2/token?client_id=${IGDB_CLIENT_ID}&client_secret=${IGDB_CLIENT_SECRET}&grant_type=client_credentials`,
@@ -47,6 +66,13 @@ async function getIgdbToken() {
   return data.access_token as string;
 }
 
+/**
+ * Recupera un lote paginado de compañías desde IGDB.
+ *
+ * @param token Token OAuth de IGDB.
+ * @param offset Desplazamiento de paginación.
+ * @returns Compañías crudas devueltas por IGDB.
+ */
 async function fetchCompanies(token: string, offset: number): Promise<IgdbCompany[]> {
   const query = `
 fields
@@ -87,6 +113,11 @@ offset ${offset};
   return res.json();
 }
 
+/**
+ * Intenta obtener columnas reales de game_companies desde el esquema REST.
+ *
+ * @returns Conjunto de columnas disponibles; vacío si no se puede leer.
+ */
 async function fetchTableColumnsFromRestSchema() {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/`, {
     headers: {
@@ -114,6 +145,11 @@ async function fetchTableColumnsFromRestSchema() {
   return new Set(Object.keys(properties));
 }
 
+/**
+ * Obtiene columnas disponibles usando una fila de muestra.
+ *
+ * @returns Conjunto de columnas detectadas desde Supabase.
+ */
 async function fetchTableColumnsFromSampleRow() {
   const { data, error } = await supabase
     .from('game_companies')
@@ -128,6 +164,11 @@ async function fetchTableColumnsFromSampleRow() {
   return new Set(firstRow ? Object.keys(firstRow) : []);
 }
 
+/**
+ * Resuelve las columnas válidas de game_companies antes del upsert.
+ *
+ * @returns Conjunto de columnas aceptadas por la tabla actual.
+ */
 async function getGameCompanyColumns() {
   const schemaColumns = await fetchTableColumnsFromRestSchema();
   if (schemaColumns.size > 0) return schemaColumns;
@@ -140,6 +181,12 @@ async function getGameCompanyColumns() {
   );
 }
 
+/**
+ * Convierte timestamps Unix de IGDB a fecha ISO de día.
+ *
+ * @param value Timestamp en segundos.
+ * @returns Fecha YYYY-MM-DD o null.
+ */
 function unixToDate(value?: number | null) {
   if (!value || typeof value !== 'number' || !Number.isFinite(value)) return null;
 
@@ -161,14 +208,26 @@ function unixToDate(value?: number | null) {
   return date.toISOString().slice(0, 10);
 }
 
+/**
+ * Construye la URL de logo cuando IGDB expone un identificador suficiente.
+ *
+ * @param logo Identificador numérico del logo.
+ * @returns URL de imagen o null.
+ */
 function logoUrl(logo?: number) {
   if (!logo) return null;
 
-  // Si luego traes logo.image_id, cambia esta parte.
-  // Con solo logo ID no se puede construir URL final correctamente.
+  // Si luego se obtiene logo.image_id, esta conversión debe actualizarse.
+  // Con solo el ID del logo no se puede construir la URL final correctamente.
   return null;
 }
 
+/**
+ * Normaliza una compañía cruda de IGDB al formato de importación.
+ *
+ * @param company Compañía devuelta por IGDB.
+ * @returns Fila normalizada para game_companies.
+ */
 function normalizeCompany(company: IgdbCompany) {
   const developedCount = company.developed?.length ?? 0;
   const publishedCount = company.published?.length ?? 0;
@@ -214,12 +273,26 @@ function normalizeCompany(company: IgdbCompany) {
   };
 }
 
+/**
+ * Elimina del payload las columnas que no existen en la tabla actual.
+ *
+ * @param row Fila normalizada completa.
+ * @param validColumns Columnas disponibles en game_companies.
+ * @returns Fila filtrada para upsert seguro.
+ */
 function filterExistingColumns(row: NormalizedCompany, validColumns: Set<string>) {
   return Object.fromEntries(
     Object.entries(row).filter(([key]) => validColumns.has(key))
   ) as ImportRow;
 }
 
+/**
+ * Aplica el filtrado de columnas a un lote completo.
+ *
+ * @param rows Filas normalizadas.
+ * @param validColumns Columnas disponibles en game_companies.
+ * @returns Filas compatibles con la tabla actual.
+ */
 function filterRowsForUpsert(rows: NormalizedCompany[], validColumns: Set<string>) {
   if (rows.length === 0) return;
 
@@ -245,6 +318,13 @@ function filterRowsForUpsert(rows: NormalizedCompany[], validColumns: Set<string
   return filteredRows;
 }
 
+// ─── Validaciones ─────────────────────────────────────────────────────
+/**
+ * Decide si una compañía aporta suficiente valor para ser importada.
+ *
+ * @param company Compañía cruda de IGDB.
+ * @returns Verdadero cuando debe sincronizarse.
+ */
 function shouldImport(company: IgdbCompany) {
   if (!company.id || !company.name || !company.slug) return false;
 
@@ -253,6 +333,10 @@ function shouldImport(company: IgdbCompany) {
   return Boolean(company.description || company.logo || totalGames >= 3);
 }
 
+// ─── Operaciones principales ──────────────────────────────────────────
+/**
+ * Ejecuta la sincronización completa por lotes desde IGDB hacia Supabase.
+ */
 async function main() {
   console.log('Obteniendo token IGDB...');
   const token = await getIgdbToken();

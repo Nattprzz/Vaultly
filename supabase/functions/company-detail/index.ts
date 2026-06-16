@@ -1,5 +1,24 @@
+/**
+ * Función Edge: company-detail
+ *
+ * Endpoint encargado de devolver información completa de compañías de videojuegos.
+ *
+ * Flujo:
+ * 1. Busca en caché.
+ * 2. Valida expiración.
+ * 3. Consulta IGDB si es necesario.
+ * 4. Normaliza la respuesta.
+ * 5. Actualiza caché.
+ */
+
+// ─── Framework ─────────────────────────────────────────────────────────
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+// ─── Servicios ─────────────────────────────────────────────────────────
 import { getIgdbCompanyBySlug, toCompanySlug } from '../_shared/api/igdbCompanies.ts';
+import { checkRateLimit, clientIdentifier, publicError, safeText } from '../_shared/security.ts';
+
+// ─── Tipos ─────────────────────────────────────────────────────────────
 import type { NormalizedGameCompany } from '../_shared/api/types.ts';
 
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -9,6 +28,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Construye respuestas JSON con cabeceras CORS homogéneas.
+ *
+ * @param body Cuerpo serializable de la respuesta.
+ * @param status Código HTTP que debe devolverse.
+ * @returns Respuesta HTTP lista para la Edge Function.
+ */
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -16,11 +42,23 @@ function json(body: unknown, status = 200) {
   });
 }
 
+/**
+ * Comprueba si una fila de caché sigue dentro de la ventana de sincronización.
+ *
+ * @param lastSyncedAt Fecha ISO de la última sincronización.
+ * @returns Verdadero cuando el registro puede reutilizarse sin consultar IGDB.
+ */
 function isFresh(lastSyncedAt?: string | null) {
   if (!lastSyncedAt) return false;
   return Date.now() - new Date(lastSyncedAt).getTime() < CACHE_TTL_MS;
 }
 
+/**
+ * Convierte una fila de game_companies al contrato público normalizado.
+ *
+ * @param row Registro devuelto por Supabase.
+ * @returns Compañía preparada para la respuesta de la API.
+ */
 function rowToCompany(row: any): NormalizedGameCompany {
   return {
     id: row.id,
@@ -63,6 +101,12 @@ function rowToCompany(row: any): NormalizedGameCompany {
   };
 }
 
+/**
+ * Convierte una compañía normalizada al formato persistido en game_companies.
+ *
+ * @param company Compañía obtenida desde IGDB.
+ * @returns Objeto compatible con upsert en Supabase.
+ */
 function companyToRow(company: NormalizedGameCompany) {
   return {
     igdb_id: company.igdb_id,
@@ -99,6 +143,13 @@ function companyToRow(company: NormalizedGameCompany) {
   };
 }
 
+/**
+ * Busca una compañía por slug en la caché local.
+ *
+ * @param db Cliente Supabase con permisos de servicio.
+ * @param slug Slug público de la compañía.
+ * @returns Fila encontrada o null.
+ */
 async function fetchCachedCompany(db: any, slug: string) {
   const { data, error } = await db
     .from('game_companies')
@@ -108,6 +159,24 @@ async function fetchCachedCompany(db: any, slug: string) {
 
   if (error) throw error;
   return data;
+}
+
+async function getRequester(req: Request, db: any) {
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (!token) return { userId: null, isAdmin: false };
+
+  const { data: userData } = await db.auth.getUser(token);
+  const userId = userData.user?.id ?? null;
+  if (!userId) return { userId: null, isAdmin: false };
+
+  const { data } = await db
+    .from('profiles')
+    .select('role, status')
+    .eq('id', userId)
+    .maybeSingle();
+
+  return { userId, isAdmin: data?.role === 'admin' && data?.status === 'active' };
 }
 
 Deno.serve(async req => {
@@ -120,8 +189,8 @@ Deno.serve(async req => {
   }
 
   const url = new URL(req.url);
-  const slugParam = url.searchParams.get('slug');
-  const forceSync = url.searchParams.get('force_sync') === '1';
+  const slugParam = safeText(url.searchParams.get('slug'), 120);
+  const forceSyncRequested = url.searchParams.get('force_sync') === '1';
   const slug = toCompanySlug(slugParam);
 
   if (!slug) {
@@ -132,6 +201,14 @@ Deno.serve(async req => {
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
+  const requester = await getRequester(req, db);
+  const allowed = await checkRateLimit(db, 'company-detail', clientIdentifier(req, requester.userId), 20, 60);
+  if (!allowed) return json({ error: 'Too many requests' }, 429);
+
+  if (forceSyncRequested && !requester.isAdmin) {
+    return json({ error: 'Admin access required' }, 403);
+  }
+  const forceSync = forceSyncRequested && requester.isAdmin;
 
   let cached: any = null;
 
@@ -171,6 +248,6 @@ Deno.serve(async req => {
       return json({ error: 'IGDB rate limit exceeded' }, 429);
     }
 
-    return json({ error: message }, 500);
+    return json(publicError(), 500);
   }
 });

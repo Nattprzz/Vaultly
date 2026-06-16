@@ -1,11 +1,29 @@
+/**
+ * RecentActivity.tsx — lista de actividad reciente del tracker en el dashboard.
+ *
+ * Muestra los últimos ítems modificados del tracker del usuario con su estado,
+ * puntuación (si existe) y tiempo relativo. Mientras carga, muestra una lista
+ * de esqueletos. Si no hay actividad, ofrece un enlace al catálogo.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { RecentActivityItem } from '@/hooks/useDashboardStats';
 import { timeAgo, statusLabel } from '@/hooks/useDashboardStats';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del componente de actividad reciente. */
 interface Props {
   items: RecentActivityItem[];
   loading: boolean;
 }
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function RecentActivity({ items, loading }: Props) {
   return (
@@ -21,6 +39,7 @@ export default function RecentActivity({ items, loading }: Props) {
       </div>
 
       {loading ? (
+        /* Esqueleto de carga */
         <div className="divide-y divide-zinc-50 dark:divide-zinc-800">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex items-center gap-4 px-6 py-4">
@@ -33,6 +52,7 @@ export default function RecentActivity({ items, loading }: Props) {
           ))}
         </div>
       ) : items.length === 0 ? (
+        /* Estado vacío */
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <div className="w-12 h-12 flex items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-800">
             <i className="ri-history-line text-zinc-400 text-xl"></i>
@@ -46,7 +66,7 @@ export default function RecentActivity({ items, loading }: Props) {
         <div className="divide-y divide-zinc-50 dark:divide-zinc-800">
           {items.map(item => (
             <div key={item.id} className="flex items-center gap-4 px-6 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-              {/* Category icon */}
+              {/* Icono de categoría */}
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: `${item.accent}18` }}
@@ -54,7 +74,7 @@ export default function RecentActivity({ items, loading }: Props) {
                 <i className={`${item.icon} text-lg`} style={{ color: item.accent }}></i>
               </div>
 
-              {/* Info */}
+              {/* Título y estado */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-zinc-900 dark:text-white font-medium truncate">
                   {item.title}
@@ -65,7 +85,7 @@ export default function RecentActivity({ items, loading }: Props) {
                 </p>
               </div>
 
-              {/* Category badge */}
+              {/* Badge de categoría */}
               <div
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0"
                 style={{ background: `${item.accent}18`, color: item.accent }}
@@ -73,7 +93,7 @@ export default function RecentActivity({ items, loading }: Props) {
                 <span className="hidden sm:inline">{item.categoryLabel}</span>
               </div>
 
-              {/* Rating */}
+              {/* Puntuación */}
               {item.rating != null && (
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <i className="ri-star-fill text-amber-400 text-xs"></i>
@@ -81,7 +101,7 @@ export default function RecentActivity({ items, loading }: Props) {
                 </div>
               )}
 
-              {/* Time */}
+              {/* Tiempo relativo */}
               <p className="text-xs text-zinc-400 flex-shrink-0 hidden md:block">{timeAgo(item.updated_at)}</p>
             </div>
           ))}

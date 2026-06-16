@@ -1,19 +1,47 @@
+/**
+ * catalog/page.tsx — página de catálogo con búsqueda, filtros e infinite scroll.
+ *
+ * Soporta dos modos: idle (muestra los últimos 60 ítems de la BD) y búsqueda
+ * activa (llama a la Edge Function via useCatalogSearch con debounce de 500ms
+ * y pagina con IntersectionObserver). Los filtros (useCatalogFilters) se aplican
+ * en cliente sobre el resultado activo. La categoría se sincroniza con la URL
+ * (/catalog/:category) y valida que esté en la lista de categorías habilitadas.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link, useNavigate, useParams } from 'react-router-dom';
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
 import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
+import CatalogFilters from './components/CatalogFilters';
+import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button"
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useCategories } from '@/hooks/useCategoryColors';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
 import { useCatalogSearch, type CatalogItem } from '@/hooks/useCatalogSearch';
 import { useCatalogFilters, applyFilters, extractGenres, DEFAULT_FILTERS } from '@/hooks/useCatalogFilters';
-import CatalogFilters from './components/CatalogFilters';
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
 import { ALL_CATEGORY_ID, isAppCategory, toApiCategory } from '@/lib/categories';
 import { getSiteUrl } from '@/lib/site';
 import { supabase } from '@/lib/supabase';
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
 const siteUrl = getSiteUrl();
 
+/** Datos estructurados schema.org para la página de catálogo. */
 const CATALOG_JSONLD = {
   '@context': 'https://schema.org',
   '@type': 'CollectionPage',
@@ -23,17 +51,69 @@ const CATALOG_JSONLD = {
   isPartOf: { '@type': 'WebSite', name: 'Vaultly', url: siteUrl },
 };
 
+/** Configuración visual de cada fuente de resultado (caché, caché externa, API externa). */
+const SOURCE_CONFIG: Record<string, { label: string; icon: string; cls: string }> = {
+  cache:           { label: 'Desde caché',      icon: 'ri-database-2-line', cls: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' },
+  external_cached: { label: 'Guardado en caché', icon: 'ri-save-line',       cls: 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400' },
+  external:        { label: 'API externa',       icon: 'ri-global-line',     cls: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
+};
+
+/** Etiquetas legibles para cada criterio de ordenación. */
+const SORT_LABELS: Record<string, string> = {
+  relevance: 'Relevancia', rating_desc: 'Mejor valorados', rating_asc: 'Peor valorados',
+  year_desc: 'Más recientes', year_asc: 'Más antiguos', title_asc: 'A → Z',
+};
+
+/** Etiquetas de los chips de duración (películas). */
+const DURATION_CHIP_LABELS: Record<'short' | 'medium' | 'long', string> = {
+  short: '< 90 min',
+  medium: '90-139 min',
+  long: '140+ min',
+};
+
+/** Etiquetas de los chips de páginas (libros). */
+const PAGE_CHIP_LABELS: Record<'short' | 'medium' | 'long', string> = {
+  short: '< 250 páginas',
+  medium: '250-499 páginas',
+  long: '500+ páginas',
+};
+
+/** Meta-objeto de la categoría "Todo" para usar en los tabs y la cuadrícula. */
+const ALL_CATEGORY = {
+  id: 'all',
+  label: 'Todo',
+  icon: 'ri-apps-2-line',
+  accent: '#52525b',
+};
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
+const isValidCategory = (category?: string) => isAppCategory(category);
+
+/** Extrae la puntuación numérica del campo metadata.rating. */
 function getRating(item: CatalogItem): number | null {
   if (item.metadata?.rating != null) return Number(item.metadata.rating);
   return null;
 }
+
+/** Extrae el año de publicación de release_date (YYYY-MM-DD). */
 function getYear(item: CatalogItem): string { return item.release_date?.slice(0, 4) ?? ''; }
+
+/** Extrae el primer género del ítem, admitiendo tanto string como array. */
 function getGenre(item: CatalogItem): string {
   const g = item.metadata?.genre ?? item.metadata?.genres;
   if (Array.isArray(g)) return g[0] ?? '';
   return String(g ?? '');
 }
 
+/**
+ * Extrae valores únicos de una o varias claves de metadata de un conjunto de ítems.
+ * Admite valores escalares y arrays. El resultado se ordena alfabéticamente en español.
+ *
+ * @param items - Array de ítems del catálogo.
+ * @param keys - Clave o array de claves de metadata a extraer.
+ * @returns Array de valores únicos ordenados.
+ */
 function extractStringOptions(items: CatalogItem[], keys: string | string[]): string[] {
   const keyList = Array.isArray(keys) ? keys : [keys];
   const values = new Set<string>();
@@ -52,39 +132,9 @@ function extractStringOptions(items: CatalogItem[], keys: string | string[]): st
   return Array.from(values).sort((a, b) => a.localeCompare(b, 'es'));
 }
 
-const SOURCE_CONFIG: Record<string, { label: string; icon: string; cls: string }> = {
-  cache:           { label: 'Desde caché',      icon: 'ri-database-2-line', cls: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' },
-  external_cached: { label: 'Guardado en caché', icon: 'ri-save-line',       cls: 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400' },
-  external:        { label: 'API externa',       icon: 'ri-global-line',     cls: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
-};
+// ─── Sub-componentes ─────────────────────────────────────────────────────────
 
-const SORT_LABELS: Record<string, string> = {
-  relevance: 'Relevancia', rating_desc: 'Mejor valorados', rating_asc: 'Peor valorados',
-  year_desc: 'Más recientes', year_asc: 'Más antiguos', title_asc: 'A → Z',
-};
-
-const DURATION_CHIP_LABELS: Record<'short' | 'medium' | 'long', string> = {
-  short: '< 90 min',
-  medium: '90-139 min',
-  long: '140+ min',
-};
-
-const PAGE_CHIP_LABELS: Record<'short' | 'medium' | 'long', string> = {
-  short: '< 250 páginas',
-  medium: '250-499 páginas',
-  long: '500+ páginas',
-};
-
-const ALL_CATEGORY = {
-  id: 'all',
-  label: 'Todo',
-  icon: 'ri-apps-2-line',
-  accent: '#52525b',
-};
-
-const isValidCategory = (category?: string) => isAppCategory(category);
-
-// ─── Item card ─────────────────────────────────────────────────────────────────
+/** Tarjeta de ítem de catálogo con imagen, rating, año y género. */
 function ItemCard({ item, categoryId, catIcon }: { item: CatalogItem; categoryId: string; catIcon?: string }) {
   const rating = getRating(item);
   const year = getYear(item);
@@ -124,6 +174,7 @@ function ItemCard({ item, categoryId, catIcon }: { item: CatalogItem; categoryId
   );
 }
 
+/** Cuadrícula de skeleton placeholders durante la carga. */
 function SkeletonGrid({ count = 12 }: { count?: number }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
@@ -138,8 +189,11 @@ function SkeletonGrid({ count = 12 }: { count?: number }) {
   );
 }
 
-// ─── Main page ─────────────────────────────────────────────────────────────────
+// ─── Componente principal ─────────────────────────────────────────────────────
+
 export default function CatalogPage() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const navigate = useNavigate();
   const { category: routeCategory } = useParams<{ category?: string }>();
   const { isLoggedIn } = useAuth();
@@ -173,11 +227,15 @@ export default function CatalogPage() {
     reset,
   } = useCatalogFilters();
 
+  // ─── Datos derivados ─────────────────────────────────────────────────────────
+
   const enabledCategories = useMemo(
     () => isLoggedIn ? CATEGORIES.filter(category => settings.activeCategories.includes(category.id)) : CATEGORIES,
-    [isLoggedIn, settings.activeCategories],
+    [CATEGORIES, isLoggedIn, settings.activeCategories],
   );
   const enabledCategoryIds = useMemo(() => enabledCategories.map(category => category.id), [enabledCategories]);
+
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!routeCategory) {
@@ -193,7 +251,7 @@ export default function CatalogPage() {
     navigate('/catalog', { replace: true });
   }, [enabledCategoryIds, isLoggedIn, navigate, routeCategory]);
 
-  // Reset search + filters when URL category changes (back/forward nav, direct URL edit)
+  // Resetea búsqueda y filtros al cambiar la categoría por URL (back/forward o edición directa)
   useEffect(() => {
     if (prevRouteCategoryRef.current === routeCategory) return;
     prevRouteCategoryRef.current = routeCategory;
@@ -201,20 +259,21 @@ export default function CatalogPage() {
     reset();
   }, [routeCategory, reset]);
 
-  // Debounce input
+  // Debounce de 500ms sobre el input de búsqueda
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => setDebouncedSearch(search.trim()), 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [search]);
 
-  // Fresh search on query/category change
+  // Lanza búsqueda en la Edge Function cuando el query alcanza 2+ caracteres
   useEffect(() => {
     const apiCategory = toApiCategory(activeCategory);
     if (debouncedSearch.length >= 2 && apiCategory) runSearch(apiCategory, debouncedSearch);
     else clear();
   }, [debouncedSearch, activeCategory, runSearch, clear]);
 
+  // Carga los últimos 60 ítems de la BD cuando no hay búsqueda activa
   useEffect(() => {
     if (debouncedSearch.length >= 2) return;
 
@@ -246,11 +305,13 @@ export default function CatalogPage() {
     return () => { cancelled = true; };
   }, [activeCategory, debouncedSearch.length, enabledCategoryIds]);
 
-  // Infinite scroll
+  // ─── Handlers ────────────────────────────────────────────────────────────────
+
   const handleLoadMore = useCallback(() => {
     if (hasMore && !loadingMore && !loading) loadMore();
   }, [hasMore, loadingMore, loading, loadMore]);
 
+  // IntersectionObserver para infinite scroll — dispara carga al alcanzar el sentinel
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
@@ -262,6 +323,8 @@ export default function CatalogPage() {
     return () => observer.disconnect();
   }, [handleLoadMore]);
 
+  // ─── Datos computados ────────────────────────────────────────────────────────
+
   const cat = activeCategory === ALL_CATEGORY_ID ? ALL_CATEGORY : CATEGORIES.find(c => c.id === activeCategory);
   const isSearching = debouncedSearch.length >= 2;
   const apiCategory = toApiCategory(activeCategory);
@@ -270,20 +333,18 @@ export default function CatalogPage() {
     ? results
     : cachedItems;
 
-  // Available genres from current result set
   const availableGenres = useMemo(() => extractGenres(rawItems), [rawItems]);
   const availablePlatforms = useMemo(() => extractStringOptions(rawItems, 'platforms'), [rawItems]);
   const availableLanguages = useMemo(() => extractStringOptions(rawItems, ['language', 'original_language']), [rawItems]);
   const availableCities = useMemo(() => extractStringOptions(rawItems, 'city'), [rawItems]);
   const availableSeriesStatuses = useMemo(() => extractStringOptions(rawItems, 'status'), [rawItems]);
 
-  // Apply filters
   const displayItems = useMemo(() => applyFilters(rawItems, filters), [rawItems, filters]);
 
   const filteredOut = rawItems.length - displayItems.length;
   const srcConfig = source ? SOURCE_CONFIG[source] : null;
 
-  // Active filter chips for quick removal
+  // Chips de filtros activos para eliminación rápida desde la barra de búsqueda
   const activeChips: { key: string; label: string; onRemove: () => void }[] = [];
   if (filters.sort !== 'relevance') activeChips.push({ key: 'sort', label: SORT_LABELS[filters.sort], onRemove: () => setSort('relevance') });
   if (filters.minRating > 0) activeChips.push({ key: 'rating', label: `★ ${filters.minRating}+`, onRemove: () => setMinRating(0) });
@@ -298,6 +359,8 @@ export default function CatalogPage() {
   if (filters.pageCount !== 'all') activeChips.push({ key: 'pages', label: `Páginas ${PAGE_CHIP_LABELS[filters.pageCount]}`, onRemove: () => setPageCount('all') });
   if (filters.seriesStatus !== 'all') activeChips.push({ key: 'status', label: filters.seriesStatus, onRemove: () => setSeriesStatus('all') });
 
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-[var(--surface)] dark:bg-[var(--bg)]">
       <SeoHead
@@ -310,14 +373,14 @@ export default function CatalogPage() {
       <Sidebar />
 
       <div className="pt-14 md:pt-0 md:pl-64">
-        {/* ── Header ── */}
+        {/* ── Cabecera ── */}
         <div className="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 px-4 md:px-6 py-8">
           <div className="max-w-screen-xl mx-auto">
             <h1 className="text-3xl font-black text-zinc-900 dark:text-white mb-6" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Catálogo
             </h1>
 
-            {/* Category tabs */}
+            {/* Tabs de categoría */}
             <div className="flex flex-wrap gap-2 mb-6">
               {[ALL_CATEGORY, ...enabledCategories].map(c => (
                 <button key={c.id}
@@ -332,9 +395,8 @@ export default function CatalogPage() {
               ))}
             </div>
 
-            {/* Search + filter row */}
+            {/* Fila de búsqueda y filtros */}
             <div className="flex items-center gap-3">
-              {/* Search input */}
               <div className="relative flex-1 max-w-md">
                 <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm"></i>
                 <input
@@ -351,7 +413,6 @@ export default function CatalogPage() {
                 )}
               </div>
 
-              {/* Filter button */}
               <div className="flex-shrink-0">
                 <button
                   onClick={() => setFiltersOpen(p => !p)}
@@ -367,9 +428,8 @@ export default function CatalogPage() {
               </div>
             </div>
 
-            {/* Status row */}
+            {/* Fila de estado: fuente, conteo y chips de filtros activos */}
             <div className="mt-3 flex flex-wrap items-center gap-2 min-h-[28px]">
-              {/* Source badge */}
               {isSearching && srcConfig && !loading && (
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${srcConfig.cls}`}>
                   <i className={srcConfig.icon}></i>
@@ -377,7 +437,6 @@ export default function CatalogPage() {
                 </span>
               )}
 
-              {/* Result count */}
               {!loading && (isSearching || activeCount > 0) && (
                 <span className="text-xs text-zinc-400">
                   {displayItems.length} resultado{displayItems.length !== 1 ? 's' : ''}
@@ -386,7 +445,6 @@ export default function CatalogPage() {
                 </span>
               )}
 
-              {/* Active filter chips */}
               {activeChips.map(chip => (
                 <span key={chip.key}
                   className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium">
@@ -398,7 +456,6 @@ export default function CatalogPage() {
                 </span>
               ))}
 
-              {/* Reset all chips */}
               {activeChips.length > 1 && (
                 <button onClick={reset}
                   className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer whitespace-nowrap">
@@ -409,7 +466,7 @@ export default function CatalogPage() {
           </div>
         </div>
 
-        {/* ── Grid area ── */}
+        {/* ── Área de la cuadrícula ── */}
         <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-10">
 
           {(loading || cachedLoading) && <SkeletonGrid count={12} />}
@@ -465,7 +522,7 @@ export default function CatalogPage() {
             </>
           )}
 
-          {/* Empty: filters removed everything */}
+          {/* Estado vacío: los filtros han eliminado todos los resultados */}
           {!loading && !cachedLoading && !error && displayItems.length === 0 && rawItems.length > 0 && (
             <div className="text-center py-20">
               <div className="w-14 h-14 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 mx-auto mb-4">
@@ -484,7 +541,7 @@ export default function CatalogPage() {
             </div>
           )}
 
-          {/* Empty: no search results */}
+          {/* Estado vacío: sin resultados de búsqueda */}
           {!loading && !cachedLoading && !error && rawItems.length === 0 && isSearching && (
             <div className="text-center py-20 text-zinc-400">
               <div className="w-14 h-14 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 mx-auto mb-4">
@@ -499,7 +556,7 @@ export default function CatalogPage() {
             </div>
           )}
 
-          {/* Hint when idle */}
+          {/* Pista cuando el catálogo está en reposo sin búsqueda ni filtros */}
           {!loading && !cachedLoading && !isSearching && activeCount === 0 && (
             <p className="text-xs text-zinc-400 text-center mt-8">
               Busca contenido en APIs externas y en tu catálogo guardado. Los elementos se guardan cuando los añades a tu tracker.
@@ -508,7 +565,7 @@ export default function CatalogPage() {
         </div>
       </div>
 
-      {/* Filter drawer — fixed, rendered at root level for correct z-index */}
+      {/* Panel de filtros — fixed en raíz para z-index correcto */}
       {filtersOpen && (
         <CatalogFilters
           filters={filters}

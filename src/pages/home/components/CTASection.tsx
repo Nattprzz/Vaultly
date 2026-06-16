@@ -1,5 +1,24 @@
-import { useAuth } from '@/hooks/useAuth';
+/**
+ * CTASection.tsx — sección de llamada a la acción final de la landing page.
+ *
+ * Cierre de la página con titular emocional y dos botones: el principal lleva
+ * a registro (o al tracker si ya ha iniciado sesión) y el secundario al catálogo.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useAuth } from '@/hooks/useAuth';
+
+// ─── Componentes ────────────────────────────────────────────────────────────────────
+
+import { InteractiveHoverLink } from "@/components/ui/interactive-hover-button"
+
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function CTASection() {
   const { isLoggedIn } = useAuth();
@@ -21,26 +40,31 @@ export default function CTASection() {
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           {isLoggedIn ? (
-            <Link
+            <InteractiveHoverLink
               to="/tracker"
-              className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-8 py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-blue-500"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-8 py-3.5 text-[15px] font-bold text-white transition-colors"
+              fillClassName="bg-brand-hover"
+              showArrow={false}
             >
               Ir a mi Tracker <i className="ri-arrow-right-line" />
-            </Link>
+            </InteractiveHoverLink>
           ) : (
-            <Link
+            <InteractiveHoverLink
               to="/auth"
-              className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-8 py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-blue-500"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-8 py-3.5 text-[15px] font-bold text-white transition-colors"
+              fillClassName="bg-brand-hover"
+              showArrow={false}
             >
               Empezar gratis <i className="ri-arrow-right-line" />
-            </Link>
+            </InteractiveHoverLink>
           )}
-          <Link
+          <InteractiveHoverLink
             to="/catalog"
             className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 px-8 py-3.5 text-[15px] font-semibold text-zinc-400 transition-colors hover:border-white/20 hover:text-white"
+            showArrow={true}
           >
             Explorar catálogo
-          </Link>
+          </InteractiveHoverLink>
         </div>
       </div>
     </section>

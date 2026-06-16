@@ -1,5 +1,16 @@
+/**
+ * googleBooks.ts — cliente compartido de Google Books.
+ *
+ * Consulta libros y transforma volúmenes al contrato común de catálogo.
+ *
+ * Utilizado por búsquedas y detalles de elementos de tipo libro.
+ */
+
+// ─── Framework ─────────────────────────────────────────────────────────
 import type { NormalizedCatalogItem } from './types.ts';
-import { compact, stripHtml, toSourceSlug } from './utils.ts';
+
+// ─── Servicios ─────────────────────────────────────────────────────────
+import { compact, stripHtml, timedFetch, toSourceSlug } from './utils.ts';
 
 const GOOGLE_BOOKS_BASE_URL = 'https://www.googleapis.com/books/v1';
 
@@ -75,7 +86,7 @@ async function googleBooksGet(
     if (value !== undefined) url.searchParams.set(key, String(value));
   });
 
-  const res = await fetch(url);
+  const res = await timedFetch(url);
   console.info('external-api request', {
     provider: 'google_books',
     category: 'books',
@@ -102,6 +113,14 @@ async function googleBooksGet(
   return res.json();
 }
 
+/**
+ * Busca libros en Google Books y normaliza los volúmenes encontrados.
+ *
+ * @param query Texto de búsqueda.
+ * @param page Página solicitada.
+ * @param limit Tamaño máximo de página.
+ * @returns Libros normalizados para el catálogo.
+ */
 export async function searchGoogleBooks(query: string, page = 1, limit = 20): Promise<NormalizedCatalogItem[]> {
   if (!query.trim()) return [];
   const startIndex = Math.max(page - 1, 0) * limit;
@@ -113,6 +132,12 @@ export async function searchGoogleBooks(query: string, page = 1, limit = 20): Pr
   return compact((data.items ?? []).map(normalizeBook));
 }
 
+/**
+ * Obtiene el detalle de un libro por identificador de Google Books.
+ *
+ * @param sourceId Identificador del volumen externo.
+ * @returns Libro normalizado o null.
+ */
 export async function getGoogleBook(sourceId: string): Promise<NormalizedCatalogItem | null> {
   const book = await googleBooksGet(`/volumes/${encodeURIComponent(sourceId)}`, {}, { sourceId });
   return book?.id ? normalizeBook(book) : null;

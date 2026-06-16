@@ -1,13 +1,40 @@
+/**
+ * CategoryColorEditor.tsx — editor de colores de identidad por categoría.
+ *
+ * Permite personalizar el color de acento de cada categoría mediante paletas
+ * de sugerencias, un selector de color nativo y un campo de entrada hexadecimal.
+ * Incluye botón de restauración individual y global. Los cambios se aplican en
+ * tiempo real en toda la aplicación (chips, insignias, bordes, filtros activos).
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useEffect, useRef, useState } from 'react';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useCategoryColors } from '@/hooks/useCategoryColors';
+
+// ─── Librerías ───────────────────────────────────────────────────────────────
+
 import { DEFAULT_CATEGORY_COLORS, isValidHexColor, normalizeHexColor } from '@/lib/categoryColors';
-import { CATEGORIES } from '@/lib/categoryConfig';
+import { CATEGORIES }                                                    from '@/lib/categoryConfig';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { AppCategoryId } from '@/lib/categories';
+
+// ─── Componentes ─────────────────────────────────────────────────────────────
+
 import SettingsCard from './SettingsCard';
 
-// A small curated set of swatches per category — variations on the default
-// hue plus a couple of neutral/alternate options, so users get good results
-// fast without needing to know color theory.
+// ─── Constantes ──────────────────────────────────────────────────────────────
+
+/**
+ * Paletas reducidas de swatches por categoría — variaciones sobre el tono
+ * por defecto más un par de alternativas, para obtener buenos resultados
+ * sin necesidad de conocer teoría del color.
+ */
 const SUGGESTED_SWATCHES: Record<AppCategoryId, string[]> = {
   videojuegos: ['#3b82f6', '#2563eb', '#0ea5e9', '#06b6d4', '#1d4ed8'],
   peliculas:   ['#f97316', '#ea580c', '#fb923c', '#f59e0b', '#c2410c'],
@@ -16,6 +43,15 @@ const SUGGESTED_SWATCHES: Record<AppCategoryId, string[]> = {
   conciertos:  ['#ec4899', '#db2777', '#f472b6', '#e11d48', '#d946ef'],
 };
 
+// ─── Sub-componentes ─────────────────────────────────────────────────────────
+
+/**
+ * Botón de muestra de color individual.
+ * @param color    - Valor hexadecimal del color del swatch.
+ * @param selected - Si este swatch está seleccionado actualmente.
+ * @param onClick  - Callback al seleccionar el swatch.
+ * @param label    - Etiqueta accesible del botón.
+ */
 function ColorSwatchButton({ color, selected, onClick, label }: { color: string; selected: boolean; onClick: () => void; label: string }) {
   return (
     <button
@@ -33,18 +69,27 @@ function ColorSwatchButton({ color, selected, onClick, label }: { color: string;
   );
 }
 
+/**
+ * Fila de edición de color para una categoría concreta.
+ * @param catId - Identificador de la categoría a editar.
+ */
 function CategoryColorRow({ catId }: { catId: AppCategoryId }) {
   const { colors, isCustomized, setColor, resetColor } = useCategoryColors();
-  const cat = CATEGORIES.find(c => c.id === catId)!;
-  const current = colors[catId];
+  const cat       = CATEGORIES.find(c => c.id === catId)!;
+  const current   = colors[catId];
   const isDefault = !isCustomized(catId);
+
   const colorInputRef = useRef<HTMLInputElement>(null);
-  const hexInputRef = useRef<HTMLInputElement>(null);
+  const hexInputRef   = useRef<HTMLInputElement>(null);
+
   const [hexDraft, setHexDraft] = useState(current);
   const [hexError, setHexError] = useState(false);
 
-  // Keep the hex field in sync when the color changes from elsewhere
-  // (swatches, native picker, reset) — but never while the user is typing in it.
+  // ─── Efectos ──────────────────────────────────────────────────────────────
+
+  // Mantiene el campo hexadecimal sincronizado cuando el color cambia desde
+  // fuera (swatches, selector nativo, botón restaurar), pero nunca mientras
+  // el usuario está tecleando en él.
   useEffect(() => {
     if (document.activeElement !== hexInputRef.current) {
       setHexDraft(current);
@@ -52,6 +97,9 @@ function CategoryColorRow({ catId }: { catId: AppCategoryId }) {
     }
   }, [current]);
 
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  /** Valida y aplica el valor hexadecimal escrito a mano. */
   const commitHex = (value: string) => {
     const trimmed = value.trim();
     if (isValidHexColor(trimmed)) {
@@ -65,7 +113,7 @@ function CategoryColorRow({ catId }: { catId: AppCategoryId }) {
   return (
     <div className="flex flex-col gap-3 py-4 border-b border-zinc-50 dark:border-zinc-800 last:border-0">
       <div className="flex items-center gap-3">
-        {/* Preview badge — exactly how this color looks in chips/badges across the app */}
+        {/* Vista previa del badge tal como aparece en la app */}
         <span
           className="flex h-10 w-10 items-center justify-center rounded-xl flex-shrink-0"
           style={{ background: `${current}1a`, color: current }}
@@ -89,7 +137,7 @@ function CategoryColorRow({ catId }: { catId: AppCategoryId }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-4 pl-[3.25rem]">
-        {/* Suggested swatches */}
+        {/* Swatches sugeridos */}
         <div className="flex items-center gap-2">
           {SUGGESTED_SWATCHES[catId].map(swatch => (
             <ColorSwatchButton
@@ -104,7 +152,7 @@ function CategoryColorRow({ catId }: { catId: AppCategoryId }) {
 
         <span className="w-px h-6 bg-zinc-100 dark:bg-zinc-800 hidden sm:block"></span>
 
-        {/* Custom color: native picker + hex input */}
+        {/* Selector nativo + campo hexadecimal */}
         <div className="flex items-center gap-2">
           <label
             className="relative w-8 h-8 rounded-full cursor-pointer overflow-hidden border-2 border-dashed border-zinc-300 dark:border-zinc-600 flex items-center justify-center hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors"
@@ -152,6 +200,8 @@ function CategoryColorRow({ catId }: { catId: AppCategoryId }) {
     </div>
   );
 }
+
+// ─── Componente principal ────────────────────────────────────────────────────
 
 export default function CategoryColorEditor() {
   const { resetAll, isCustomized } = useCategoryColors();

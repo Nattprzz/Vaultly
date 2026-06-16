@@ -1,16 +1,43 @@
+/**
+ * PublicProfileReviews.tsx — reseñas públicas de otro usuario.
+ *
+ * Obtiene las reseñas del usuario indicado respetando sus flags de privacidad.
+ * Muestra un estado diferente para: cargando, privado, vacío y con datos.
+ * Cada reseña incluye portada del ítem (o icono de categoría), puntuación
+ * y texto en blockquote con el nombre del autor y la fecha.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
-import { usePublicReviews, formatDate } from '@/hooks/useReviews';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { usePublicReviews }            from '@/hooks/useReviews';
+import { fmtDate as formatDate }       from '@/lib/formatting';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { PublicPrivacyFlags } from '@/types/privacy';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del listado de reseñas públicas. */
 interface Props {
-  userId: string | null;
+  userId:      string | null;
   displayName: string;
-  initials: string;
-  privacy: PublicPrivacyFlags;
+  initials:    string;
+  privacy:     PublicPrivacyFlags;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function PublicProfileReviews({ userId, displayName, initials, privacy }: Props) {
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const { reviews, loading, hidden } = usePublicReviews(userId, privacy);
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -61,6 +88,7 @@ export default function PublicProfileReviews({ userId, displayName, initials, pr
         const title = entry.title || entry.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         return (
           <div key={entry.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-5">
+            {/* Cabecera con portada, título, categoría y puntuación */}
             <div className="flex items-center gap-3 mb-4">
               <Link to={`/catalog/${entry.category}/${entry.item_slug}`} className="flex-shrink-0 cursor-pointer">
                 {entry.cover ? (
@@ -103,10 +131,12 @@ export default function PublicProfileReviews({ userId, displayName, initials, pr
               )}
             </div>
 
+            {/* Texto de la reseña en formato blockquote */}
             <blockquote className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed italic border-l-2 border-zinc-200 dark:border-zinc-700 pl-4">
               &ldquo;{entry.review}&rdquo;
             </blockquote>
 
+            {/* Pie con avatar y fecha */}
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-50 dark:border-zinc-800">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-brand dark:bg-brand-dark flex items-center justify-center text-white text-xs font-bold">

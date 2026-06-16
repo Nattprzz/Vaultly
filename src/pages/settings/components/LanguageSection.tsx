@@ -1,16 +1,34 @@
+/**
+ * LanguageSection.tsx — sección de selección de idioma de la aplicación.
+ *
+ * Muestra la lista de idiomas disponibles y permite activar el idioma
+ * activo. Las opciones no disponibles se muestran con etiqueta "Pronto"
+ * y se desactivan. Actualmente solo el español está operativo.
+ */
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useSettings, Language } from '@/hooks/useSettings';
+
+// ─── Componentes ─────────────────────────────────────────────────────────────
+
 import SettingsCard from './SettingsCard';
 
+// ─── Constantes ──────────────────────────────────────────────────────────────
+
+/** Idiomas soportados o próximos en Vaultly con su bandera y nombre nativo. */
 const LANGUAGES: { id: Language; label: string; native: string; flag: string }[] = [
-  { id: 'es', label: 'Español',    native: 'Español',    flag: '🇪🇸' },
-  { id: 'en', label: 'Inglés',     native: 'English',    flag: '🇬🇧' },
-  { id: 'fr', label: 'Francés',    native: 'Français',   flag: '🇫🇷' },
-  { id: 'de', label: 'Alemán',     native: 'Deutsch',    flag: '🇩🇪' },
-  { id: 'pt', label: 'Portugués',  native: 'Português',  flag: '🇵🇹' },
-  { id: 'it', label: 'Italiano',   native: 'Italiano',   flag: '🇮🇹' },
-  { id: 'ja', label: 'Japonés',    native: '日本語',      flag: '🇯🇵' },
-  { id: 'ko', label: 'Coreano',    native: '한국어',      flag: '🇰🇷' },
+  { id: 'es', label: 'Español',   native: 'Español',   flag: '🇪🇸' },
+  { id: 'en', label: 'Inglés',    native: 'English',   flag: '🇬🇧' },
+  { id: 'fr', label: 'Francés',   native: 'Français',  flag: '🇫🇷' },
+  { id: 'de', label: 'Alemán',    native: 'Deutsch',   flag: '🇩🇪' },
+  { id: 'pt', label: 'Portugués', native: 'Português', flag: '🇵🇹' },
+  { id: 'it', label: 'Italiano',  native: 'Italiano',  flag: '🇮🇹' },
+  { id: 'ja', label: 'Japonés',   native: '日本語',     flag: '🇯🇵' },
+  { id: 'ko', label: 'Coreano',   native: '한국어',     flag: '🇰🇷' },
 ];
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function LanguageSection() {
   const { settings, update } = useSettings();
@@ -23,7 +41,7 @@ export default function LanguageSection() {
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {LANGUAGES.map(lang => {
-            const isActive = settings.language === lang.id;
+            const isActive    = settings.language === lang.id;
             const isAvailable = lang.id === 'es';
             return (
               <button

@@ -1,13 +1,35 @@
+/**
+ * TrackerStats.tsx — grid de 6 tarjetas KPI del tracker.
+ *
+ * Muestra totales de: ítems totales, completados, en progreso, pendientes,
+ * abandonados y puntuación media. Los conteos usan SEMANTIC_GROUPS de
+ * tracker-statuses para agrupar estados cross-categoría bajo conceptos
+ * unificados (p. ej. "played"/"watched"/"read" → completed).
+ */
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { TrackerEntry } from '@/hooks/useTracker';
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
 import { SEMANTIC_GROUPS } from '@/constants/tracker-statuses';
 import type { CategoryStatus } from '@/constants/tracker-statuses';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del componente de estadísticas del tracker. */
 interface Props {
   entries: Record<string, TrackerEntry>;
+  /** Categoría activa; `'all'` para mostrar todas las categorías. */
   activeCategory?: string;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function TrackerStats({ entries, activeCategory = 'all' }: Props) {
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const all = Object.values(entries).filter(e =>
     activeCategory === 'all' || e.category === activeCategory,
   );
@@ -30,6 +52,8 @@ export default function TrackerStats({ entries, activeCategory = 'all' }: Props)
     { label: 'Abandonados',    value: abandoned,          icon: 'ri-close-circle-line',       accent: '#ef4444', bg: 'rgba(239,68,68,0.10)'   },
     { label: 'Media personal', value: avgRating ?? '—',   icon: 'ri-star-line',               accent: '#f59e0b', bg: 'rgba(245,158,11,0.10)'  },
   ];
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">

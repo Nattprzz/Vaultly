@@ -10,16 +10,29 @@ export default {
         fontFamily: {
           grotesk: ["'Space Grotesk'", 'sans-serif'],
         },
+        animation: {
+          shine: 'shine var(--duration, 14s) infinite linear',
+        },
+        keyframes: {
+          shine: {
+            '0%':  { backgroundPosition: '0% 0%'     },
+            '50%': { backgroundPosition: '100% 100%' },
+            'to':  { backgroundPosition: '0% 0%'     },
+          },
+        },
         colors: {
           // Brand blue — the single primary color of the interface.
           // Category colors remain pure accents (see categoryColors.ts) and
           // never compete with this scale for primary UI real estate.
           brand: {
-            DEFAULT: '#2563eb',
-            soft: 'rgba(37, 99, 235, 0.12)',
-            hover: '#1d4ed8',
-            dark: '#3b82f6',
-            'dark-hover': '#60a5fa',
+            DEFAULT: '#0553EB',
+            soft: 'rgba(5, 83, 235, 0.10)',
+            hover: '#1E63F5',
+            active: '#033596',
+            secondary: '#033596',
+            deep: '#011741',
+            dark: '#0553EB',
+            'dark-hover': '#1E63F5',
           },
           // Token-backed surfaces so components can reach for `bg-surface`,
           // `border-app`, `text-secondary`, etc. and stay in sync with

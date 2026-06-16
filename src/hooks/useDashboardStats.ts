@@ -1,7 +1,26 @@
+/**
+ * useDashboardStats.ts — estadísticas agregadas del dashboard personal.
+ *
+ * Consulta user_item_tracking y catalog_items para calcular totales globales,
+ * estadísticas por categoría, actividad reciente, ítems en progreso y
+ * actividad semanal del usuario autenticado.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect } from 'react';
+
+// ─── Servicios ───────────────────────────────────────────────────────────────
+
 import { supabase } from '@/lib/supabase';
+
+// ─── Hooks ───────────────────────────────────────────────────────────────────
+
 import { useAuth } from '@/hooks/useAuth';
 import { useCategories } from '@/hooks/useCategoryColors';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { CategoryConfig } from '@/lib/categoryConfig';
 import {
   SEMANTIC_GROUPS,
@@ -9,62 +28,123 @@ import {
 } from '@/constants/tracker-statuses';
 import type { CategoryStatus } from '@/constants/tracker-statuses';
 
+/**
+ * Totales globales del tracker del usuario.
+ */
 export interface DashboardStats {
-  total_tracked:    number;
-  completed:        number;
-  in_progress:      number;
-  pending:          number;
-  dropped:          number;
-  avg_rating:       number | null;
-  reviews_written:  number;
-}
-
-export interface CategoryStat {
-  id:          string;
-  label:       string;
-  icon:        string;
-  accent:      string;
-  total:       number;
-  completed:   number;
+  /** Total de ítems en el tracker */
+  total_tracked: number;
+  /** Total de ítems en estado "completado" (semántico) */
+  completed: number;
+  /** Total de ítems en estado "en progreso" (semántico) */
   in_progress: number;
-  avg_rating:  number | null;
+  /** Total de ítems en estado "pendiente" o "wishlist" */
+  pending: number;
+  /** Total de ítems abandonados o perdidos */
+  dropped: number;
+  /** Puntuación media de todos los ítems puntuados */
+  avg_rating: number | null;
+  /** Número de reseñas escritas */
+  reviews_written: number;
 }
 
+/**
+ * Estadísticas de una categoría concreta del tracker.
+ */
+export interface CategoryStat {
+  /** Identificador de la categoría */
+  id: string;
+  /** Nombre legible */
+  label: string;
+  /** Clase de icono remixicon */
+  icon: string;
+  /** Color de acento de la categoría */
+  accent: string;
+  /** Total de ítems en esta categoría */
+  total: number;
+  /** Ítems completados */
+  completed: number;
+  /** Ítems en progreso */
+  in_progress: number;
+  /** Puntuación media de los ítems puntuados */
+  avg_rating: number | null;
+}
+
+/**
+ * Ítem de actividad reciente del usuario.
+ */
 export interface RecentActivityItem {
-  id:            string;
-  item_slug:     string;
-  title:         string;
-  category:      string;
+  /** ID de la fila en user_item_tracking */
+  id: string;
+  /** Slug del ítem */
+  item_slug: string;
+  /** Título legible del ítem */
+  title: string;
+  /** Categoría del ítem */
+  category: string;
+  /** Nombre legible de la categoría */
   categoryLabel: string;
-  icon:          string;
-  accent:        string;
-  status_en:     string;
-  rating:        number | null;
-  updated_at:    string;
-}
-
-export interface CurrentlyTrackingItem {
-  id:         string;
-  item_slug:  string;
-  title:      string;
-  cover:      string | null;
-  category:   string;
-  icon:       string;
-  accent:     string;
+  /** Icono de la categoría */
+  icon: string;
+  /** Color de acento de la categoría */
+  accent: string;
+  /** Estado actual del ítem */
+  status_en: string;
+  /** Puntuación, o null si no se ha puntuado */
+  rating: number | null;
+  /** Fecha de la última actualización (ISO) */
   updated_at: string;
 }
 
+/**
+ * Ítem que el usuario tiene actualmente en progreso.
+ */
+export interface CurrentlyTrackingItem {
+  /** ID de la fila en user_item_tracking */
+  id: string;
+  /** Slug del ítem */
+  item_slug: string;
+  /** Título legible del ítem */
+  title: string;
+  /** URL de la portada, o null si no está disponible */
+  cover: string | null;
+  /** Categoría del ítem */
+  category: string;
+  /** Icono de la categoría */
+  icon: string;
+  /** Color de acento de la categoría */
+  accent: string;
+  /** Fecha de la última actualización (ISO) */
+  updated_at: string;
+}
+
+/**
+ * Punto de datos de la gráfica de actividad semanal.
+ */
 export interface WeeklyActivityPoint {
-  day:   string;
+  /** Inicial del día de la semana (L, M, X, J, V, S, D) */
+  day: string;
+  /** Número de ítems actualizados ese día */
   count: number;
 }
 
+/**
+ * Fila cruda de user_item_tracking (solo campos necesarios para el gráfico de actividad).
+ */
 export interface RawTrackingRow {
-  category:   string;
-  status_en:  string;
+  category: string;
+  status_en: string;
   updated_at: string;
 }
 
+// ─── Funciones auxiliares ────────────────────────────────────────────────────
+
+/**
+ * Devuelve el tiempo transcurrido desde una fecha en texto legible.
+ *
+ * @param dateStr Fecha en formato ISO.
+ * @returns Cadena como "Hace 3 días" o "Hace 2 semanas".
+ */
 export function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -96,6 +176,14 @@ interface CatalogRow {
   metadata:  Record<string, unknown> | null;
 }
 
+/**
+ * Intenta obtener el título de un ítem a partir del catálogo o del slug.
+ * Capitaliza el slug si no hay título disponible.
+ *
+ * @param slug Slug del ítem.
+ * @param item Fila opcional de catalog_items.
+ * @returns Título legible.
+ */
 function resolveTitle(slug: string, item?: CatalogRow | null): string {
   if (item?.title) return item.title;
   const meta = item?.metadata;
@@ -107,7 +195,20 @@ function resolveTitle(slug: string, item?: CatalogRow | null): string {
   return humanized.replace(/\b\w/g, c => c.toUpperCase());
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
+/**
+ * Calcula y expone las estadísticas completas del dashboard del usuario.
+ *
+ * Responsabilidades:
+ * - Cargar todos los registros de user_item_tracking del usuario.
+ * - Enriquecer con títulos y portadas de catalog_items.
+ * - Calcular totales globales, por categoría, actividad reciente e ítems en curso.
+ * - Generar los puntos de la gráfica de actividad de los últimos 7 días.
+ */
 export function useDashboardStats() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const { user } = useAuth();
   const categories = useCategories();
   const [stats,             setStats]             = useState<DashboardStats | null>(null);
@@ -117,6 +218,8 @@ export function useDashboardStats() {
   const [weeklyActivity,    setWeeklyActivity]    = useState<WeeklyActivityPoint[]>([]);
   const [rawRows,           setRawRows]           = useState<RawTrackingRow[]>([]);
   const [loading,           setLoading]           = useState(true);
+
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!user) return;
@@ -132,7 +235,7 @@ export function useDashboardStats() {
 
       if (error || !rows) { setLoading(false); return; }
 
-      // Fetch real titles
+      // Enriquecer slugs con títulos de catálogo
       const slugs = [...new Set(rows.map(r => r.item_slug).filter(Boolean))];
       const catalogMap = new Map<string, CatalogRow>();
       if (slugs.length > 0) {
@@ -149,13 +252,14 @@ export function useDashboardStats() {
         });
       }
 
-      // Helper: check semantic group
+      // ─── Datos derivados ─────────────────────────────────────────────────────
+
       const isCompleted  = (s: string) => SEMANTIC_GROUPS.completed.includes(s as CategoryStatus);
       const isActive     = (s: string) => SEMANTIC_GROUPS.active.includes(s as CategoryStatus);
       const isPending    = (s: string) => SEMANTIC_GROUPS.pending.includes(s as CategoryStatus);
       const isAbandoned  = (s: string) => SEMANTIC_GROUPS.abandoned.includes(s as CategoryStatus);
 
-      // Global stats
+      // Totales globales
       const total          = rows.length;
       const completed      = rows.filter(r => isCompleted(r.status_en)).length;
       const inProgress     = rows.filter(r => isActive(r.status_en)).length;
@@ -172,7 +276,7 @@ export function useDashboardStats() {
         pending, dropped, avg_rating: avgRating, reviews_written: reviewsWritten,
       });
 
-      // Category stats
+      // Estadísticas por categoría
       const catMap: Record<string, { total: number; completed: number; in_progress: number; ratings: number[] }> = {};
       rows.forEach(r => {
         const cat = r.category ?? 'unknown';
@@ -203,7 +307,7 @@ export function useDashboardStats() {
         .sort((a, b) => b.total - a.total);
       setCategoryStats(catStats);
 
-      // Recent activity (last 8)
+      // Actividad reciente (últimos 8 ítems actualizados)
       const recent: RecentActivityItem[] = rows.slice(0, 8).map(r => {
         const meta = getCatMeta(r.category ?? '', categories);
         const catalogItem = catalogMap.get(r.item_slug ?? '');
@@ -222,7 +326,7 @@ export function useDashboardStats() {
       });
       setRecentActivity(recent);
 
-      // Currently tracking (active statuses, last 4)
+      // Ítems en progreso activo (máximo 4)
       const activeRows = rows.filter(r => isActive(r.status_en)).slice(0, 4);
       const currently: CurrentlyTrackingItem[] = activeRows.map(r => {
         const meta = getCatMeta(r.category ?? '', categories);
@@ -240,14 +344,14 @@ export function useDashboardStats() {
       });
       setCurrentlyTracking(currently);
 
-      // Raw rows
+      // Filas crudas para el gráfico de barras externo
       setRawRows(rows.map(r => ({
         category:   r.category ?? '',
         status_en:  r.status_en ?? 'pending',
         updated_at: r.updated_at,
       })));
 
-      // Weekly activity
+      // Actividad de los últimos 7 días para la gráfica semanal
       const today = new Date();
       const start = new Date(today);
       start.setDate(today.getDate() - 6);

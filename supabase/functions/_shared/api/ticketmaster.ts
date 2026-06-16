@@ -1,5 +1,16 @@
+/**
+ * ticketmaster.ts — cliente compartido de Ticketmaster.
+ *
+ * Consulta eventos musicales y los adapta al contrato común de catálogo.
+ *
+ * Utilizado por búsquedas y detalles de conciertos.
+ */
+
+// ─── Framework ─────────────────────────────────────────────────────────
 import type { NormalizedCatalogItem } from './types.ts';
-import { compact, stripHtml, toSourceSlug } from './utils.ts';
+
+// ─── Servicios ─────────────────────────────────────────────────────────
+import { compact, stripHtml, timedFetch, toSourceSlug } from './utils.ts';
 
 const TICKETMASTER_BASE_URL = 'https://app.ticketmaster.com/discovery/v2';
 
@@ -88,7 +99,7 @@ async function ticketmasterGet(
     if (value !== undefined && value !== '') url.searchParams.set(key, String(value));
   });
 
-  const res = await fetch(url);
+  const res = await timedFetch(url);
   console.info('external-api request', {
     provider: 'ticketmaster',
     category: 'concerts',
@@ -115,6 +126,12 @@ async function ticketmasterGet(
   return res.json();
 }
 
+/**
+ * Busca eventos musicales en Ticketmaster y los normaliza para catálogo.
+ *
+ * @param options Filtros de búsqueda y paginación.
+ * @returns Eventos normalizados.
+ */
 export async function searchTicketmasterEvents(options: TicketmasterSearchOptions): Promise<NormalizedCatalogItem[]> {
   const { keyword, city, music = true, page = 1, limit = 20 } = options;
   if (!keyword.trim()) return [];
@@ -129,6 +146,12 @@ export async function searchTicketmasterEvents(options: TicketmasterSearchOption
   return compact((data._embedded?.events ?? []).map(normalizeEvent));
 }
 
+/**
+ * Obtiene un evento de Ticketmaster por identificador externo.
+ *
+ * @param sourceId Identificador del evento.
+ * @returns Evento normalizado o null.
+ */
 export async function getTicketmasterEvent(sourceId: string): Promise<NormalizedCatalogItem | null> {
   const event = await ticketmasterGet(`/events/${encodeURIComponent(sourceId)}.json`, {}, { sourceId });
   return event?.id ? normalizeEvent(event) : null;

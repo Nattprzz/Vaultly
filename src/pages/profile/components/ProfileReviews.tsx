@@ -1,10 +1,31 @@
+/**
+ * ProfileReviews.tsx — listado de reseñas escritas por el usuario.
+ *
+ * Obtiene las reseñas del usuario autenticado via useMyReviews y las muestra
+ * en tarjetas con portada (o icono de categoría), puntuación y texto en
+ * formato blockquote. Si no hay reseñas muestra un estado vacío con CTA
+ * al catálogo. Durante la carga muestra un skeleton de 3 tarjetas.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useMyReviews, formatDate } from '@/hooks/useReviews';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useAuth }                    from '@/hooks/useAuth';
+import { useMyReviews }               from '@/hooks/useReviews';
+import { fmtDate as formatDate }      from '@/lib/formatting';
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function ProfileReviews() {
-  const { profile } = useAuth();
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
+  const { profile }          = useAuth();
   const { reviews, loading } = useMyReviews();
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -42,7 +63,7 @@ export default function ProfileReviews() {
     );
   }
 
-  const initials = profile?.initials ?? '??';
+  const initials    = profile?.initials ?? '??';
   const displayName = profile?.display_name ?? profile?.username ?? 'Tú';
 
   return (
@@ -51,8 +72,8 @@ export default function ProfileReviews() {
         const title = entry.title || entry.item_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         return (
           <div key={entry.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-5">
+            {/* Cabecera: portada, título, categoría y puntuación */}
             <div className="flex items-center gap-3 mb-4">
-              {/* Category icon as cover */}
               <Link to={`/catalog/${entry.category}/${entry.item_slug}`} className="flex-shrink-0 cursor-pointer">
                 {entry.cover ? (
                   <img src={entry.cover} alt={title} className="w-12 h-16 rounded-lg object-cover object-top" />
@@ -92,10 +113,12 @@ export default function ProfileReviews() {
               </div>
             </div>
 
+            {/* Texto de la reseña */}
             <blockquote className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed italic border-l-2 border-zinc-200 dark:border-zinc-700 pl-4">
               &ldquo;{entry.review}&rdquo;
             </blockquote>
 
+            {/* Pie con avatar y fecha */}
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-50 dark:border-zinc-800">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-brand dark:bg-brand-dark flex items-center justify-center text-white text-xs font-bold">

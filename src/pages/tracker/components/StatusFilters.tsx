@@ -1,8 +1,25 @@
+/**
+ * StatusFilters.tsx — barra de filtro por estado, orden y modo de vista del tracker.
+ *
+ * Combina tres controles en una misma fila: chips de estado para filtrar
+ * rápidamente por grupo semántico (todos/en progreso/pendientes/completados/
+ * abandonados), un selector de ordenación y un toggle de vista grid/lista.
+ * Los chips muestran el conteo de ítems en cada estado.
+ */
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import { TrackerStatus } from '@/hooks/useTracker';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Opciones de ordenación disponibles. */
 type SortOption = 'updated' | 'added' | 'rating' | 'title';
+
+/** Modos de visualización del tracker. */
 type ViewMode = 'grid' | 'list';
 
+/** Props de la barra de filtros de estado. */
 interface Props {
   activeStatus: TrackerStatus | 'all';
   onStatusChange: (s: TrackerStatus | 'all') => void;
@@ -10,9 +27,13 @@ interface Props {
   onSortChange: (s: SortOption) => void;
   viewMode: ViewMode;
   onViewModeChange: (v: ViewMode) => void;
+  /** Mapa de estado → cantidad para los contadores de los chips. */
   counts: Record<string, number>;
 }
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Opciones de filtro de estado con sus etiquetas e iconos. */
 const STATUS_OPTIONS: { value: TrackerStatus | 'all'; label: string; icon: string }[] = [
   { value: 'all',         label: 'Todos',       icon: 'ri-list-check' },
   { value: 'playing',     label: 'En progreso', icon: 'ri-loader-4-line' },
@@ -21,6 +42,7 @@ const STATUS_OPTIONS: { value: TrackerStatus | 'all'; label: string; icon: strin
   { value: 'abandoned',   label: 'Abandonados', icon: 'ri-close-circle-line' },
 ];
 
+/** Clases Tailwind para el chip activo de cada estado. */
 const STATUS_ACTIVE_STYLES: Record<string, string> = {
   all:       'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900',
   playing:   'bg-amber-500 text-white',
@@ -28,6 +50,8 @@ const STATUS_ACTIVE_STYLES: Record<string, string> = {
   completed: 'bg-emerald-500 text-white',
   abandoned: 'bg-red-500 text-white',
 };
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function StatusFilters({
   activeStatus, onStatusChange,
@@ -37,7 +61,7 @@ export default function StatusFilters({
 }: Props) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-      {/* Status pills */}
+      {/* Chips de estado */}
       <div className="flex items-center gap-2 flex-wrap">
         {STATUS_OPTIONS.map(opt => {
           const isActive = activeStatus === opt.value;
@@ -60,7 +84,7 @@ export default function StatusFilters({
         })}
       </div>
 
-      {/* Sort + view mode */}
+      {/* Selector de orden y toggle de vista */}
       <div className="flex items-center gap-2 flex-shrink-0">
         <select
           value={sortBy}
@@ -73,7 +97,7 @@ export default function StatusFilters({
           <option value="title">Título A-Z</option>
         </select>
 
-        {/* View toggle */}
+        {/* Toggle grid / lista */}
         <div className="flex items-center rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden">
           <button
             onClick={() => onViewModeChange('grid')}

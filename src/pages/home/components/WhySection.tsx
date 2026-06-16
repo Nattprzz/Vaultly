@@ -1,5 +1,18 @@
+/**
+ * WhySection.tsx — sección "¿Por qué Vaultly?" de la landing page.
+ *
+ * Muestra una comparación visual entre el escenario sin Vaultly (múltiples apps)
+ * y con Vaultly (una sola plataforma). Las filas entran con animación escalonada
+ * desde lados opuestos al detectarse en viewport vía IntersectionObserver.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useRef, useState, useEffect } from 'react';
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Apps externas que los usuarios sustituyen al usar Vaultly. */
 const BEFORE = [
   { app: 'Letterboxd', for: 'películas',   icon: 'ri-film-line',      color: '#f97316' },
   { app: 'Backloggd',  for: 'videojuegos', icon: 'ri-gamepad-line',   color: '#3b82f6' },
@@ -8,6 +21,7 @@ const BEFORE = [
   { app: '¿Y los conciertos?', for: '',    icon: 'ri-music-2-line',   color: '#64748b' },
 ];
 
+/** Categorías que Vaultly cubre en una única plataforma. */
 const AFTER = [
   { label: 'Videojuegos', icon: 'ri-gamepad-line',    color: '#3b82f6' },
   { label: 'Películas',   icon: 'ri-film-line',        color: '#f97316' },
@@ -16,9 +30,15 @@ const AFTER = [
   { label: 'Conciertos',  icon: 'ri-music-2-line',     color: '#ec4899' },
 ];
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function WhySection() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const sectionRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -31,12 +51,14 @@ export default function WhySection() {
     return () => obs.disconnect();
   }, []);
 
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
+
   return (
     <section className="py-14 px-4 md:px-6 bg-[var(--surface)] dark:bg-zinc-900/40" ref={sectionRef}>
       <div className="max-w-screen-xl mx-auto">
         <div className="max-w-2xl mx-auto">
 
-          {/* Header */}
+          {/* Cabecera */}
           <div
             className="mb-10 transition-all duration-700"
             style={{ opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateY(20px)' }}
@@ -52,12 +74,12 @@ export default function WhySection() {
             </h2>
           </div>
 
-          {/* Before / After comparison */}
+          {/* Comparativa Antes / Después */}
           <div
             className="grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-700"
             style={{ opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateY(20px)', transitionDelay: '80ms' }}
           >
-            {/* Before */}
+            {/* Panel "Sin Vaultly" */}
             <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 transition-all duration-300 hover:border-red-500/30 hover:bg-red-500/[0.07]">
               <p className="text-red-400 text-[11px] font-bold uppercase tracking-widest mb-5 flex items-center gap-2">
                 <i className="ri-close-circle-line" />
@@ -91,7 +113,7 @@ export default function WhySection() {
               </div>
             </div>
 
-            {/* After */}
+            {/* Panel "Con Vaultly" */}
             <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-6 transition-all duration-300 hover:border-blue-500/35 hover:bg-blue-500/[0.07] hover:shadow-[0_4px_20px_rgba(59,130,246,0.08)]">
               <p className="text-blue-400 text-[11px] font-bold uppercase tracking-widest mb-5 flex items-center gap-2">
                 <i className="ri-checkbox-circle-line" />

@@ -1,10 +1,30 @@
+/**
+ * ItemCommunityStats.tsx — widget de estadísticas de la comunidad.
+ *
+ * Muestra la puntuación media de la comunidad con distribución de
+ * valoraciones en barras horizontales. La distribución se genera
+ * mediante una función gaussiana centrada en la puntuación media,
+ * ya que no se disponen de datos individuales por puntuación.
+ */
+
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del widget de estadísticas comunitarias. */
 interface Props {
   communityRating: number;
-  totalRatings: number;
-  totalReviews: number;
+  totalRatings:    number;
+  totalReviews:    number;
 }
 
-// Simulated rating distribution based on community rating
+// ─── Utilidades ──────────────────────────────────────────────────────────────
+
+/**
+ * Genera una distribución de valoraciones simulada basada en la media.
+ * Usa una curva gaussiana centrada en `avg` para producir porcentajes
+ * razonables cuando no se dispone del desglose real.
+ * @param avg - Puntuación media (0-10).
+ * @returns Array de 10 valores relativos, del 10 al 1.
+ */
 function getRatingDistribution(avg: number): number[] {
   const dist = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   const peak = Math.round(avg) - 1;
@@ -15,16 +35,22 @@ function getRatingDistribution(avg: number): number[] {
   return dist;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ItemCommunityStats({ communityRating, totalRatings, totalReviews }: Props) {
-  const dist = getRatingDistribution(communityRating);
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
+  const dist   = getRatingDistribution(communityRating);
   const maxVal = Math.max(...dist);
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl p-5 border border-zinc-100 dark:border-zinc-800">
       <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-4">Estadísticas públicas</h3>
 
       <div className="flex gap-6 items-start">
-        {/* Big rating */}
+        {/* Puntuación media prominente */}
         <div className="flex flex-col items-center flex-shrink-0">
           <span className="text-5xl font-black text-zinc-900 dark:text-white leading-none" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             {communityRating}
@@ -37,11 +63,11 @@ export default function ItemCommunityStats({ communityRating, totalRatings, tota
           <p className="text-xs text-zinc-400 mt-1.5 text-center">{(totalRatings / 1000).toFixed(1)}k valoraciones</p>
         </div>
 
-        {/* Distribution bars */}
+        {/* Barras de distribución por puntuación */}
         <div className="flex-1 flex flex-col gap-1.5">
           {dist.map((val, i) => {
             const score = 10 - i;
-            const pct = Math.round((val / maxVal) * 100);
+            const pct   = Math.round((val / maxVal) * 100);
             return (
               <div key={score} className="flex items-center gap-2">
                 <span className="text-xs text-zinc-500 w-3 text-right flex-shrink-0">{score}</span>
@@ -58,7 +84,7 @@ export default function ItemCommunityStats({ communityRating, totalRatings, tota
         </div>
       </div>
 
-      {/* Bottom stats */}
+      {/* Resumen de tres cifras clave */}
       <div className="grid grid-cols-3 gap-3 mt-5 pt-4 border-t border-zinc-200 dark:border-zinc-700">
         <div className="text-center">
           <p className="text-lg font-bold text-zinc-900 dark:text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>

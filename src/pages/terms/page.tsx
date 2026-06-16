@@ -1,7 +1,27 @@
+/**
+ * terms/page.tsx — página de Términos de Uso.
+ *
+ * Página estática con tabla de contenidos lateral, tarjetas de resumen rápido
+ * y diez secciones de términos. Usa su propia navbar inline (sin Sidebar)
+ * para mantener consistencia visual con /privacy y /contact.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
 import SeoHead from '@/components/feature/SeoHead';
+import { LogoMark } from '@/components/branding/Logo';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useTheme } from '@/hooks/useTheme';
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Secciones de los Términos de Uso con sus anclajes y contenidos. */
 const SECTIONS = [
   {
     id: 'aceptacion',
@@ -193,6 +213,8 @@ const SECTIONS = [
   },
 ];
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function TermsPage() {
   const { theme, toggleTheme } = useTheme();
 
@@ -210,7 +232,7 @@ export default function TermsPage() {
         <div className="max-w-screen-xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 cursor-pointer">
             <div className="w-8 h-8 rounded-xl bg-brand dark:bg-brand-dark flex items-center justify-center">
-              <i className="ri-archive-2-line text-white text-sm"></i>
+              <LogoMark size={20} />
             </div>
             <span className="font-bold text-zinc-900 dark:text-white text-base" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Vaultly
@@ -266,7 +288,7 @@ export default function TermsPage() {
         </div>
       </section>
 
-      {/* Summary cards */}
+      {/* Tarjetas de resumen rápido */}
       <section className="border-b border-zinc-100 dark:border-zinc-800 py-10 px-4 md:px-6 bg-zinc-50/50 dark:bg-zinc-900/20">
         <div className="max-w-3xl mx-auto lg:max-w-screen-xl">
           <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-5">Resumen rápido</p>
@@ -289,10 +311,10 @@ export default function TermsPage() {
         </div>
       </section>
 
-      {/* Content */}
+      {/* Contenido principal */}
       <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-12 md:py-16 flex flex-col lg:flex-row gap-10 lg:gap-16">
 
-        {/* Table of contents — sticky sidebar */}
+        {/* Tabla de contenidos — sidebar sticky */}
         <aside className="hidden lg:block w-56 flex-shrink-0">
           <div className="sticky top-24">
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">Contenido</p>
@@ -321,7 +343,7 @@ export default function TermsPage() {
           </div>
         </aside>
 
-        {/* Main content */}
+        {/* Artículo de términos */}
         <main className="flex-1 min-w-0">
           <div className="flex flex-col gap-12">
             {SECTIONS.map(section => (
@@ -340,7 +362,7 @@ export default function TermsPage() {
               </section>
             ))}
 
-            {/* Contact CTA */}
+            {/* CTA de contacto */}
             <div className="rounded-2xl bg-[var(--surface-sunken)] border border-[var(--border)] p-8 text-center">
               <div className="w-12 h-12 rounded-full bg-brand dark:bg-brand-dark flex items-center justify-center mx-auto mb-4">
                 <i className="ri-question-answer-line text-white text-lg"></i>
@@ -368,7 +390,7 @@ export default function TermsPage() {
         <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-brand dark:bg-brand-dark flex items-center justify-center">
-              <i className="ri-archive-2-line text-white text-xs"></i>
+              <LogoMark size={15} />
             </div>
             <span className="font-semibold text-zinc-900 dark:text-white text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Vaultly</span>
           </div>

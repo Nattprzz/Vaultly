@@ -1,49 +1,114 @@
+/**
+ * useTracker.ts — CRUD del tracker personal del usuario.
+ *
+ * Gestiona la carga, creación, actualización y eliminación de entradas
+ * en la tabla user_item_tracking. Aplica actualizaciones optimistas
+ * con rollback automático ante errores de red.
+ * Resuelve los IDs de catálogo invocando la Edge Function catalog-item
+ * cuando el ítem aún no existe en la base de datos local.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect, useCallback } from 'react';
+
+// ─── Librerías externas ──────────────────────────────────────────────────────
+
 import { supabase } from '@/lib/supabase';
+
+// ─── Hooks ───────────────────────────────────────────────────────────────────
+
 import { useAuth } from '@/hooks/useAuth';
+
+// ─── Servicios ───────────────────────────────────────────────────────────────
+
 import { edgeFunctionUrl } from '@/lib/edgeFunctions';
 import { SUPABASE_ANON_KEY } from '@/lib/supabaseConfig';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { UserTrackingMetadata } from '@/types/metadata';
 import { defaultUserTrackingMetadata } from '@/types/metadata';
-
 import type { CategoryStatus } from '@/constants/tracker-statuses';
 import { getDefaultStatus } from '@/constants/tracker-statuses';
-/** Alias de compatibilidad — CategoryStatus es la fuente de verdad */
+
+/** Alias de compatibilidad — CategoryStatus es la fuente de verdad. */
 export type TrackerStatus = CategoryStatus;
 
-/** Campos específicos de videojuegos que se guardan en columnas dedicadas */
+/**
+ * Datos específicos de videojuegos que se guardan en columnas dedicadas
+ * de user_item_tracking (no en el campo metadata JSONB).
+ */
 export interface GameData {
+  /** Plataforma en la que se juega */
   playingPlatform?: string | null;
+  /** Horas de juego registradas */
   hoursPlayed?: number | null;
+  /** Fecha en que se empezó a jugar (ISO) */
   startedAt?: string | null;
+  /** Fecha en que se terminó de jugar (ISO) */
   finishedAt?: string | null;
+  /** Número de logros desbloqueados */
   achievementsUnlocked?: number | null;
 }
 
+/**
+ * Entrada del tracker tal como la consume la interfaz.
+ * Combina datos de user_item_tracking con metadatos de catalog_items.
+ */
 export interface TrackerEntry {
+  /** Slug del ítem (clave primaria en el tracker del usuario) */
   itemId: string;
+  /** UUID del ítem en catalog_items, o null si aún no se resolvió */
   catalogItemId: string | null;
+  /** Categoría del ítem */
   category: string;
+  /** Estado actual en el tracker */
   status: TrackerStatus;
+  /** Puntuación del usuario (1-10), o null si no se ha puntuado */
   rating: number | null;
+  /** Reseña escrita por el usuario */
   review: string;
+  /** Fecha en que se añadió al tracker (ISO) */
   addedAt: string;
+  /** Fecha de la última actualización (ISO) */
   updatedAt: string;
+  /** Metadatos de seguimiento específicos de la categoría */
   metadata: UserTrackingMetadata;
+  /** Título legible del ítem */
   title: string;
+  /** URL de la portada */
   cover: string;
+  /** Año de lanzamiento */
   year: number;
+  /** Género principal */
   genre: string;
-  // Campos de videojuegos (null para otras categorías)
+  /** Plataforma de juego (solo videojuegos) */
   playingPlatform: string | null;
+  /** Horas de juego (solo videojuegos) */
   hoursPlayed: number | null;
+  /** Fecha de inicio (solo videojuegos) */
   startedAt: string | null;
+  /** Fecha de fin (solo videojuegos) */
   finishedAt: string | null;
+  /** Logros desbloqueados (solo videojuegos) */
   achievementsUnlocked: number | null;
 }
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
 const CATALOG_ITEM_URL = edgeFunctionUrl('catalog-item');
 
+// ─── Funciones auxiliares ────────────────────────────────────────────────────
+
+/**
+ * Busca el ID de catálogo de un ítem en caché local o lo solicita a la Edge Function.
+ * La Edge Function crea el ítem en catalog_items si no existe.
+ *
+ * @param itemSlug Slug del ítem.
+ * @param category Categoría del ítem.
+ * @returns UUID del ítem en catalog_items, o null si falla.
+ */
 async function ensureCatalogItemId(itemSlug: string, category: string): Promise<string | null> {
   const { data: cachedItem } = await supabase
     .from('catalog_items')
@@ -65,10 +130,7 @@ async function ensureCatalogItemId(itemSlug: string, category: string): Promise<
         Authorization: `Bearer ${bearerToken}`,
         apikey: SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({
-        slug: itemSlug,
-        category,
-      }),
+      body: JSON.stringify({ slug: itemSlug, category }),
     });
 
     if (!res.ok) return null;
@@ -80,6 +142,14 @@ async function ensureCatalogItemId(itemSlug: string, category: string): Promise<
   }
 }
 
+/**
+ * Convierte una fila de user_item_tracking (con su catalog_item enriquecido)
+ * en un TrackerEntry normalizado para la interfaz.
+ *
+ * @param row Fila cruda de user_item_tracking.
+ * @param catalogItem Fila opcional de catalog_items con metadatos del ítem.
+ * @returns TrackerEntry normalizado.
+ */
 function rowToEntry(row: Record<string, unknown>, catalogItem?: Record<string, unknown>): TrackerEntry {
   const metadata = (catalogItem?.metadata as Record<string, unknown> | undefined) ?? {};
   const genres = metadata.genres;
@@ -108,11 +178,27 @@ function rowToEntry(row: Record<string, unknown>, catalogItem?: Record<string, u
   };
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
+/**
+ * Gestiona el tracker personal del usuario autenticado.
+ *
+ * Responsabilidades:
+ * - Cargar todas las entradas del usuario desde user_item_tracking.
+ * - Enriquecer cada entrada con datos de catalog_items (título, portada, año).
+ * - Añadir o actualizar entradas con actualizaciones optimistas.
+ * - Eliminar entradas con rollback ante error.
+ * - Resolver IDs de catálogo via Edge Function cuando el ítem es nuevo.
+ */
 export function useTracker() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const { user, isLoggedIn } = useAuth();
   const [entries, setEntries] = useState<Record<string, TrackerEntry>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ─── Carga de datos ──────────────────────────────────────────────────────────
 
   const loadEntries = useCallback(async () => {
     if (!user) return;
@@ -159,6 +245,8 @@ export function useTracker() {
     setLoading(false);
   }, [user]);
 
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (isLoggedIn && user) {
       loadEntries();
@@ -167,11 +255,31 @@ export function useTracker() {
     }
   }, [isLoggedIn, user, loadEntries]);
 
+  // ─── Handlers ────────────────────────────────────────────────────────────────
+
+  /**
+   * Devuelve la entrada del tracker para un ítem, o null si no está añadido.
+   *
+   * @param itemId Slug del ítem.
+   */
   const getEntry = useCallback(
     (itemId: string): TrackerEntry | null => entries[itemId] ?? null,
     [entries],
   );
 
+  /**
+   * Crea o actualiza la entrada de un ítem en el tracker del usuario.
+   * Aplica la actualización de forma optimista y hace rollback si falla.
+   *
+   * @param itemId Slug del ítem.
+   * @param category Categoría del ítem.
+   * @param status Estado a asignar.
+   * @param rating Puntuación (1-10), o null.
+   * @param review Texto de la reseña.
+   * @param gameData Datos adicionales de videojuego (opcional).
+   * @param metadata Metadatos de seguimiento específicos de categoría (opcional).
+   * @returns true si la operación fue exitosa, false si falló.
+   */
   const addOrUpdate = useCallback(
     async (
       itemId: string,
@@ -188,6 +296,7 @@ export function useTracker() {
       const existing = entries[itemId];
       setError(null);
 
+      // Actualización optimista
       const optimistic: TrackerEntry = {
         itemId,
         catalogItemId: existing?.catalogItemId ?? null,
@@ -225,8 +334,8 @@ export function useTracker() {
         .eq('item_slug', itemId)
         .maybeSingle();
 
-      // For updates, reuse the known catalog item id to avoid an unnecessary
-      // network call. For new inserts we must resolve it via the edge function.
+      // Para actualizaciones, reutiliza el ID de catálogo conocido para evitar
+      // una llamada innecesaria a la Edge Function.
       const safeCatalogItemId = existing?.catalogItemId
         ?? await ensureCatalogItemId(itemId, category);
 
@@ -300,6 +409,12 @@ export function useTracker() {
     [user, entries, loadEntries],
   );
 
+  /**
+   * Elimina un ítem del tracker del usuario.
+   *
+   * @param itemId Slug del ítem a eliminar.
+   * @returns true si se eliminó correctamente, false si falló.
+   */
   const remove = useCallback(
     async (itemId: string): Promise<boolean> => {
       if (!user) return false;
@@ -325,6 +440,11 @@ export function useTracker() {
     [user],
   );
 
+  /**
+   * Indica si un ítem está en el tracker del usuario.
+   *
+   * @param itemId Slug del ítem.
+   */
   const isTracked = useCallback((itemId: string) => Boolean(entries[itemId]), [entries]);
 
   return { entries, getEntry, addOrUpdate, remove, isTracked, loading, error };

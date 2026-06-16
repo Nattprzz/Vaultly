@@ -1,19 +1,53 @@
+/**
+ * EntityTopWork.tsx — tarjeta de la obra más valorada de una entidad.
+ *
+ * Muestra la obra con mayor rating entre las vinculadas a la entidad: portada,
+ * badge "Obra destacada", título, año, género, rol y una barra de rating de 10
+ * segmentos con etiqueta cualitativa. Solo se renderiza si hay al menos 2 obras
+ * con rating para que tenga sentido comparar.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import type { EntityItem } from '@/hooks/useEntity';
 import { useCategories } from '@/hooks/useCategoryColors';
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
 import { toAppCategory } from '@/lib/categories';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del componente. */
 interface Props {
+  /** Lista de ítems vinculados a la entidad. */
   items: EntityItem[];
 }
 
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
+/**
+ * Extrae el rating numérico de un ítem.
+ *
+ * @param item - Ítem del catálogo.
+ * @returns Número del rating o `null`.
+ */
 function getItemRating(item: EntityItem): number | null {
   const r = item.metadata?.rating;
   return r != null ? Number(r) : null;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function EntityTopWork({ items }: Props) {
   const CATEGORIES = useCategories();
+
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const rated = items.filter(i => getItemRating(i) != null);
   if (rated.length < 2) return null;
 
@@ -22,10 +56,10 @@ export default function EntityTopWork({ items }: Props) {
     rated[0]
   );
 
-  const rating = getItemRating(topWork) ?? 0;
-  const year = topWork.release_date?.slice(0, 4) ?? '';
+  const rating     = getItemRating(topWork) ?? 0;
+  const year       = topWork.release_date?.slice(0, 4) ?? '';
   const categoryId = toAppCategory(topWork.category) ?? topWork.category;
-  const cat = CATEGORIES.find(c => c.id === categoryId);
+  const cat        = CATEGORIES.find(c => c.id === categoryId);
 
   const genre = (() => {
     const g = topWork.metadata?.genres ?? topWork.metadata?.genre;
@@ -33,13 +67,12 @@ export default function EntityTopWork({ items }: Props) {
     return String(g ?? '');
   })();
 
-  // Rating bar fill
-  const fillPct = (rating / 10) * 100;
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden mb-8">
       <div className="flex flex-col sm:flex-row">
-        {/* Cover */}
+        {/* Portada */}
         <div className="relative w-full sm:w-48 flex-shrink-0">
           <div className="aspect-[2/3] sm:aspect-auto sm:h-full min-h-[200px] bg-zinc-100 dark:bg-zinc-800">
             {topWork.image_url ? (
@@ -54,14 +87,14 @@ export default function EntityTopWork({ items }: Props) {
               </div>
             )}
           </div>
-          {/* Trophy overlay */}
+          {/* Badge "Obra destacada" */}
           <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500 text-white text-xs font-bold">
             <i className="ri-trophy-fill text-xs"></i>
             Obra destacada
           </div>
         </div>
 
-        {/* Info */}
+        {/* Información */}
         <div className="flex-1 p-6 flex flex-col justify-between">
           <div>
             {cat && (
@@ -102,7 +135,7 @@ export default function EntityTopWork({ items }: Props) {
               )}
             </div>
 
-            {/* Rating display */}
+            {/* Puntuación con barra de 10 segmentos */}
             <div className="flex items-end gap-3 mb-4">
               <div>
                 <p

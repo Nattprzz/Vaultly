@@ -1,12 +1,35 @@
+/**
+ * TrackerHeader.tsx — cabecera con estadísticas rápidas del tracker.
+ *
+ * Muestra el título "Mi Tracker" con el nombre de usuario y el total de ítems,
+ * junto a cuatro tarjetas de stats calculadas en línea: completados, en progreso,
+ * pendientes y puntuación media. Incluye un CTA directo al catálogo.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useAuth } from '@/hooks/useAuth';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import { TrackerEntry } from '@/hooks/useTracker';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props de la cabecera del tracker. */
 interface Props {
   entries: Record<string, TrackerEntry>;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function TrackerHeader({ entries }: Props) {
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const { profile, user } = useAuth();
   const all = Object.values(entries);
   const completed = all.filter(e => e.status === 'completed').length;
@@ -16,6 +39,8 @@ export default function TrackerHeader({ entries }: Props) {
   const avgRating = rated.length > 0
     ? (rated.reduce((s, e) => s + (e.rating ?? 0), 0) / rated.length).toFixed(1)
     : '—';
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="mb-8">
@@ -41,13 +66,13 @@ export default function TrackerHeader({ entries }: Props) {
         </Link>
       </div>
 
-      {/* Quick stats */}
+      {/* Tarjetas de estadísticas rápidas */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Completados', value: completed, icon: 'ri-checkbox-circle-line', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
-          { label: 'En progreso', value: inProgress, icon: 'ri-loader-4-line', color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/30' },
-          { label: 'Pendientes', value: pending, icon: 'ri-bookmark-line', color: 'text-zinc-500', bg: 'bg-zinc-100 dark:bg-zinc-800/50' },
-          { label: 'Puntuación media', value: avgRating, icon: 'ri-star-line', color: 'text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30' },
+          { label: 'Completados',      value: completed,  icon: 'ri-checkbox-circle-line', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
+          { label: 'En progreso',      value: inProgress, icon: 'ri-loader-4-line',         color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/30'    },
+          { label: 'Pendientes',       value: pending,    icon: 'ri-bookmark-line',          color: 'text-zinc-500',    bg: 'bg-zinc-100 dark:bg-zinc-800/50'     },
+          { label: 'Puntuación media', value: avgRating,  icon: 'ri-star-line',              color: 'text-amber-400',   bg: 'bg-amber-50 dark:bg-amber-950/30'   },
         ].map(stat => (
           <div key={stat.label} className={`flex items-center gap-3 px-4 py-3 rounded-xl ${stat.bg}`}>
             <i className={`${stat.icon} text-xl ${stat.color}`}></i>

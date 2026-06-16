@@ -1,7 +1,23 @@
-import { useSettings } from '@/hooks/useSettings';
+/**
+ * CategoriesSection.tsx — sección de configuración de categorías activas.
+ *
+ * Muestra un selector de tarjetas para activar o desactivar cada categoría
+ * del tracker y catálogo. Garantiza que siempre haya al menos una activa.
+ * Incluye el editor de colores por categoría y un resumen visual del estado
+ * actual con los colores personalizados del usuario.
+ */
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useSettings }   from '@/hooks/useSettings';
 import { useCategories } from '@/hooks/useCategoryColors';
-import SettingsCard from './SettingsCard';
-import CategoryColorEditor from './CategoryColorEditor';
+
+// ─── Componentes ─────────────────────────────────────────────────────────────
+
+import SettingsCard         from './SettingsCard';
+import CategoryColorEditor  from './CategoryColorEditor';
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function CategoriesSection() {
   const { settings, toggleCategory } = useSettings();
@@ -9,6 +25,7 @@ export default function CategoriesSection() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Selector de categorías activas */}
       <SettingsCard
         title="Categorías activas"
         description="Selecciona qué categorías quieres ver en tu tracker, en el catálogo y en el navbar. Debes tener al menos una activa."
@@ -16,7 +33,7 @@ export default function CategoriesSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {categories.map(cat => {
             const isActive = settings.activeCategories.includes(cat.id);
-            const isLast = isActive && settings.activeCategories.length === 1;
+            const isLast   = isActive && settings.activeCategories.length === 1;
             return (
               <button
                 key={cat.id}
@@ -29,24 +46,19 @@ export default function CategoriesSection() {
                 } ${isLast ? 'cursor-not-allowed' : ''}`}
                 style={isActive ? { borderColor: cat.accent, background: `${cat.accent}10` } : {}}
               >
-                {/* Icon */}
                 <div
                   className="w-12 h-12 flex items-center justify-center rounded-xl flex-shrink-0"
                   style={{ background: `${cat.accent}1f`, color: cat.accent }}
                 >
                   <i className={`${cat.icon} text-xl`}></i>
                 </div>
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-zinc-900 dark:text-white text-sm">{cat.label}</p>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{cat.description}</p>
                 </div>
-                {/* Checkbox */}
                 <div
                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                    isActive
-                      ? 'border-transparent'
-                      : 'border-zinc-300 dark:border-zinc-600'
+                    isActive ? 'border-transparent' : 'border-zinc-300 dark:border-zinc-600'
                   }`}
                   style={isActive ? { background: cat.accent } : {}}
                 >
@@ -64,10 +76,10 @@ export default function CategoriesSection() {
         </div>
       </SettingsCard>
 
-      {/* Color personalisation */}
+      {/* Editor de colores por categoría */}
       <CategoryColorEditor />
 
-      {/* Active summary — live preview using the resolved (possibly customised) colors */}
+      {/* Resumen visual con los colores actuales */}
       <SettingsCard title="Resumen de tu tracker" description="Así se ven tus categorías activas con tus colores actuales.">
         <div className="flex flex-wrap gap-2">
           {categories.filter(cat => settings.activeCategories.includes(cat.id)).map(cat => (

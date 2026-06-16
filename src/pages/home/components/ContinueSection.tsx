@@ -1,6 +1,22 @@
+/**
+ * ContinueSection.tsx — sección "Continúa donde lo dejaste" de la landing page.
+ *
+ * Muestra tarjetas estáticas de ítems en progreso con barra de progreso animada.
+ * Las barras se animan de 0 % al valor real una vez que la sección entra en viewport
+ * vía IntersectionObserver, con un retraso escalonado por tarjeta.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useRef, useState, useEffect } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Ítems en progreso ilustrativos para la sección de continuación. */
 const IN_PROGRESS = [
   {
     id: '1',
@@ -52,9 +68,15 @@ const IN_PROGRESS = [
   },
 ] as const;
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ContinueSection() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -65,11 +87,13 @@ export default function ContinueSection() {
     return () => obs.disconnect();
   }, []);
 
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
+
   return (
     <section className="py-16 px-4 md:px-6 bg-[var(--surface)] dark:bg-[var(--bg)]">
       <div className="mx-auto max-w-screen-xl" ref={ref}>
 
-        {/* Header */}
+        {/* Cabecera */}
         <div
           className="mb-10 transition-all duration-700"
           style={{ opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateY(16px)' }}
@@ -86,7 +110,7 @@ export default function ContinueSection() {
           </h2>
         </div>
 
-        {/* Cards grid */}
+        {/* Grid de tarjetas de progreso */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {IN_PROGRESS.map((item, i) => (
             <div
@@ -98,12 +122,12 @@ export default function ContinueSection() {
                 transitionDelay: `${i * 70}ms`,
               }}
             >
-              {/* Gradient poster */}
+              {/* Póster con gradiente */}
               <div
                 className={`relative h-[72px] w-[50px] flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br ${item.gradient}`}
               />
 
-              {/* Info */}
+              {/* Información y barra de progreso */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2 mb-0.5">
                   <div className="min-w-0">
@@ -122,7 +146,7 @@ export default function ContinueSection() {
                   </Link>
                 </div>
 
-                {/* Progress bar */}
+                {/* Barra de progreso — se anima al 0→pct% cuando visible */}
                 <div className="mt-3">
                   <div className="mb-1.5 flex items-center justify-between">
                     <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-600">

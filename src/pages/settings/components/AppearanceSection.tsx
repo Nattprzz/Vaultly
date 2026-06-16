@@ -1,44 +1,75 @@
-import { useState, useEffect } from 'react';
-import { useTheme } from '@/hooks/useTheme';
-import SettingsCard from './SettingsCard';
+/**
+ * AppearanceSection.tsx — sección de configuración de apariencia visual.
+ *
+ * Permite cambiar entre tema claro y oscuro, ajustar el tamaño de fuente
+ * global y consulta dónde personalizar los colores de categoría. El tamaño
+ * de fuente se persiste en localStorage y se aplica al documento en tiempo real.
+ */
 
+// ─── React ───────────────────────────────────────────────────────────────────
+
+import { useState, useEffect } from 'react';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useTheme } from '@/hooks/useTheme';
+
+// ─── Componentes ─────────────────────────────────────────────────────────────
+
+import SettingsCard from './SettingsCard';
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+
+// ─── Constantes ──────────────────────────────────────────────────────────────
+
+/** Opciones de tema con sus estilos de previsualización miniatura. */
 const THEME_OPTIONS = [
   {
-    id: 'light',
-    label: 'Claro',
-    icon: 'ri-sun-line',
-    preview: 'bg-white border-zinc-200',
+    id:           'light',
+    label:        'Claro',
+    icon:         'ri-sun-line',
+    preview:      'bg-white border-zinc-200',
     previewInner: 'bg-zinc-100',
-    previewText: 'text-zinc-800',
+    previewText:  'text-zinc-800',
   },
   {
-    id: 'dark',
-    label: 'Oscuro',
-    icon: 'ri-moon-line',
-    preview: 'bg-zinc-900 border-zinc-700',
+    id:           'dark',
+    label:        'Oscuro',
+    icon:         'ri-moon-line',
+    preview:      'bg-zinc-900 border-zinc-700',
     previewInner: 'bg-zinc-800',
-    previewText: 'text-zinc-200',
+    previewText:  'text-zinc-200',
   },
 ];
 
+/** Opciones de tamaño de fuente con su clase de muestra. */
 const FONT_SIZES = [
-  { id: 'sm',   label: 'Pequeño',  sample: 'text-xs' },
-  { id: 'base', label: 'Normal',   sample: 'text-sm' },
-  { id: 'lg',   label: 'Grande',   sample: 'text-base' },
+  { id: 'sm',   label: 'Pequeño', sample: 'text-xs'   },
+  { id: 'base', label: 'Normal',  sample: 'text-sm'   },
+  { id: 'lg',   label: 'Grande',  sample: 'text-base' },
 ];
 
+/** Mapeo de tamaño de fuente a píxeles reales para `document.documentElement`. */
 const FONT_SIZE_PX: Record<string, string> = { sm: '14px', base: '16px', lg: '18px' };
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function AppearanceSection() {
   const { theme, toggleTheme } = useTheme();
 
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
   const [savedFont, setSavedFont] = useState(() => localStorage.getItem('vaultly-font-size') ?? 'base');
   const [fontSaved, setFontSaved] = useState(false);
+
+  // ─── Efectos ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
     document.documentElement.style.fontSize = FONT_SIZE_PX[savedFont] ?? '16px';
   }, [savedFont]);
 
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  /** Aplica el tamaño de fuente seleccionado y confirma visualmente con feedback. */
   const setFont = (id: string) => {
     if (id === savedFont) return;
     localStorage.setItem('vaultly-font-size', id);
@@ -47,9 +78,11 @@ export default function AppearanceSection() {
     setTimeout(() => setFontSaved(false), 2000);
   };
 
+  // ─── Renderizado ──────────────────────────────────────────────────────────
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Theme */}
+      {/* Selector de tema */}
       <SettingsCard title="Tema" description="Elige entre modo claro u oscuro para la interfaz.">
         <div className="grid grid-cols-2 gap-4">
           {THEME_OPTIONS.map(opt => {
@@ -64,7 +97,7 @@ export default function AppearanceSection() {
                     : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
                 }`}
               >
-                {/* Mini preview */}
+                {/* Previsualización miniatura del tema */}
                 <div className={`w-full h-20 rounded-lg border ${opt.preview} flex flex-col gap-1.5 p-2 overflow-hidden`}>
                   <div className={`h-2 w-16 rounded-full ${opt.previewInner}`}></div>
                   <div className={`h-2 w-10 rounded-full ${opt.previewInner} opacity-60`}></div>
@@ -93,9 +126,7 @@ export default function AppearanceSection() {
         </p>
       </SettingsCard>
 
-      {/* Category colors live in their own section now — point people there instead
-          of duplicating a generic "accent color" picker that doesn't map to anything
-          concrete in the UI. */}
+      {/* Enlace informativo a la sección de colores de categoría */}
       <SettingsCard
         title="Colores de categoría"
         description="El color de acento de Vaultly varía según la categoría (videojuegos, películas, series, libros, conciertos) para ayudarte a distinguirlas de un vistazo."
@@ -109,7 +140,7 @@ export default function AppearanceSection() {
         </div>
       </SettingsCard>
 
-      {/* Font size */}
+      {/* Selector de tamaño de fuente */}
       <SettingsCard title="Tamaño de texto" description="Ajusta el tamaño de la fuente en la interfaz.">
         <div className="flex items-center gap-3">
           {FONT_SIZES.map(fs => (

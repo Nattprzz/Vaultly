@@ -1,9 +1,26 @@
+/**
+ * dashboard/page.tsx — panel personal del usuario autenticado.
+ *
+ * Muestra estadísticas globales, actividad reciente, ítems en seguimiento,
+ * actividad semanal y progreso por categoría. Todos los datos se pueden
+ * filtrar por categoría con chips rápidos — el filtrado es únicamente en
+ * cliente, sin nueva petición a Supabase. La actividad semanal se recalcula
+ * manualmente cuando se selecciona una categoría específica, usando rawRows.
+ * Las secciones se revelan progresivamente con IntersectionObserver (useScrollReveal).
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useMemo } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
 import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
-import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { useCategories } from '@/hooks/useCategoryColors';
 import DashboardHeader from './components/DashboardHeader';
 import DashboardNotifications from './components/DashboardNotifications';
 import StatsCards from './components/StatsCards';
@@ -11,17 +28,36 @@ import CurrentlyTracking from './components/CurrentlyTracking';
 import RecentActivity from './components/RecentActivity';
 import CategoryProgress from './components/CategoryProgress';
 import WeeklyActivity from './components/WeeklyActivity';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useCategories } from '@/hooks/useCategoryColors';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { useAuth } from '@/hooks/useAuth';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { WeeklyActivityPoint } from '@/hooks/useDashboardStats';
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Valor del filtro de categoría que representa "todas las categorías". */
 const ALL_CAT = 'all';
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function DashboardPage() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const dashData = useDashboardStats();
   const CATEGORIES = useCategories();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
   const [activeCategory, setActiveCategory] = useState<string>(ALL_CAT);
 
-  // Scroll reveal refs
+  // ─── Scroll reveal ───────────────────────────────────────────────────────────
+
   const headerRef   = useScrollReveal<HTMLDivElement>({ rootMargin: '0px' });
   const notifRef    = useScrollReveal<HTMLDivElement>({ rootMargin: '0px' });
   const statsRef    = useScrollReveal<HTMLElement>();
@@ -30,7 +66,7 @@ export default function DashboardPage() {
   const weeklyRef   = useScrollReveal<HTMLDivElement>();
   const progressRef = useScrollReveal<HTMLDivElement>();
 
-  // ── Filtered data (client-side only, no tracker mutation) ──────────────────
+  // ─── Datos derivados ─────────────────────────────────────────────────────────
 
   const filteredActivity = useMemo(
     () => activeCategory === ALL_CAT
@@ -77,13 +113,14 @@ export default function DashboardPage() {
     });
   }, [activeCategory, dashData.rawRows, dashData.weeklyActivity]);
 
-  // Empty state when a category filter returns no data at all
   const activeCatMeta  = CATEGORIES.find(c => c.id === activeCategory);
   const categoryIsEmpty =
     activeCategory !== ALL_CAT &&
     !dashData.loading &&
     filteredActivity.length === 0 &&
     filteredTracking.length === 0;
+
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)]">
@@ -101,7 +138,33 @@ export default function DashboardPage() {
             <DashboardHeader stats={dashData.stats} loading={dashData.loading} />
           </div>
 
-          {/* ── Category filter chips ───────────────────────────────────────── */}
+          {/* Panel de acceso rápido para administradores */}
+          {isAdmin && (
+            <div className="mb-8 p-5 rounded-2xl border border-brand/20 dark:border-brand-dark/20 bg-brand/5 dark:bg-brand-dark/5">
+              <div className="flex items-center gap-2 mb-3">
+                <i className="ri-shield-user-line text-brand dark:text-brand-dark text-lg"></i>
+                <h2 className="text-sm font-bold text-zinc-900 dark:text-white">Panel de administración</h2>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  to="/admin/catalog"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <i className="ri-database-2-line text-brand dark:text-brand-dark"></i>
+                  Gestionar catálogo
+                </Link>
+                <Link
+                  to="/admin/users"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <i className="ri-group-line text-brand dark:text-brand-dark"></i>
+                  Gestionar usuarios
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Chips de filtro por categoría */}
           <div className="flex flex-wrap gap-2 mb-8 -mt-2">
             <button
               onClick={() => setActiveCategory(ALL_CAT)}
@@ -139,12 +202,12 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Stats always show global totals */}
+          {/* Las stats muestran siempre totales globales, independientemente del filtro */}
           <section ref={statsRef} className="sr-item mb-8">
             <StatsCards stats={dashData.stats} loading={dashData.loading} />
           </section>
 
-          {/* ── Empty state for filtered category ──────────────────────────── */}
+          {/* Estado vacío cuando la categoría filtrada no tiene ítems */}
           {categoryIsEmpty ? (
             <div className="flex flex-col items-center justify-center py-20 gap-5">
               <div

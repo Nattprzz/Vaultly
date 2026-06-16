@@ -1,26 +1,57 @@
+/**
+ * auth/page.tsx — página de autenticación (login, registro y recuperación).
+ *
+ * Gestiona tres flujos en un mismo componente: inicio de sesión, registro
+ * (con dos pasos) y recuperación de contraseña. Las transiciones entre
+ * flujos usan animaciones CSS directas (slide-in derecha/izquierda) para
+ * evitar dependencias externas. El panel izquierdo muestra contenido
+ * contextual que cambia según el modo activo.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/hooks/useTheme';
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
 import SeoHead from '@/components/feature/SeoHead';
+import { LogoMark } from '@/components/branding/Logo';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
 import ForgotPasswordForm from './components/ForgotPasswordForm';
 
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
+import { isPasswordRecoveryPending, PASSWORD_RECOVERY_ROUTE } from '@/lib/passwordRecovery';
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Ítems de ejemplo que se muestran en el panel izquierdo en modo login. */
 const LEFT_LOGIN = [
   { text: 'Cyberpunk 2077 · Completado',  color: '#22c55e' },
   { text: 'Breaking Bad · En progreso',    color: '#f97316' },
   { text: 'Dune · Pendiente',             color: '#64748b' },
 ];
 
+/** Ítems de ejemplo que se muestran en el panel izquierdo en modo registro. */
 const LEFT_REGISTER = [
-  { text: 'Añade tu primer título',  color: '#3b82f6' },
-  { text: 'Marca tu progreso',       color: '#3b82f6' },
-  { text: 'Guarda tus favoritos',    color: '#3b82f6' },
+  { text: 'Añade tu primer título',  color: '#0553EB' },
+  { text: 'Marca tu progreso',       color: '#0553EB' },
+  { text: 'Guarda tus favoritos',    color: '#0553EB' },
 ];
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function AuthPage() {
-  const { isLoggedIn } = useAuth();
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
+  const { isLoggedIn, profile, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -31,10 +62,22 @@ export default function AuthPage() {
   const [registerStep, setRegisterStep] = useState<1 | 2>(1);
   const [animKey, setAnimKey] = useState(0);
   const [direction, setDirection] = useState<'left' | 'right'>('right');
+  const resetSuccess = searchParams.get('reset') === 'success';
+
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (isLoggedIn) navigate('/dashboard');
-  }, [isLoggedIn, navigate]);
+    if (!isLoggedIn || loading) return;
+
+    if (isPasswordRecoveryPending()) {
+      navigate(PASSWORD_RECOVERY_ROUTE, { replace: true });
+      return;
+    }
+
+    navigate(profile?.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+  }, [isLoggedIn, loading, profile, navigate]);
+
+  // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const switchMode = (next: 'login' | 'register') => {
     if (next === mode) return;
@@ -49,6 +92,8 @@ export default function AuthPage() {
     setAnimKey(k => k + 1);
   };
 
+  // ─── Datos derivados ─────────────────────────────────────────────────────────
+
   const isRegister = mode === 'register';
   const isForgot = !isRegister && loginView === 'forgot';
 
@@ -58,12 +103,13 @@ export default function AuthPage() {
     ? 'Recuperar contraseña'
     : 'Inicia sesión';
 
-  // Subtitle only where it adds clarity
   const headerSubtitle = isForgot
     ? 'Introduce tu email y te enviamos un enlace de recuperación.'
     : '';
 
   const slideInClass = direction === 'right' ? 'auth-slide-in-right' : 'auth-slide-in-left';
+
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen flex bg-[var(--surface)] dark:bg-[var(--bg)]">
@@ -97,12 +143,12 @@ export default function AuthPage() {
         noIndex
       />
 
-      {/* ── Left panel — ambient, not protagonist ── */}
+      {/* ── Panel izquierdo — ambiente, no protagonista ── */}
       <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden">
-        {/* Dark ambient background — no external dependencies */}
-        <div className="absolute inset-0 bg-zinc-950" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_30%_20%,rgba(59,130,246,0.07),transparent)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_70%_80%,rgba(139,92,246,0.06),transparent)]" />
+        {/* Fondo oscuro sin dependencias externas */}
+        <div className="absolute inset-0 bg-[#0A0F1A]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_30%_20%,rgba(5,83,235,0.10),transparent)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_70%_80%,rgba(1,23,65,0.80),transparent)]" />
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -113,8 +159,8 @@ export default function AuthPage() {
         <div className="relative z-10 flex flex-col h-full px-10 py-8">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 cursor-pointer w-fit">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-              <i className="ri-archive-2-line text-white text-sm" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#0553EB' }}>
+              <LogoMark size={20} />
             </div>
             <span
               className="font-bold text-white tracking-tight"
@@ -124,7 +170,7 @@ export default function AuthPage() {
             </span>
           </Link>
 
-          {/* Content — switches on mode change */}
+          {/* Contenido contextual — cambia con el modo */}
           <div key={mode} className="left-fade flex-1 flex flex-col justify-center">
             <h2
               className="text-2xl font-bold text-white leading-snug tracking-tight mb-2"
@@ -140,7 +186,7 @@ export default function AuthPage() {
                 : 'Guarda lo que ves, juegas, lees y escuchas desde el primer día.'}
             </p>
 
-            {/* Minimal list — 3 items, no cards */}
+            {/* Lista minimalista — 3 ítems sin tarjetas */}
             <div className="flex flex-col gap-2.5">
               {(!isRegister ? LEFT_LOGIN : LEFT_REGISTER).map(item => (
                 <div key={item.text} className="flex items-center gap-2.5">
@@ -154,7 +200,7 @@ export default function AuthPage() {
             </div>
           </div>
 
-          {/* Footer */}
+          {/* Pie de página */}
           <p className="text-zinc-700 text-xs">
             © 2026 Vaultly ·{' '}
             <Link to="/privacy" rel="nofollow" className="hover:text-zinc-500 transition-colors">
@@ -168,13 +214,13 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* ── Right panel — form is the protagonist ── */}
+      {/* ── Panel derecho — el formulario es el protagonista ── */}
       <div className="flex flex-col w-full lg:w-[460px] flex-shrink-0">
-        {/* Top bar */}
+        {/* Barra superior */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-transparent lg:border-[var(--border)]">
           <Link to="/" className="flex items-center gap-2 cursor-pointer lg:invisible">
             <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
-              <i className="ri-archive-2-line text-white text-xs" />
+              <LogoMark size={17} />
             </div>
             <span
               className="font-bold text-zinc-900 dark:text-white text-sm"
@@ -191,10 +237,10 @@ export default function AuthPage() {
           </button>
         </div>
 
-        {/* Form area — vertically centered */}
+        {/* Área del formulario — centrada verticalmente */}
         <div className="flex-1 flex flex-col justify-center px-8 md:px-12 py-8">
 
-          {/* Header */}
+          {/* Cabecera animada — re-monta con animKey para disparar la animación */}
           <div key={`header-${animKey}-${registerStep}`} className="mb-5 auth-fade-up">
             <h1
               className="text-[1.375rem] font-bold text-zinc-900 dark:text-white tracking-tight"
@@ -207,7 +253,14 @@ export default function AuthPage() {
             )}
           </div>
 
-          {/* Mode tabs — hidden in forgot / register step 2 */}
+          {/* Pestañas de modo — ocultas en recuperación y paso 2 del registro */}
+          {resetSuccess && !isForgot && !isRegister && (
+            <div className="mb-5 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+              <i className="ri-shield-check-line mt-0.5 flex-shrink-0"></i>
+              <p>Contraseña actualizada. Inicia sesión de nuevo.</p>
+            </div>
+          )}
+
           {!isForgot && !(isRegister && registerStep === 2) && (
             <div className="flex bg-zinc-100 dark:bg-zinc-800/60 rounded-xl p-1 mb-5">
               <button
@@ -233,7 +286,7 @@ export default function AuthPage() {
             </div>
           )}
 
-          {/* Animated form */}
+          {/* Formulario con animación de slide */}
           <div key={`form-${animKey}`} className={slideInClass}>
             {isRegister
               ? <RegisterForm

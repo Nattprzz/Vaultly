@@ -1,15 +1,44 @@
+/**
+ * RegisterForm.tsx — formulario de registro en dos pasos de Vaultly.
+ *
+ * Paso 1: username, email, contraseña y aceptación de términos.
+ * Paso 2: selección de categorías a rastrear (por defecto las 4 principales).
+ * Al enviar: verifica disponibilidad de username vía RPC, crea el usuario en Supabase Auth
+ * y persiste las categorías seleccionadas en `user_tracker_settings`.
+ * La transición entre pasos usa una animación CSS de slide con dirección (forward/back).
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { useNavigate, Link } from 'react-router-dom';
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
 import { supabase } from '@/lib/supabase';
 import { CATEGORIES } from '@/lib/categoryConfig';
 import { SETTINGS_STORAGE_KEY } from '@/hooks/useSettings';
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
 import OAuthButtons from './OAuthButtons';
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/** Props del formulario de registro. */
 interface RegisterFormProps {
+  /** Callback para volver al formulario de login. */
   onSwitch: () => void;
+  /** Notifica al padre el paso activo para ajustar la animación de la página. */
   onStepChange?: (step: 1 | 2) => void;
 }
 
+// ─── Validación ───────────────────────────────────────────────────────────────
+
+/** Genera las iniciales del display_name a partir del username. */
 function getInitials(name: string): string {
   return name
     .split(/[\s_-]+/)
@@ -18,12 +47,14 @@ function getInitials(name: string): string {
     .join('');
 }
 
+/** Valida el formato del email. */
 function validateEmail(val: string): string {
   if (!val) return 'El correo electrónico es obligatorio.';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return 'Introduce un correo válido.';
   return '';
 }
 
+/** Valida el username (solo letras minúsculas, números y guiones bajos, mínimo 3 chars). */
 function validateUsername(val: string): string {
   if (!/^[a-z0-9_]*$/.test(val)) return 'Solo letras, números y guiones bajos.';
   if (!val) return 'El nombre de usuario es obligatorio.';
@@ -31,27 +62,37 @@ function validateUsername(val: string): string {
   return '';
 }
 
+/** Valida que la contraseña tenga al menos 8 caracteres. */
 function validatePassword(val: string): string {
   if (!val) return 'La contraseña es obligatoria.';
   if (val.length < 8) return 'Mínimo 8 caracteres.';
   return '';
 }
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
 
-
+/** Categorías seleccionadas por defecto al iniciar el paso 2. */
 const DEFAULT_SELECTED_CATEGORIES = ['videojuegos', 'peliculas', 'series', 'libros'];
 
+/**
+ * Persiste las categorías activas en localStorage como caché local.
+ * Supabase sigue siendo la fuente de verdad; esto solo acelera la carga inicial.
+ */
 function persistSelectedCategories(activeCategories: string[]) {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
     const previous = raw ? JSON.parse(raw) : {};
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ ...previous, activeCategories }));
   } catch {
-    // Local persistence is a convenience; Supabase remains the source of truth.
+    // La persistencia local es un atajo; Supabase es la fuente de verdad.
   }
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormProps) {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2>(1);
   const [stepAnimKey, setStepAnimKey] = useState(0);
@@ -66,9 +107,9 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
   const [success, setSuccess] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsTouched, setTermsTouched] = useState(false);
-
-  // touched state per field
   const [touched, setTouched] = useState({ username: false, email: false, password: false });
+
+  // ─── Validación ───────────────────────────────────────────────────────────────
 
   const touch = (field: keyof typeof touched) =>
     setTouched(prev => ({ ...prev, [field]: true }));
@@ -77,7 +118,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
   const emailError = validateEmail(email);
   const passwordError = validatePassword(password);
 
-
+  // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const toggleCat = (id: string) => {
     setSelectedCats(prev =>
@@ -174,9 +215,16 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
     onStepChange?.(next);
   };
 
+  // ─── Datos derivados ─────────────────────────────────────────────────────────
+
   const strength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
   const strengthLabel = ['', 'Débil', 'Media', 'Fuerte'];
   const strengthColor = ['', 'bg-red-400', 'bg-amber-400', 'bg-emerald-400'];
+
+  const usernameHasError = touched.username && !!usernameError;
+  const slideClass = stepDirection === 'forward' ? 'reg-step-forward' : 'reg-step-back';
+
+  // ─── Estilos de inputs ────────────────────────────────────────────────────────
 
   const inputBase = 'w-full py-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none transition-colors';
   const inputNormal = 'border-zinc-200 dark:border-zinc-700 focus:border-brand dark:focus:border-brand-dark';
@@ -199,9 +247,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
     return inputNormal;
   };
 
-  const usernameHasError = touched.username && !!usernameError;
-
-  const slideClass = stepDirection === 'forward' ? 'reg-step-forward' : 'reg-step-back';
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
 
   if (success) {
     return (
@@ -231,6 +277,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Keyframes CSS para la animación de pasos */}
       <style>{`
         @keyframes regStepForward {
           from { opacity: 0; transform: translateX(22px); }
@@ -244,7 +291,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
         .reg-step-back    { animation: regStepBack    0.28s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
 
-      {/* ── Step indicator — minimal ── */}
+      {/* Indicador de paso */}
       <div className="flex items-center justify-between">
         <span className="text-xs text-zinc-500">
           Paso {step} de 2 · {step === 1 ? 'Cuenta' : 'Preferencias'}
@@ -255,13 +302,13 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
         </div>
       </div>
 
-      {/* ── Animated step content ── */}
+      {/* Contenido animado del paso activo */}
       <div key={stepAnimKey} className={slideClass}>
         {step === 1 ? (
           <form onSubmit={handleStep1} className="flex flex-col gap-4" noValidate>
-            {/* Username */}
+            {/* Nombre de usuario */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+              <label htmlFor="reg-username" className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                 Nombre de usuario <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -269,6 +316,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                   <i className="ri-at-line text-sm"></i>
                 </div>
                 <input
+                  id="reg-username"
                   type="text"
                   value={username}
                   onChange={e => {
@@ -278,6 +326,8 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                   onBlur={() => touch('username')}
                   placeholder="tu_usuario"
                   autoComplete="username"
+                  aria-invalid={touched.username && !!usernameError}
+                  aria-describedby={touched.username && usernameError ? 'reg-username-error' : undefined}
                   className={`${inputBase} pl-10 pr-9 ${getUsernameClass()}`}
                 />
                 {touched.username && !usernameError && username && (
@@ -288,16 +338,16 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
               </div>
 
               {touched.username && usernameError && (
-                <p className="flex items-center gap-1.5 text-xs text-red-500">
+                <p id="reg-username-error" className="flex items-center gap-1.5 text-xs text-red-500">
                   <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                   {usernameError}
                 </p>
               )}
             </div>
 
-            {/* Email */}
+            {/* Correo electrónico */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+              <label htmlFor="reg-email" className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                 Correo electrónico <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -305,6 +355,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                   <i className="ri-mail-line text-sm"></i>
                 </div>
                 <input
+                  id="reg-email"
                   type="email"
                   name="email"
                   value={email}
@@ -315,6 +366,8 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                   onBlur={() => touch('email')}
                   placeholder="tu@email.com"
                   autoComplete="email"
+                  aria-invalid={touched.email && !!emailError}
+                  aria-describedby={touched.email && emailError ? 'reg-email-error' : undefined}
                   className={`${inputBase} pl-10 pr-9 ${getEmailClass()}`}
                 />
                 {touched.email && !emailError && email && (
@@ -324,16 +377,16 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                 )}
               </div>
               {touched.email && emailError && (
-                <p className="flex items-center gap-1.5 text-xs text-red-500">
+                <p id="reg-email-error" className="flex items-center gap-1.5 text-xs text-red-500">
                   <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                   {emailError}
                 </p>
               )}
             </div>
 
-            {/* Password */}
+            {/* Contraseña con indicador de fortaleza */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+              <label htmlFor="reg-password" className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                 Contraseña <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -341,6 +394,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                   <i className="ri-lock-line text-sm"></i>
                 </div>
                 <input
+                  id="reg-password"
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => {
@@ -350,6 +404,8 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                   onBlur={() => touch('password')}
                   placeholder="Mínimo 8 caracteres"
                   autoComplete="new-password"
+                  aria-invalid={touched.password && !!passwordError}
+                  aria-describedby={touched.password && passwordError ? 'reg-password-error' : undefined}
                   className={`${inputBase} pl-10 pr-14 ${getPasswordClass()}`}
                 />
                 {touched.password && !passwordError && password && (
@@ -360,17 +416,19 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
                 <button
                   type="button"
                   onClick={() => setShowPass(p => !p)}
+                  aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
                 >
                   <i className={showPass ? 'ri-eye-off-line text-sm' : 'ri-eye-line text-sm'}></i>
                 </button>
               </div>
               {touched.password && passwordError && (
-                <p className="flex items-center gap-1.5 text-xs text-red-500">
+                <p id="reg-password-error" className="flex items-center gap-1.5 text-xs text-red-500">
                   <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                   {passwordError}
                 </p>
               )}
+              {/* Indicador de fortaleza — visual, no bloquea el submit */}
               {password.length > 0 && (
                 <div className="flex items-center gap-2 mt-0.5">
                   <div className="flex gap-1 flex-1">
@@ -388,7 +446,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
               )}
             </div>
 
-            {/* Terms & Privacy checkbox */}
+            {/* Checkbox de términos y privacidad */}
             <div className="flex flex-col gap-1.5">
               <label
                 className={`flex items-start gap-3 cursor-pointer group rounded-xl px-3.5 py-3 border transition-colors ${
@@ -482,6 +540,7 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
             </p>
           </form>
         ) : (
+          /* Paso 2 — selección de categorías */
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
@@ -559,4 +618,3 @@ export default function RegisterForm({ onSwitch, onStepChange }: RegisterFormPro
     </div>
   );
 }
-

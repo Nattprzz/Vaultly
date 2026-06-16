@@ -1,7 +1,18 @@
--- Allow each user to personalise the accent color used for each content category
--- (videojuegos, peliculas, series, libros, conciertos). Stored as a JSON map of
--- category id -> hex color string, e.g. {"videojuegos": "#84cc16"}.
--- Nullable / defaults to '{}' so existing rows keep using the app defaults.
+-- ============================================================================
+-- Nombre: add_category_colors.sql
+-- Descripción:
+-- Añade configuración JSON de colores personalizados por categoría en perfiles.
+--
+-- Tablas afectadas:
+-- - profiles
+--
+-- Autor: Vaultly
+-- ============================================================================
+
+-- Permite que cada usuario personalice el color de acento usado por categoría
+-- (videojuegos, peliculas, series, libros, conciertos). Se guarda como mapa JSON:
+-- ID de categoría -> color hexadecimal, por ejemplo {"videojuegos": "#84cc16"}.
+-- No admite nulos y usa '{}' por defecto para conservar los colores de la aplicación.
 
 alter table public.user_tracker_settings
   add column if not exists category_colors jsonb not null default '{}'::jsonb;

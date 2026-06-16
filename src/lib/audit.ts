@@ -1,5 +1,19 @@
+/**
+ * audit.ts — escritura de registros de auditoría para el panel de administración.
+ *
+ * Proporciona la función auditLog que inserta entradas en admin_audit_logs.
+ * Se llama de forma fire-and-forget desde operaciones de administración
+ * para no interrumpir el flujo principal en caso de error.
+ */
+
+// ─── Framework ─────────────────────────────────────────────────────────
+// ─── Librerías externas ──────────────────────────────────────────────────────
+
 import { supabase } from '@/lib/supabase';
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/** Tipo de acción registrada en el log de auditoría. */
 export type AuditAction =
   | 'create'
   | 'update'
@@ -7,6 +21,7 @@ export type AuditAction =
   | 'link_entity'
   | 'unlink_entity';
 
+/** Entidad del dominio sobre la que se realiza la acción auditada. */
 export type AuditEntity =
   | 'profiles'
   | 'catalog_items'
@@ -16,8 +31,14 @@ export type AuditEntity =
   | 'reviews';
 
 /**
- * Writes a record to admin_audit_logs.
- * Fire-and-forget: errors are silently swallowed so they never break the main flow.
+ * Inserta un registro de auditoría en la tabla admin_audit_logs.
+ * Opera de forma fire-and-forget: los errores se silencian para no interrumpir
+ * la operación principal que provocó el log.
+ *
+ * @param action Tipo de acción realizada.
+ * @param entity Entidad del dominio afectada.
+ * @param entityId Identificador del registro afectado.
+ * @param metadata Datos adicionales opcionales sobre la acción.
  */
 export async function auditLog(
   action: AuditAction,
@@ -37,6 +58,6 @@ export async function auditLog(
       metadata: metadata ?? {},
     });
   } catch {
-    // Intentionally silent — audit failures must never break the main operation
+    // Silencioso a propósito: los fallos de auditoría no deben romper la operación principal.
   }
 }

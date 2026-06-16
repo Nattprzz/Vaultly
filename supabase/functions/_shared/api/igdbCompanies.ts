@@ -1,4 +1,15 @@
+/**
+ * igdbCompanies.ts — normalización de compañías IGDB.
+ *
+ * Construye el detalle enriquecido de compañías, juegos populares y relaciones desde IGDB.
+ *
+ * Utilizado por la Edge Function company-detail.
+ */
+
+// ─── Framework ─────────────────────────────────────────────────────────
 import type { NormalizedGameCompany } from './types.ts';
+
+// ─── Servicios ─────────────────────────────────────────────────────────
 import { compact, stripHtml } from './utils.ts';
 import { igdbImageUrl, igdbRequest } from './igdb.ts';
 
@@ -55,6 +66,12 @@ function escapeIgdbString(value: string) {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
+/**
+ * Normaliza nombres o slugs de compañía al identificador público usado por Vaultly.
+ *
+ * @param value Texto original.
+ * @returns Slug de compañía.
+ */
 export function toCompanySlug(value: string | null | undefined): string {
   return (value ?? '')
     .toLowerCase()
@@ -263,6 +280,12 @@ async function fetchCompanyGames(companyId: number) {
   return await igdbRequest('games', body);
 }
 
+/**
+ * Obtiene una compañía de IGDB por slug y compone su detalle enriquecido.
+ *
+ * @param slug Identificador público de la compañía.
+ * @returns Compañía normalizada o null.
+ */
 export async function getIgdbCompanyBySlug(slug: string): Promise<NormalizedGameCompany | null> {
   const safeSlug = toCompanySlug(slug);
   if (!safeSlug) return null;

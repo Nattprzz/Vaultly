@@ -1,3 +1,14 @@
+-- ============================================================================
+-- Nombre: show_item_status_tracker_settings.sql
+-- Descripción:
+-- Normaliza la preferencia de visibilidad del estado de seguimiento dentro de settings.
+--
+-- Tablas afectadas:
+-- - profiles
+--
+-- Autor: Vaultly
+-- ============================================================================
+
 -- Move show_item_status from profiles to user_tracker_settings.
 -- profiles never reliably had this column (initial schema ran before it was added).
 -- user_tracker_settings is the correct home for tracker privacy preferences.

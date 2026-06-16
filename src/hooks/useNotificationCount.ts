@@ -1,8 +1,26 @@
+/**
+ * useNotificationCount.ts — contador de notificaciones activas del usuario.
+ *
+ * Calcula cuántas notificaciones inteligentes están pendientes de ser vistas,
+ * excluyendo las que el usuario ya ha descartado. Comparte la misma lógica
+ * de generación de notificaciones que NotificationBell para mantener consistencia.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useMemo } from 'react';
+
+// ─── Hooks ───────────────────────────────────────────────────────────────────
+
 import { useTracker } from '@/hooks/useTracker';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Clave de localStorage compartida con NotificationBell para leer las notificaciones descartadas. */
 const STORAGE_KEY = 'vaultly_dismissed_notifications';
+
+// ─── Funciones auxiliares ────────────────────────────────────────────────────
 
 function getDismissed(): Set<string> {
   try {
@@ -13,6 +31,16 @@ function getDismissed(): Set<string> {
   }
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
+/**
+ * Devuelve el número de notificaciones activas y no descartadas.
+ * Se usa para mostrar el badge numérico sobre el icono de campana.
+ *
+ * Las notificaciones se basan en el estado del tracker y las estadísticas
+ * del dashboard. La lista de IDs debe mantenerse sincronizada con
+ * NotificationBell para que el contador sea coherente con el panel.
+ */
 export function useNotificationCount(): number {
   const { entries } = useTracker();
   const { stats, loading } = useDashboardStats();

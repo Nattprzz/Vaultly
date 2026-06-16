@@ -1,6 +1,28 @@
+/**
+ * TrackerDonutChart.tsx — gráfico de donut interactivo de distribución de estados.
+ *
+ * Usa Recharts PieChart con un anillo (innerRadius/outerRadius) para mostrar
+ * cuántos ítems hay en cada estado. Los estados se presentan en orden canónico
+ * definido por CANONICAL_ORDER. Al pasar el ratón por una porción del donut
+ * o por un StatusPill, el resto de porciones se atenúa. Al hacer click en una
+ * porción o pill se activa/desactiva el filtro de estado via `onStatusFilter`.
+ * Los estados con 0 ítems se renderizan como GhostPill (semitransparentes).
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useMemo } from 'react';
+
+// ─── Librerías externas ───────────────────────────────────────────────────────
+
 import { PieChart, Pie, Cell } from 'recharts';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { TrackerEntry } from '@/hooks/useTracker';
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
 import {
   STATUS_CONFIG,
   getStatusLabel,
@@ -8,17 +30,21 @@ import {
 } from '@/constants/tracker-statuses';
 import type { CategoryStatus } from '@/constants/tracker-statuses';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
 
+/** Datum de un segmento del donut. */
 interface ChartDatum {
   status: CategoryStatus;
   value:  number;
   label:  string;
   color:  string;
+  /** Color para el efecto de glow al hover. */
   glow:   string;
+  /** Color de fondo semitransparente para badges. */
   bg:     string;
 }
 
+/** Props del gráfico de donut del tracker. */
 interface Props {
   entries:        Record<string, TrackerEntry>;
   activeCategory: string;
@@ -26,7 +52,9 @@ interface Props {
   activeStatus?:  CategoryStatus | 'all';
 }
 
-// Orden canónico para presentar los estados en el donut
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Orden de presentación de estados en el donut y en la leyenda. */
 const CANONICAL_ORDER: CategoryStatus[] = [
   'wishlist', 'pending',
   'playing', 'watching', 'reading',
@@ -36,12 +64,19 @@ const CANONICAL_ORDER: CategoryStatus[] = [
   'abandoned', 'missed',
 ];
 
+/** Tamaño total del SVG del donut en píxeles. */
 const DONUT_SIZE = 210;
+/** Radio interior del anillo. */
 const INNER_R    = 66;
+/** Radio exterior del anillo. */
 const OUTER_R    = 90;
 
-// ─── Label pill ───────────────────────────────────────────────────────────────
+// ─── Sub-componentes ─────────────────────────────────────────────────────────
 
+/**
+ * Pill interactiva que representa un estado con ítems en la leyenda.
+ * Actúa como botón toggle para activar/desactivar el filtro de estado.
+ */
 function StatusPill({
   datum, total, isHovered, isActive, onHover, onFilter,
 }: {
@@ -95,8 +130,7 @@ function StatusPill({
   );
 }
 
-// ─── Ghost row (estado sin ítems) ─────────────────────────────────────────────
-
+/** Pill semitransparente para estados con 0 ítems. */
 function GhostPill({ status, category }: { status: CategoryStatus; category: string }) {
   const cfg   = STATUS_CONFIG[status];
   const label = getStatusLabel(status, category === 'all' ? undefined : category);
@@ -114,7 +148,7 @@ function GhostPill({ status, category }: { status: CategoryStatus; category: str
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Componente principal ────────────────────────────────────────────────────
 
 export default function TrackerDonutChart({
   entries,
@@ -122,7 +156,11 @@ export default function TrackerDonutChart({
   onStatusFilter,
   activeStatus = 'all',
 }: Props) {
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
   const [hoveredStatus, setHoveredStatus] = useState<CategoryStatus | null>(null);
+
+  // ─── Datos derivados ──────────────────────────────────────────────────────
 
   const all = useMemo(
     () => Object.values(entries).filter(e =>
@@ -133,15 +171,12 @@ export default function TrackerDonutChart({
 
   const total = all.length;
 
-  // Statuses valid for this category/view, in canonical order
   const validStatuses = useMemo<CategoryStatus[]>(() => {
     if (activeCategory !== 'all') return getCategoryStatuses(activeCategory);
-    // "All" view: statuses present in the data, in canonical order
     const present = new Set(all.map(e => e.status as CategoryStatus));
     return CANONICAL_ORDER.filter(s => present.has(s));
   }, [activeCategory, all]);
 
-  // Count per status
   const counts = useMemo(() => {
     const map: Partial<Record<CategoryStatus, number>> = {};
     for (const e of all) {
@@ -151,7 +186,6 @@ export default function TrackerDonutChart({
     return map;
   }, [all]);
 
-  // Data for the donut (only statuses with items)
   const data = useMemo<ChartDatum[]>(() =>
     validStatuses
       .map(s => {
@@ -169,7 +203,7 @@ export default function TrackerDonutChart({
     [validStatuses, counts, activeCategory],
   );
 
-  // ── Empty state ────────────────────────────────────────────────────────────
+  // ─── Estado vacío ─────────────────────────────────────────────────────────
 
   if (total === 0) {
     return (
@@ -189,12 +223,12 @@ export default function TrackerDonutChart({
     );
   }
 
-  // ── Chart ──────────────────────────────────────────────────────────────────
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="mb-6 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm transition-shadow hover:shadow-md">
 
-      {/* Header */}
+      {/* Cabecera */}
       <div className="flex items-center gap-2.5 border-b border-[var(--border)] px-5 py-3.5">
         <span className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(37,99,235,0.12)' }}>
           <i className="ri-pie-chart-2-line text-xs" style={{ color: 'var(--brand-accent)' }} />
@@ -208,11 +242,11 @@ export default function TrackerDonutChart({
         </span>
       </div>
 
-      {/* Body */}
+      {/* Cuerpo: donut + leyenda */}
       <div className="p-5 sm:p-6">
         <div className="flex flex-col items-center gap-6 md:flex-row md:items-center md:gap-8">
 
-          {/* Donut */}
+          {/* Donut SVG */}
           <div className="relative flex-shrink-0" style={{ width: DONUT_SIZE, height: DONUT_SIZE }}>
             <PieChart width={DONUT_SIZE} height={DONUT_SIZE}>
               <Pie
@@ -257,7 +291,7 @@ export default function TrackerDonutChart({
               </Pie>
             </PieChart>
 
-            {/* Center text */}
+            {/* Texto central: total de ítems */}
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
               <span
                 className="text-[32px] font-black leading-none text-[var(--text-primary)]"
@@ -271,7 +305,7 @@ export default function TrackerDonutChart({
             </div>
           </div>
 
-          {/* Status labels */}
+          {/* Leyenda con pills */}
           <div className="w-full min-w-0 flex-1">
             <div className="grid grid-cols-2 gap-1 md:grid-cols-1">
               {validStatuses.map(s => {
@@ -293,7 +327,7 @@ export default function TrackerDonutChart({
               })}
             </div>
 
-            {/* Active filter indicator */}
+            {/* Indicador del filtro activo */}
             {activeStatus !== 'all' && STATUS_CONFIG[activeStatus as CategoryStatus] && (
               <button
                 type="button"

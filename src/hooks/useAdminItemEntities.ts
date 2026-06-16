@@ -1,27 +1,66 @@
+/**
+ * useAdminItemEntities.ts — gestión de entidades vinculadas a un ítem desde el panel de administración.
+ *
+ * Expone las operaciones de búsqueda, vinculación y desvinculación de entidades
+ * (personas, estudios, compañías) para un ítem concreto del catálogo.
+ * Todas las operaciones se registran en admin_audit_logs.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect, useCallback } from 'react';
+
+// ─── Servicios ───────────────────────────────────────────────────────────────
+
 import { supabase } from '@/lib/supabase';
 import { auditLog } from '@/lib/audit';
+
+// ─── Hooks ───────────────────────────────────────────────────────────────────
+
 import { ROLE_CONFIG } from '@/hooks/useItemEntities';
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/** Entidad ya vinculada a un ítem, con su rol y un linkId compuesto como clave. */
 export interface LinkedEntity {
-  linkId: string; // composite: item_id|entity_id|role — used as key
+  /** Clave compuesta: "item_id|entity_id|role" — identifica unívocamente el vínculo */
+  linkId: string;
+  /** ID de la entidad */
   entityId: string;
+  /** Nombre visible de la entidad */
   name: string;
+  /** Slug de la entidad para enlazar a su perfil */
   slug: string;
+  /** Tipo de entidad (person, studio, etc.) */
   type: string;
+  /** URL de la imagen de la entidad, o null si no tiene */
   image: string | null;
+  /** Rol que tiene la entidad en este ítem */
   role: string;
 }
 
+/** Resultado de una búsqueda de entidades para vincular. */
 export interface EntitySearchResult {
+  /** ID único de la entidad */
   id: string;
+  /** Nombre visible */
   name: string;
+  /** Slug de la entidad */
   slug: string;
+  /** Tipo de entidad */
   type: string;
+  /** URL de la imagen, o null si no tiene */
   image: string | null;
+  /** Biografía corta, o null si no tiene */
   bio: string | null;
 }
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/**
+ * Lista de roles disponibles para vincular una entidad a un ítem,
+ * derivada de ROLE_CONFIG para mantener la consistencia con la visualización.
+ */
 export const AVAILABLE_ROLES = Object.entries(ROLE_CONFIG).map(([value, conf]) => ({
   value,
   label: conf.label,
@@ -29,7 +68,22 @@ export const AVAILABLE_ROLES = Object.entries(ROLE_CONFIG).map(([value, conf]) =
   color: conf.color,
 }));
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
+/**
+ * Gestiona los vínculos entre un ítem del catálogo y las entidades relacionadas.
+ *
+ * Responsabilidades:
+ * - Cargar las entidades vinculadas al ítem dado.
+ * - Buscar entidades por nombre para añadir nuevos vínculos.
+ * - Crear y eliminar vínculos en item_entities con registro de auditoría.
+ * - Prevenir vínculos duplicados (misma entidad + mismo rol).
+ *
+ * @param itemId ID del ítem al que se gestionan las entidades, o null si no hay selección.
+ */
 export function useAdminItemEntities(itemId: string | null) {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const [linked, setLinked] = useState<LinkedEntity[]>([]);
   const [loadingLinked, setLoadingLinked] = useState(false);
   const [searchResults, setSearchResults] = useState<EntitySearchResult[]>([]);
@@ -37,7 +91,8 @@ export function useAdminItemEntities(itemId: string | null) {
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Fetch linked entities ──────────────────────────────────────────────────
+  // ─── Carga de datos ──────────────────────────────────────────────────────────
+
   const fetchLinked = useCallback(async () => {
     if (!itemId) { setLinked([]); return; }
     setLoadingLinked(true);
@@ -81,9 +136,17 @@ export function useAdminItemEntities(itemId: string | null) {
     }
   }, [itemId]);
 
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
+
   useEffect(() => { fetchLinked(); }, [fetchLinked]);
 
-  // ── Search entities ────────────────────────────────────────────────────────
+  // ─── Handlers ────────────────────────────────────────────────────────────────
+
+  /**
+   * Busca entidades por nombre con coincidencia parcial.
+   *
+   * @param query Término de búsqueda (mínimo 1 carácter).
+   */
   const searchEntities = useCallback(async (query: string) => {
     if (!query.trim()) { setSearchResults([]); return; }
     setSearching(true);
@@ -104,11 +167,17 @@ export function useAdminItemEntities(itemId: string | null) {
     }
   }, []);
 
-  // ── Link entity ────────────────────────────────────────────────────────────
+  /**
+   * Vincula una entidad al ítem con el rol indicado.
+   * Rechaza el vínculo si ya existe la combinación entidad+rol.
+   *
+   * @param entityId ID de la entidad a vincular.
+   * @param role Rol que tendrá la entidad en este ítem.
+   * @returns true si se vinculó correctamente, false si hubo error o duplicado.
+   */
   const linkEntity = useCallback(async (entityId: string, role: string): Promise<boolean> => {
     if (!itemId) return false;
 
-    // Prevent duplicate
     const exists = linked.some(l => l.entityId === entityId && l.role === role);
     if (exists) {
       setError('Esta entidad ya está vinculada con ese rol');
@@ -134,7 +203,13 @@ export function useAdminItemEntities(itemId: string | null) {
     }
   }, [itemId, linked, fetchLinked]);
 
-  // ── Unlink entity ──────────────────────────────────────────────────────────
+  /**
+   * Elimina el vínculo entre la entidad y el ítem para el rol dado.
+   *
+   * @param entityId ID de la entidad a desvincular.
+   * @param role Rol que tenía la entidad en este ítem.
+   * @returns true si se desvinculó correctamente, false si hubo error.
+   */
   const unlinkEntity = useCallback(async (entityId: string, role: string): Promise<boolean> => {
     if (!itemId) return false;
     try {

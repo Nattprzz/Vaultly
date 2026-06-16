@@ -1,21 +1,53 @@
+/**
+ * ItemHero.tsx — hero cinematográfico de la página de detalle de un ítem.
+ *
+ * Muestra un banner de fondo (backdrop) a pantalla completa con gradiente
+ * degradado hacia el fondo de la app, y una portada que se superpone al banner.
+ * Junto a la portada presenta el título, metadatos (año, género, duración,
+ * temporadas, páginas), puntuación con estrellas y tags de género.
+ * Los tres bloques (backdrop, portada e info) aparecen con una animación
+ * secuencial de entrada staggered mediante clases CSS y setTimeout.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useEffect, useRef } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link, useNavigate } from 'react-router-dom';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import { ItemDetail } from '@/types/itemDetail';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useCategories } from '@/hooks/useCategoryColors';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del hero de detalle de ítem. */
 interface Props {
   item: ItemDetail;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ItemHero({ item }: Props) {
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
   const CATEGORIES = useCategories();
   const cat = CATEGORIES.find(c => c.id === item.category);
   const navigate = useNavigate();
 
   const backdropRef = useRef<HTMLDivElement>(null);
-  const posterRef = useRef<HTMLDivElement>(null);
-  const infoRef = useRef<HTMLDivElement>(null);
+  const posterRef   = useRef<HTMLDivElement>(null);
+  const infoRef     = useRef<HTMLDivElement>(null);
 
+  // ─── Efectos ──────────────────────────────────────────────────────────────
+
+  // Animación de entrada staggered: backdrop → portada → info
   useEffect(() => {
     const schedule: [React.RefObject<HTMLElement | null>, number][] = [
       [backdropRef, 0],
@@ -30,16 +62,23 @@ export default function ItemHero({ item }: Props) {
     return () => timers.forEach(clearTimeout);
   }, [item.id]);
 
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  /** Vuelve a la página anterior o al listado de la categoría si no hay historial. */
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate(`/catalog/${item.category}`);
   };
 
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const filledStars = Math.round(item.rating);
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <>
-      {/* Banner — shorter, cinematic */}
+      {/* Banner de fondo cinematic con gradiente */}
       <div
         ref={backdropRef as React.RefObject<HTMLDivElement>}
         className="sr-item relative w-full h-[260px] md:h-[320px] overflow-hidden"
@@ -61,11 +100,11 @@ export default function ItemHero({ item }: Props) {
         <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg)]/80 via-transparent to-transparent" />
       </div>
 
-      {/* Poster + Info — overlap banner */}
+      {/* Portada e información superpuestas al banner */}
       <div className="max-w-screen-xl mx-auto px-4 md:px-6">
         <div className="-mt-20 md:-mt-28 relative z-10 flex flex-col sm:flex-row gap-5 md:gap-8 items-start">
 
-          {/* Poster — always visible, main visual element */}
+          {/* Portada */}
           <div
             ref={posterRef as React.RefObject<HTMLDivElement>}
             className="sr-item-scale flex-shrink-0"
@@ -88,12 +127,12 @@ export default function ItemHero({ item }: Props) {
             </div>
           </div>
 
-          {/* Info column */}
+          {/* Columna de información */}
           <div
             ref={infoRef as React.RefObject<HTMLDivElement>}
             className="sr-item flex-1 min-w-0 sm:pt-2"
           >
-            {/* Breadcrumb */}
+            {/* Migas de pan */}
             <div className="flex items-center gap-2 text-xs text-zinc-500 mb-3 flex-wrap">
               <button
                 onClick={handleBack}
@@ -113,7 +152,7 @@ export default function ItemHero({ item }: Props) {
               <span className="text-zinc-700 dark:text-zinc-300 truncate max-w-[200px]">{item.title}</span>
             </div>
 
-            {/* Category badge */}
+            {/* Badge de categoría */}
             <div
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mb-3"
               style={{ background: `${cat?.accent}20`, color: cat?.accent }}
@@ -122,7 +161,7 @@ export default function ItemHero({ item }: Props) {
               {cat?.label}
             </div>
 
-            {/* Title */}
+            {/* Título */}
             <h1
               className="text-2xl sm:text-3xl md:text-4xl font-black text-zinc-900 dark:text-white mb-3 leading-tight"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
@@ -130,7 +169,7 @@ export default function ItemHero({ item }: Props) {
               {item.title}
             </h1>
 
-            {/* Meta row */}
+            {/* Fila de metadatos */}
             <div className="flex flex-wrap items-center gap-2 mb-4 text-sm text-zinc-500 dark:text-zinc-400">
               {item.year > 0 && <span>{item.year}</span>}
               {item.genre && (
@@ -159,7 +198,7 @@ export default function ItemHero({ item }: Props) {
               )}
             </div>
 
-            {/* Rating — IMDb-style numeric + 10-star row */}
+            {/* Puntuación numérica + fila de 10 estrellas */}
             {item.rating > 0 && (
               <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <div className="flex items-baseline gap-1">
@@ -187,7 +226,7 @@ export default function ItemHero({ item }: Props) {
               </div>
             )}
 
-            {/* Genre tags */}
+            {/* Tags de género */}
             {item.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {item.tags.map(tag => (

@@ -1,6 +1,20 @@
+/**
+ * NotificationsSection.tsx — sección de configuración de notificaciones.
+ *
+ * Permite activar o desactivar cada tipo de alerta: nuevos lanzamientos,
+ * actividad de la comunidad, resumen semanal y recordatorios del tracker.
+ * Los cambios se persisten en tiempo real a través del hook useSettings.
+ */
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useSettings } from '@/hooks/useSettings';
-import SettingsCard from './SettingsCard';
-import { ToggleRow } from './SettingsCard';
+
+// ─── Componentes ─────────────────────────────────────────────────────────────
+
+import SettingsCard, { ToggleRow } from './SettingsCard';
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function NotificationsSection() {
   const { settings, updateNested } = useSettings();

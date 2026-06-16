@@ -1,10 +1,28 @@
+/**
+ * tmdb.ts — cliente compartido de TMDB.
+ *
+ * Consulta películas y series y normaliza imágenes, metadatos y fechas.
+ *
+ * Utilizado por búsquedas y detalles audiovisuales.
+ */
+
+// ─── Framework ─────────────────────────────────────────────────────────
 import type { NormalizedCatalogItem } from './types.ts';
-import { compact, requireEnv, toSourceSlug } from './utils.ts';
+
+// ─── Servicios ─────────────────────────────────────────────────────────
+import { compact, requireEnv, timedFetch, toSourceSlug } from './utils.ts';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 const TMDB_BACKDROP_BASE_URL = 'https://image.tmdb.org/t/p/w1280';
 
+/**
+ * Construye URLs públicas de imágenes de TMDB.
+ *
+ * @param path Ruta de imagen devuelta por TMDB.
+ * @param size Tipo de imagen requerida.
+ * @returns URL de imagen o null.
+ */
 export function tmdbImageUrl(path?: string | null, size: 'poster' | 'backdrop' = 'poster') {
   if (!path) return null;
   return `${size === 'poster' ? TMDB_IMAGE_BASE_URL : TMDB_BACKDROP_BASE_URL}${path}`;
@@ -19,7 +37,7 @@ async function tmdbGet(path: string, params: Record<string, string | number | un
     if (value !== undefined) url.searchParams.set(key, String(value));
   });
 
-  const res = await fetch(url);
+  const res = await timedFetch(url);
   if (!res.ok) throw new Error(`TMDb error: ${res.status}`);
   return res.json();
 }
@@ -53,22 +71,49 @@ function normalizeSearchResult(item: any): NormalizedCatalogItem | null {
   };
 }
 
+/**
+ * Busca en TMDB contenidos audiovisuales y filtra resultados soportados.
+ *
+ * @param query Texto de búsqueda.
+ * @param page Página solicitada.
+ * @returns Elementos normalizados de película o serie.
+ */
 export async function searchTmdbMulti(query: string, page = 1): Promise<NormalizedCatalogItem[]> {
   if (!query.trim()) return [];
   const data = await tmdbGet('/search/multi', { query, page, include_adult: 'false' });
   return compact((data.results ?? []).map(normalizeSearchResult));
 }
 
+/**
+ * Busca películas en TMDB.
+ *
+ * @param query Texto de búsqueda.
+ * @param page Página solicitada.
+ * @returns Películas normalizadas.
+ */
 export async function searchTmdbMovies(query: string, page = 1) {
   const results = await searchTmdbMulti(query, page);
   return results.filter(item => item.metadata.media_type === 'movie');
 }
 
+/**
+ * Busca series en TMDB.
+ *
+ * @param query Texto de búsqueda.
+ * @param page Página solicitada.
+ * @returns Series normalizadas.
+ */
 export async function searchTmdbSeries(query: string, page = 1) {
   const results = await searchTmdbMulti(query, page);
   return results.filter(item => item.metadata.media_type === 'tv');
 }
 
+/**
+ * Obtiene el detalle de una película de TMDB.
+ *
+ * @param sourceId Identificador externo de TMDB.
+ * @returns Película normalizada o null.
+ */
 export async function getTmdbMovie(sourceId: string): Promise<NormalizedCatalogItem | null> {
   const movie = await tmdbGet(`/movie/${sourceId}`, { append_to_response: 'credits' });
   const director = movie.credits?.crew?.find((person: any) => person.job === 'Director')?.name ?? null;
@@ -103,6 +148,12 @@ export async function getTmdbMovie(sourceId: string): Promise<NormalizedCatalogI
   };
 }
 
+/**
+ * Obtiene el detalle de una serie de TMDB.
+ *
+ * @param sourceId Identificador externo de TMDB.
+ * @returns Serie normalizada o null.
+ */
 export async function getTmdbSeries(sourceId: string): Promise<NormalizedCatalogItem | null> {
   const series = await tmdbGet(`/tv/${sourceId}`, { append_to_response: 'credits' });
   const ratingCount = series.vote_count ?? null;

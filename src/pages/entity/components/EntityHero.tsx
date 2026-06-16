@@ -1,45 +1,87 @@
+/**
+ * EntityHero.tsx — sección hero de la página de entidad.
+ *
+ * Muestra el avatar de la entidad sobre un fondo de imagen desenfocada con gradiente,
+ * junto a la etiqueta de tipo, el nombre, un extracto de la bio y cuatro métricas
+ * rápidas: número de obras, rating medio, mejor rating y trayectoria en años.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { TYPE_LABELS, TYPE_ICONS } from '@/hooks/useEntity';
 import type { EntityItem } from '@/hooks/useEntity';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Subconjunto de campos de la entidad requeridos por este componente. */
 interface Entity {
+  /** Nombre público de la entidad. */
   name: string;
+  /** Tipo de entidad (director, actor, author, artist, studio…). */
   type: string;
+  /** Texto de la biografía, opcional. */
   bio?: string | null;
+  /** URL de la imagen principal, opcional. */
   image_url?: string | null;
 }
 
+/** Props del componente. */
 interface Props {
+  /** Datos de la entidad a mostrar. */
   entity: Entity;
+  /** Lista de ítems del catálogo vinculados a la entidad. */
   items: EntityItem[];
+  /** Slug de la URL de la entidad (para breadcrumb). */
   slug: string;
 }
 
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
+/**
+ * Extrae el rating numérico de un ítem o devuelve `null` si no existe.
+ *
+ * @param item - Ítem del catálogo con campo `metadata.rating` opcional.
+ * @returns Número del rating o `null`.
+ */
 function getItemRating(item: EntityItem): number | null {
   const r = item.metadata?.rating;
   return r != null ? Number(r) : null;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function EntityHero({ entity, items, slug }: Props) {
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const typeLabel = TYPE_LABELS[entity.type] ?? entity.type;
-  const typeIcon = TYPE_ICONS[entity.type] ?? 'ri-user-line';
+  const typeIcon  = TYPE_ICONS[entity.type] ?? 'ri-user-line';
 
   const rated = items.filter(i => getItemRating(i) != null);
+
   const avgRating = rated.length > 0
     ? rated.reduce((s, i) => s + (getItemRating(i) ?? 0), 0) / rated.length
     : null;
+
   const topRated = rated.length > 0
     ? rated.reduce((best, i) => (getItemRating(i) ?? 0) > (getItemRating(best) ?? 0) ? i : best, rated[0])
     : null;
 
   const years = items.map(i => i.release_date?.slice(0, 4)).filter(Boolean) as string[];
-  const minYear = years.length > 0 ? Math.min(...years.map(Number)) : null;
-  const maxYear = years.length > 0 ? Math.max(...years.map(Number)) : null;
-  const careerSpan = minYear && maxYear && minYear !== maxYear ? `${minYear} – ${maxYear}` : minYear ? String(minYear) : null;
+  const minYear    = years.length > 0 ? Math.min(...years.map(Number)) : null;
+  const maxYear    = years.length > 0 ? Math.max(...years.map(Number)) : null;
+  const careerSpan = minYear && maxYear && minYear !== maxYear
+    ? `${minYear} – ${maxYear}`
+    : minYear ? String(minYear) : null;
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="relative w-full overflow-hidden" style={{ minHeight: 360 }}>
-      {/* Backdrop blur */}
+      {/* Fondo desenfocado con la imagen de la entidad */}
       {entity.image_url && (
         <div className="absolute inset-0 w-full h-full">
           <img
@@ -51,7 +93,7 @@ export default function EntityHero({ entity, items, slug }: Props) {
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/85 to-zinc-900/60" />
 
-      {/* Decorative grid pattern */}
+      {/* Patrón de cuadrícula decorativo */}
       <div
         className="absolute inset-0 opacity-5"
         style={{
@@ -61,7 +103,7 @@ export default function EntityHero({ entity, items, slug }: Props) {
       />
 
       <div className="relative z-10 max-w-screen-xl mx-auto px-4 md:px-6 pt-10 pb-12">
-        {/* Breadcrumb */}
+        {/* Migas de pan */}
         <nav className="flex items-center gap-2 text-xs text-zinc-500 mb-8 flex-wrap">
           <Link to="/" className="hover:text-white transition-colors cursor-pointer">Inicio</Link>
           <i className="ri-arrow-right-s-line text-zinc-600"></i>
@@ -86,13 +128,13 @@ export default function EntityHero({ entity, items, slug }: Props) {
                 </div>
               )}
             </div>
-            {/* Type badge on avatar */}
+            {/* Badge de tipo sobre el avatar */}
             <div className="absolute -bottom-2 -right-2 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 border border-zinc-700">
               <i className={`${typeIcon} text-sm text-zinc-300`}></i>
             </div>
           </div>
 
-          {/* Main info */}
+          {/* Información principal */}
           <div className="flex-1 min-w-0">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm text-zinc-300 text-xs font-medium mb-3">
               <i className={typeIcon}></i>
@@ -112,7 +154,7 @@ export default function EntityHero({ entity, items, slug }: Props) {
               </p>
             )}
 
-            {/* Quick stats row */}
+            {/* Métricas rápidas */}
             <div className="flex flex-wrap items-center gap-5">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10">

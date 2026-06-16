@@ -1,24 +1,56 @@
+/**
+ * useCatalogFilters.ts — filtrado y ordenación client-side del catálogo.
+ *
+ * Gestiona el estado de todos los filtros disponibles en la página del catálogo
+ * y expone funciones puras para aplicarlos sobre los resultados de búsqueda.
+ * El filtrado se realiza en el cliente sobre los resultados ya cargados,
+ * sin realizar peticiones adicionales al servidor.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useCallback, useMemo } from 'react';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { CatalogItem } from '@/hooks/useCatalogSearch';
 
+/** Opciones de ordenación disponibles en el catálogo. */
 export type SortOption = 'relevance' | 'rating_desc' | 'rating_asc' | 'year_desc' | 'year_asc' | 'title_asc';
 
+/**
+ * Estado completo de todos los filtros del catálogo.
+ */
 export interface FilterState {
+  /** Año mínimo de lanzamiento */
   yearMin: number;
+  /** Año máximo de lanzamiento */
   yearMax: number;
-  minRating: number;       // 0 = no filter
-  genres: string[];        // empty = no filter
+  /** Puntuación mínima (0 = sin filtro) */
+  minRating: number;
+  /** Géneros seleccionados (vacío = todos) */
+  genres: string[];
+  /** Plataformas seleccionadas (vacío = todas) */
   platforms: string[];
+  /** Idiomas seleccionados (vacío = todos) */
   languages: string[];
+  /** Ciudades seleccionadas para conciertos (vacío = todas) */
   cities: string[];
+  /** Rango de duración para películas */
   duration: 'all' | 'short' | 'medium' | 'long';
+  /** Rango de páginas para libros */
   pageCount: 'all' | 'short' | 'medium' | 'long';
+  /** Estado de la serie: ongoing, ended, etc. ('all' = sin filtro) */
   seriesStatus: string;
+  /** Criterio de ordenación */
   sort: SortOption;
 }
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
 const CURRENT_YEAR = new Date().getFullYear();
 
+/** Valores por defecto de todos los filtros (estado sin filtrar). */
 export const DEFAULT_FILTERS: FilterState = {
   yearMin: 1970,
   yearMax: CURRENT_YEAR,
@@ -32,6 +64,8 @@ export const DEFAULT_FILTERS: FilterState = {
   seriesStatus: 'all',
   sort: 'relevance',
 };
+
+// ─── Funciones auxiliares ────────────────────────────────────────────────────
 
 function getItemYear(item: CatalogItem): number {
   return parseInt(item.release_date?.slice(0, 4) ?? '0', 10);
@@ -59,21 +93,38 @@ function getNumber(value: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function matchesRange(value: number | null, range: FilterState['duration'] | FilterState['pageCount'], bounds: Record<string, [number, number]>): boolean {
+function matchesRange(
+  value: number | null,
+  range: FilterState['duration'] | FilterState['pageCount'],
+  bounds: Record<string, [number, number]>,
+): boolean {
   if (range === 'all') return true;
   if (value == null) return true;
   const [min, max] = bounds[range];
   return value >= min && value <= max;
 }
 
-/** Extract all unique genres from a list of items */
+// ─── Funciones públicas ───────────────────────────────────────────────────────
+
+/**
+ * Extrae todos los géneros únicos presentes en una lista de ítems.
+ *
+ * @param items Ítems del catálogo.
+ * @returns Array de géneros únicos ordenados alfabéticamente.
+ */
 export function extractGenres(items: CatalogItem[]): string[] {
   const set = new Set<string>();
   items.forEach(item => getItemGenres(item).forEach(g => { if (g) set.add(g); }));
   return Array.from(set).sort();
 }
 
-/** Apply filters + sort to a list of items */
+/**
+ * Aplica los filtros activos y la ordenación seleccionada sobre una lista de ítems.
+ *
+ * @param items Ítems a filtrar.
+ * @param filters Estado actual de los filtros.
+ * @returns Subconjunto de ítems que pasan todos los filtros, en el orden seleccionado.
+ */
 export function applyFilters(items: CatalogItem[], filters: FilterState): CatalogItem[] {
   let out = items.filter(item => {
     const year = getItemYear(item);
@@ -105,15 +156,15 @@ export function applyFilters(items: CatalogItem[], filters: FilterState): Catalo
     }
 
     if (!matchesRange(getNumber(item.metadata?.runtime), filters.duration, {
-      short: [1, 89],
+      short:  [1, 89],
       medium: [90, 139],
-      long: [140, 999],
+      long:   [140, 999],
     })) return false;
 
     if (!matchesRange(getNumber(item.metadata?.page_count), filters.pageCount, {
-      short: [1, 249],
+      short:  [1, 249],
       medium: [250, 499],
-      long: [500, 9999],
+      long:   [500, 9999],
     })) return false;
 
     if (filters.seriesStatus !== 'all') {
@@ -130,13 +181,18 @@ export function applyFilters(items: CatalogItem[], filters: FilterState): Catalo
     case 'year_desc':   out = [...out].sort((a, b) => getItemYear(b) - getItemYear(a)); break;
     case 'year_asc':    out = [...out].sort((a, b) => getItemYear(a) - getItemYear(b)); break;
     case 'title_asc':   out = [...out].sort((a, b) => a.title.localeCompare(b.title)); break;
-    default: break; // relevance = original order
+    default: break; // relevance = orden original de la búsqueda
   }
 
   return out;
 }
 
-/** Count how many filters are active (differ from defaults) */
+/**
+ * Cuenta cuántos filtros están activos (difieren de sus valores por defecto).
+ *
+ * @param filters Estado actual de los filtros.
+ * @returns Número de filtros activos.
+ */
 export function countActiveFilters(filters: FilterState): number {
   let count = 0;
   if (filters.yearMin !== DEFAULT_FILTERS.yearMin) count++;
@@ -153,15 +209,27 @@ export function countActiveFilters(filters: FilterState): number {
   return count;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
+/**
+ * Gestiona el estado de los filtros del catálogo.
+ *
+ * Expone el estado actual, el número de filtros activos y handlers individuales
+ * para cada dimensión de filtrado.
+ */
 export function useCatalogFilters() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
-  const setYearMin = useCallback((v: number) => setFilters(f => ({ ...f, yearMin: v })), []);
-  const setYearMax = useCallback((v: number) => setFilters(f => ({ ...f, yearMax: v })), []);
-  const setMinRating = useCallback((v: number) => setFilters(f => ({ ...f, minRating: v })), []);
-  const setSort = useCallback((v: SortOption) => setFilters(f => ({ ...f, sort: v })), []);
-  const setDuration = useCallback((v: FilterState['duration']) => setFilters(f => ({ ...f, duration: v })), []);
-  const setPageCount = useCallback((v: FilterState['pageCount']) => setFilters(f => ({ ...f, pageCount: v })), []);
+  // ─── Handlers ────────────────────────────────────────────────────────────────
+
+  const setYearMin      = useCallback((v: number) => setFilters(f => ({ ...f, yearMin: v })), []);
+  const setYearMax      = useCallback((v: number) => setFilters(f => ({ ...f, yearMax: v })), []);
+  const setMinRating    = useCallback((v: number) => setFilters(f => ({ ...f, minRating: v })), []);
+  const setSort         = useCallback((v: SortOption) => setFilters(f => ({ ...f, sort: v })), []);
+  const setDuration     = useCallback((v: FilterState['duration']) => setFilters(f => ({ ...f, duration: v })), []);
+  const setPageCount    = useCallback((v: FilterState['pageCount']) => setFilters(f => ({ ...f, pageCount: v })), []);
   const setSeriesStatus = useCallback((v: string) => setFilters(f => ({ ...f, seriesStatus: v })), []);
 
   const toggleGenre = useCallback((genre: string) => {
@@ -201,6 +269,8 @@ export function useCatalogFilters() {
   }, []);
 
   const reset = useCallback(() => setFilters(DEFAULT_FILTERS), []);
+
+  // ─── Datos derivados ──────────────────────────────────────────────────────────
 
   const activeCount = useMemo(() => countActiveFilters(filters), [filters]);
 

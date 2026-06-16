@@ -1,8 +1,29 @@
+/**
+ * CategoriesSection.tsx — sección de categorías de la landing page.
+ *
+ * Muestra las cinco categorías de Vaultly como tarjetas con imagen, icono y conteo
+ * de ítems. El encabezado y las tarjetas se revelan con IntersectionObserver de
+ * forma escalonada. Las tarjetas usan eventos inline para el efecto de borde coloreado
+ * y el glow del icono en hover, ya que el color es dinámico (viene de `useCategories`).
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useEffect, useRef, useState } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useCategories } from '@/hooks/useCategoryColors';
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function CategoriesSection() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const CATEGORIES = useCategories();
   const sectionRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -10,6 +31,8 @@ export default function CategoriesSection() {
     new Array(CATEGORIES.length).fill(false)
   );
   const [visibleHeader, setVisibleHeader] = useState(false);
+
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const headerObserver = new IntersectionObserver(
@@ -47,7 +70,9 @@ export default function CategoriesSection() {
 
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [CATEGORIES]);
+
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
 
   return (
     <section className="py-24 px-4 md:px-6 bg-[var(--surface)] dark:bg-[var(--bg)]">
@@ -139,4 +164,3 @@ export default function CategoriesSection() {
     </section>
   );
 }
-

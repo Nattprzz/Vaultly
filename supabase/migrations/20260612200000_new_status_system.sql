@@ -1,3 +1,14 @@
+-- ============================================================================
+-- Nombre: new_status_system.sql
+-- Descripción:
+-- Introduce el sistema ampliado de estados de seguimiento por categoría.
+--
+-- Tablas afectadas:
+-- - tracker_entries
+--
+-- Autor: Vaultly
+-- ============================================================================
+
 -- ============================================================
 -- Vaultly — Migración: nuevo sistema de estados por categoría
 -- ============================================================

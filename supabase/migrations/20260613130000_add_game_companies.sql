@@ -1,5 +1,16 @@
+-- ============================================================================
+-- Nombre: add_game_companies.sql
+-- Descripción:
+-- Crea la tabla de compañías de videojuegos y sus metadatos enriquecidos.
+--
+-- Tablas afectadas:
+-- - game_companies
+--
+-- Autor: Vaultly
+-- ============================================================================
+
 -- ============================================================
--- Vaultly - Game companies cache for IGDB company pages
+-- Vaultly - Caché de compañías de videojuegos para páginas procedentes de IGDB
 -- ============================================================
 
 create table if not exists public.game_companies (

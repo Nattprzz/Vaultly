@@ -1,17 +1,45 @@
+/**
+ * CategoryTabs.tsx — barra de pestañas de categoría del tracker.
+ *
+ * Muestra una pestaña "Todo" más una pestaña por cada categoría que el usuario
+ * tiene activa. Cada pestaña muestra el recuento de ítems de esa categoría.
+ * La pestaña activa se colorea con el acento de la categoría o en negro/blanco
+ * para "Todo".
+ */
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useCategories } from '@/hooks/useCategoryColors';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import { TrackerEntry } from '@/hooks/useTracker';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props de la barra de pestañas de categoría. */
 interface Props {
   activeCategory: string;
   onSelect: (id: string) => void;
   entries: Record<string, TrackerEntry>;
+  /** IDs de categorías que el usuario tiene configuradas. */
   activeCategories: string[];
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function CategoryTabs({ activeCategory, onSelect, entries, activeCategories }: Props) {
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const CATEGORIES = useCategories();
   const allEntries = Object.values(entries);
 
+  /**
+   * Cuenta los ítems de una categoría, o el total si `catId` es `'all'`.
+   *
+   * @param catId - ID de la categoría o `'all'`.
+   * @returns Número de ítems.
+   */
   const getCount = (catId: string) =>
     catId === 'all'
       ? allEntries.length
@@ -19,9 +47,11 @@ export default function CategoryTabs({ activeCategory, onSelect, entries, active
 
   const visibleCats = CATEGORIES.filter(c => activeCategories.includes(c.id));
 
+  // ─── Renderizado ──────────────────────────────────────────────────────────
+
   return (
     <div className="flex items-center gap-2 flex-wrap mb-6">
-      {/* All tab */}
+      {/* Pestaña "Todo" */}
       <button
         onClick={() => onSelect('all')}
         className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
@@ -41,6 +71,7 @@ export default function CategoryTabs({ activeCategory, onSelect, entries, active
         </span>
       </button>
 
+      {/* Pestaña por categoría activa */}
       {visibleCats.map(cat => {
         const count = getCount(cat.id);
         const isActive = activeCategory === cat.id;
@@ -70,4 +101,3 @@ export default function CategoryTabs({ activeCategory, onSelect, entries, active
     </div>
   );
 }
-

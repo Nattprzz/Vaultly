@@ -1,24 +1,66 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
-import { useTheme } from '@/hooks/useTheme';
-import SeoHead from '@/components/feature/SeoHead';
+/**
+ * reset-password/page.tsx — página de restablecimiento de contraseña.
+ *
+ * Supabase envía el token de recuperación como fragmento de hash en la URL.
+ * El SDK lo intercepta y dispara el evento PASSWORD_RECOVERY en onAuthStateChange,
+ * que pasa el estado de la página a 'ready' para mostrar el formulario.
+ * Si tras 2s no hay sesión, se muestra el estado 'expired'.
+ * El indicador de fortaleza de contraseña es puramente visual y no bloquea el envío.
+ */
 
+// ─── React ───────────────────────────────────────────────────────────────────
+
+import { useState, useEffect } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
+import { Link, useNavigate } from 'react-router-dom';
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
+import SeoHead from '@/components/feature/SeoHead';
+import { LogoMark } from '@/components/branding/Logo';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useTheme } from '@/hooks/useTheme';
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
+import { supabase } from '@/lib/supabase';
+import {
+  clearPasswordRecoveryPending,
+  isPasswordRecoveryPending,
+  markPasswordRecoveryPending,
+  PASSWORD_RECOVERY_ROUTE,
+} from '@/lib/passwordRecovery';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/** Estados posibles de la página de restablecimiento. */
+type PageState = 'loading' | 'ready' | 'success' | 'expired';
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
+/** Valida la nueva contraseña (mínimo 8 caracteres). */
 function validatePassword(val: string): string {
   if (!val) return 'La contraseña es obligatoria.';
   if (val.length < 8) return 'Mínimo 8 caracteres.';
   return '';
 }
 
+/** Valida que la confirmación coincida con la contraseña. */
 function validateConfirm(pass: string, confirm: string): string {
   if (!confirm) return 'Confirma tu nueva contraseña.';
   if (pass !== confirm) return 'Las contraseñas no coinciden.';
   return '';
 }
 
-type PageState = 'loading' | 'ready' | 'success' | 'expired';
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function ResetPasswordPage() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
@@ -31,38 +73,52 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState('');
 
+  // ─── Validación ───────────────────────────────────────────────────────────────
+
   const touch = (field: keyof typeof touched) =>
     setTouched(prev => ({ ...prev, [field]: true }));
 
   const passwordError = validatePassword(password);
   const confirmError = validateConfirm(password, confirm);
 
-  // Supabase sends the recovery token as a hash fragment — it auto-sets the session
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
+
+  // El token de recuperación llega como hash en la URL; Supabase lo procesa y
+  // dispara PASSWORD_RECOVERY. Si en 2s no hay sesión, el enlace ha expirado.
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
+        markPasswordRecoveryPending();
         setPageState('ready');
-      } else if (event === 'SIGNED_IN') {
-        // Already has a valid session from the link
+
+        if (window.location.pathname !== PASSWORD_RECOVERY_ROUTE) {
+          navigate(PASSWORD_RECOVERY_ROUTE, { replace: true });
+        }
+      } else if (event === 'SIGNED_IN' && session && isPasswordRecoveryPending()) {
         setPageState(prev => prev === 'loading' ? 'ready' : prev);
       }
     });
 
-    // Also check if there's already a session (user landed with valid token)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+      if (session && isPasswordRecoveryPending()) {
         setPageState('ready');
       } else {
-        // Give it 2s for the hash to be processed, then mark as expired
-        const t = setTimeout(() => {
+        timeoutId = setTimeout(() => {
+          clearPasswordRecoveryPending();
           setPageState(prev => prev === 'loading' ? 'expired' : prev);
-        }, 2000);
-        return () => clearTimeout(t);
+        }, 2500);
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,18 +128,30 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || !isPasswordRecoveryPending()) {
+        setPageState('expired');
+        setServerError('El enlace de recuperación no es válido o ha caducado.');
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
         setServerError(error.message);
         return;
       }
-      setPageState('success');
+
+      clearPasswordRecoveryPending();
+      await supabase.auth.signOut();
+      navigate('/auth?reset=success', { replace: true });
     } catch {
       setServerError('Error inesperado. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
   };
+
+  // ─── Datos derivados ─────────────────────────────────────────────────────────
 
   const strength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
   const strengthLabel = ['', 'Débil', 'Media', 'Fuerte'];
@@ -93,16 +161,18 @@ export default function ResetPasswordPage() {
   const inputNormal = 'border-zinc-200 dark:border-zinc-700 focus:border-brand dark:focus:border-brand-dark';
   const inputErr = 'border-red-400 dark:border-red-500 focus:border-red-400 dark:focus:border-red-500 bg-red-50/40 dark:bg-red-950/10';
 
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen flex bg-[var(--surface)] dark:bg-[var(--bg)]">
       <SeoHead
         title="Restablecer contraseña — Vaultly"
         description="Establece una nueva contraseña para tu cuenta de Vaultly."
-        canonical="/auth/reset-password"
+        canonical="/reset-password"
         noIndex
       />
 
-      {/* Left panel */}
+      {/* Panel izquierdo — ambiente decorativo */}
       <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden">
         <div className="absolute inset-0 bg-zinc-950" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_30%_20%,rgba(59,130,246,0.07),transparent)]" />
@@ -116,7 +186,7 @@ export default function ResetPasswordPage() {
         <div className="relative z-10 flex flex-col h-full p-10">
           <Link to="/" className="flex items-center gap-2.5 cursor-pointer w-fit">
             <div className="w-9 h-9 rounded-xl bg-brand dark:bg-brand-dark flex items-center justify-center">
-              <i className="ri-archive-2-line text-white"></i>
+              <LogoMark size={22} />
             </div>
             <span className="font-bold text-xl text-white tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Vaultly
@@ -161,13 +231,13 @@ export default function ResetPasswordPage() {
         </div>
       </div>
 
-      {/* Right panel */}
+      {/* Panel derecho — formulario */}
       <div className="flex flex-col w-full lg:w-[480px] flex-shrink-0 relative overflow-hidden">
-        {/* Top bar */}
+        {/* Barra superior */}
         <div className="flex items-center justify-between px-6 py-4">
           <Link to="/" className="flex items-center gap-2 cursor-pointer lg:invisible">
             <div className="w-7 h-7 rounded-lg bg-brand dark:bg-brand-dark flex items-center justify-center">
-              <i className="ri-archive-2-line text-white text-xs"></i>
+              <LogoMark size={17} />
             </div>
             <span className="font-bold text-zinc-900 dark:text-white text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Vaultly</span>
           </Link>
@@ -181,7 +251,7 @@ export default function ResetPasswordPage() {
 
         <div className="flex-1 flex flex-col justify-center px-8 md:px-12 py-6">
 
-          {/* Loading state */}
+          {/* Estado: cargando */}
           {pageState === 'loading' && (
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="w-12 h-12 rounded-full border-2 border-blue-200 dark:border-blue-900 border-t-brand dark:border-t-brand-dark animate-spin"></div>
@@ -189,7 +259,7 @@ export default function ResetPasswordPage() {
             </div>
           )}
 
-          {/* Expired / invalid link */}
+          {/* Estado: enlace expirado */}
           {pageState === 'expired' && (
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center gap-4 text-center">
@@ -223,7 +293,7 @@ export default function ResetPasswordPage() {
             </div>
           )}
 
-          {/* Success state */}
+          {/* Estado: contraseña actualizada */}
           {pageState === 'success' && (
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center gap-4 text-center">
@@ -241,19 +311,18 @@ export default function ResetPasswordPage() {
               </div>
               <button
                 type="button"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/auth?reset=success', { replace: true })}
                 className="w-full py-3 rounded-xl bg-brand dark:bg-brand-dark text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
               >
-                <i className="ri-dashboard-line"></i>
-                Ir a mi dashboard
+                <i className="ri-login-circle-line"></i>
+                Ir al inicio de sesión
               </button>
             </div>
           )}
 
-          {/* Ready — show form */}
+          {/* Estado: listo — formulario de nueva contraseña */}
           {pageState === 'ready' && (
             <>
-              {/* Header */}
               <div className="mb-8">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-6 h-6 rounded-full bg-brand/10 dark:bg-brand-dark/15 flex items-center justify-center">
@@ -262,17 +331,17 @@ export default function ResetPasswordPage() {
                   <span className="text-xs text-zinc-500">Restablecimiento de contraseña</span>
                 </div>
                 <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  Nueva contraseña
+                  Restablecer contraseña
                 </h1>
                 <p className="text-sm text-zinc-500">
-                  Elige una contraseña segura para tu cuenta.
+                  Introduce una nueva contraseña para tu cuenta.
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-                {/* New password */}
+                {/* Nueva contraseña */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                  <label htmlFor="rp-password" className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                     Nueva contraseña <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -280,6 +349,7 @@ export default function ResetPasswordPage() {
                       <i className="ri-lock-line text-sm"></i>
                     </div>
                     <input
+                      id="rp-password"
                       type={showPass ? 'text' : 'password'}
                       value={password}
                       onChange={e => { setPassword(e.target.value); touch('password'); setServerError(''); }}
@@ -287,22 +357,26 @@ export default function ResetPasswordPage() {
                       placeholder="Mínimo 8 caracteres"
                       autoComplete="new-password"
                       autoFocus
+                      aria-invalid={touched.password && !!passwordError}
+                      aria-describedby={touched.password && passwordError ? 'rp-password-error' : undefined}
                       className={`${inputBase} pl-10 pr-11 ${touched.password && passwordError ? inputErr : inputNormal}`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPass(p => !p)}
+                      aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
                     >
                       <i className={showPass ? 'ri-eye-off-line text-sm' : 'ri-eye-line text-sm'}></i>
                     </button>
                   </div>
                   {touched.password && passwordError && (
-                    <p className="flex items-center gap-1.5 text-xs text-red-500">
+                    <p id="rp-password-error" className="flex items-center gap-1.5 text-xs text-red-500">
                       <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                       {passwordError}
                     </p>
                   )}
+                  {/* Indicador de fortaleza — visual, no bloquea el submit */}
                   {password.length > 0 && (
                     <div className="flex items-center gap-2 mt-0.5">
                       <div className="flex gap-1 flex-1">
@@ -320,9 +394,9 @@ export default function ResetPasswordPage() {
                   )}
                 </div>
 
-                {/* Confirm password */}
+                {/* Confirmar contraseña */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                  <label htmlFor="rp-confirm" className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                     Confirmar contraseña <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -330,24 +404,28 @@ export default function ResetPasswordPage() {
                       <i className="ri-lock-2-line text-sm"></i>
                     </div>
                     <input
+                      id="rp-confirm"
                       type={showConfirm ? 'text' : 'password'}
                       value={confirm}
                       onChange={e => { setConfirm(e.target.value); touch('confirm'); setServerError(''); }}
                       onBlur={() => touch('confirm')}
                       placeholder="Repite tu contraseña"
                       autoComplete="new-password"
+                      aria-invalid={touched.confirm && !!confirmError}
+                      aria-describedby={touched.confirm && confirmError ? 'rp-confirm-error' : undefined}
                       className={`${inputBase} pl-10 pr-11 ${touched.confirm && confirmError ? inputErr : inputNormal}`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirm(p => !p)}
+                      aria-label={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
                     >
                       <i className={showConfirm ? 'ri-eye-off-line text-sm' : 'ri-eye-line text-sm'}></i>
                     </button>
                   </div>
                   {touched.confirm && confirmError && (
-                    <p className="flex items-center gap-1.5 text-xs text-red-500">
+                    <p id="rp-confirm-error" className="flex items-center gap-1.5 text-xs text-red-500">
                       <i className="ri-error-warning-line text-xs flex-shrink-0"></i>
                       {confirmError}
                     </p>

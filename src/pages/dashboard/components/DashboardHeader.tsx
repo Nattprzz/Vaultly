@@ -1,11 +1,36 @@
+/**
+ * DashboardHeader.tsx — cabecera del dashboard con saludo dinámico y acciones rápidas.
+ *
+ * El saludo cambia según la hora del día (mañana/tarde/noche) y usa el nombre
+ * para mostrar del perfil autenticado. El resumen de stats se muestra inline
+ * o como esqueleto mientras cargan los datos.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useAuth } from '@/hooks/useAuth';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { DashboardStats } from '@/hooks/useDashboardStats';
 
+// ─── Componentes ────────────────────────────────────────────────────────────────────
+
+import { InteractiveHoverLink } from "@/components/ui/interactive-hover-button"
+
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del componente de cabecera del dashboard. */
 interface Props {
   stats: DashboardStats | null;
   loading: boolean;
 }
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function DashboardHeader({ stats, loading }: Props) {
   const { profile } = useAuth();
@@ -38,20 +63,22 @@ export default function DashboardHeader({ stats, loading }: Props) {
         </p>
       </div>
       <div className="flex items-center gap-3">
-        <Link
+        <InteractiveHoverLink
           to="/catalog"
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer whitespace-nowrap"
+          showArrow={false}
         >
           <i className="ri-compass-3-line"></i>
           Explorar catálogo
-        </Link>
-        <Link
+        </InteractiveHoverLink>
+        <InteractiveHoverLink
           to="/tracker"
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
+          showArrow={false}
         >
           <i className="ri-bar-chart-box-line"></i>
           Mi Tracker
-        </Link>
+        </InteractiveHoverLink>
       </div>
     </div>
   );

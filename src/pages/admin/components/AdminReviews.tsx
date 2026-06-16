@@ -1,37 +1,73 @@
+/**
+ * AdminReviews.tsx — panel de moderación de reseñas del catálogo.
+ *
+ * Carga las reseñas con puntuación desde `user_item_tracking` y las enriquece
+ * con los nombres de usuario y los títulos de catálogo. Permite filtrar por
+ * estado (aprobada/pendiente/rechazada), buscar por texto y cambiar el estado
+ * de cada reseña o eliminarla. Los cambios de estado son locales (no persisten
+ * en Supabase) hasta que se implemente la moderación en base de datos.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useEffect, useState } from 'react';
+
+// ─── Librerías externas ──────────────────────────────────────────────────────
+
 import { supabase } from '@/lib/supabase';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useCategories } from '@/hooks/useCategoryColors';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Reseña enriquecida para el panel de administración. */
 interface AdminReview {
-  id: string;
-  user: string;
-  initials: string;
-  userAccent: string;
-  item: string;
-  category: string;
-  rating: number;
-  body: string;
-  status: 'approved' | 'pending' | 'rejected';
-  date: string;
-  reports: number;
+  id:          string;
+  user:        string;
+  initials:    string;
+  userAccent:  string;
+  item:        string;
+  category:    string;
+  rating:      number;
+  body:        string;
+  status:      'approved' | 'pending' | 'rejected';
+  date:        string;
+  reports:     number;
 }
 
+// ─── Constantes ──────────────────────────────────────────────────────────────
+
+/** Estilos de badge por estado de la reseña. */
 const STATUS_BADGE: Record<AdminReview['status'], string> = {
   approved: 'bg-emerald-500/20 text-emerald-400',
   pending:  'bg-amber-500/20 text-amber-400',
   rejected: 'bg-red-500/20 text-red-400',
 };
+
+/** Etiquetas en español por estado. */
 const STATUS_LABEL: Record<AdminReview['status'], string> = {
-  approved: 'Aprobada', pending: 'Pendiente', rejected: 'Rechazada',
+  approved: 'Aprobada',
+  pending:  'Pendiente',
+  rejected: 'Rechazada',
 };
 
+/** Colores de acento cíclicos para los avatares de usuario. */
 const ACCENTS = ['#8b5cf6', '#f43f5e', '#10b981', '#f59e0b', '#0ea5e9', '#ec4899', '#6366f1', '#14b8a6'];
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function AdminReviews() {
   const CATEGORIES = useCategories();
-  const [reviews, setReviews] = useState<AdminReview[]>([]);
+
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
+  const [reviews,      setReviews]      = useState<AdminReview[]>([]);
   const [statusFilter, setStatusFilter] = useState<AdminReview['status'] | 'all'>('all');
-  const [search, setSearch] = useState('');
+  const [search,       setSearch]       = useState('');
+
+  // ─── Efectos ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const load = async () => {
@@ -44,36 +80,34 @@ export default function AdminReviews() {
         .order('updated_at', { ascending: false })
         .limit(100);
 
-      if (!data?.length) {
-        setReviews([]);
-        return;
-      }
+      if (!data?.length) { setReviews([]); return; }
 
       const userIds = [...new Set(data.map(row => row.user_id).filter(Boolean))];
-      const slugs = [...new Set(data.map(row => row.item_slug).filter(Boolean))];
+      const slugs   = [...new Set(data.map(row => row.item_slug).filter(Boolean))];
+
       const [{ data: profiles }, { data: catalogItems }] = await Promise.all([
         supabase.from('profiles').select('id, display_name, username, initials').in('id', userIds),
         supabase.from('catalog_items').select('slug, title').in('slug', slugs),
       ]);
 
-      const profilesById = new Map((profiles ?? []).map(profile => [profile.id, profile]));
-      const titlesBySlug = new Map((catalogItems ?? []).map(item => [item.slug, item.title]));
+      const profilesById  = new Map((profiles ?? []).map(p => [p.id, p]));
+      const titlesBySlug  = new Map((catalogItems ?? []).map(i => [i.slug, i.title]));
 
       setReviews(data.map((row, index) => {
         const profile = profilesById.get(row.user_id);
-        const user = profile?.display_name ?? profile?.username ?? 'Usuario';
+        const user    = profile?.display_name ?? profile?.username ?? 'Usuario';
         return {
-          id: row.id,
+          id:         row.id,
           user,
-          initials: profile?.initials ?? user.slice(0, 2).toUpperCase(),
+          initials:   profile?.initials ?? user.slice(0, 2).toUpperCase(),
           userAccent: ACCENTS[index % ACCENTS.length],
-          item: titlesBySlug.get(row.item_slug) ?? row.item_slug.replace(/-/g, ' '),
-          category: row.category,
-          rating: Number(row.rating),
-          body: row.review,
-          status: 'approved',
-          date: new Date(row.updated_at).toLocaleDateString('es-ES'),
-          reports: 0,
+          item:       titlesBySlug.get(row.item_slug) ?? row.item_slug.replace(/-/g, ' '),
+          category:   row.category,
+          rating:     Number(row.rating),
+          body:       row.review,
+          status:     'approved',
+          date:       new Date(row.updated_at).toLocaleDateString('es-ES'),
+          reports:    0,
         };
       }));
     };
@@ -81,23 +115,32 @@ export default function AdminReviews() {
     void load();
   }, []);
 
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const filtered = reviews.filter(r => {
-    const matchSearch = r.user.toLowerCase().includes(search.toLowerCase()) ||
+    const matchSearch =
+      r.user.toLowerCase().includes(search.toLowerCase()) ||
       r.item.toLowerCase().includes(search.toLowerCase()) ||
       r.body.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || r.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
+  const pending = reviews.filter(r => r.status === 'pending').length;
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  /** Cambia el estado de una reseña localmente. */
   const updateStatus = (id: string, status: AdminReview['status']) => {
     setReviews(prev => prev.map(r => r.id === id ? { ...r, status } : r));
   };
 
+  /** Elimina una reseña de la lista local. */
   const deleteReview = (id: string) => {
     setReviews(prev => prev.filter(r => r.id !== id));
   };
 
-  const pending = reviews.filter(r => r.status === 'pending').length;
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-5">
@@ -105,8 +148,8 @@ export default function AdminReviews() {
         <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
           <i className="ri-error-warning-line text-amber-400 text-xl flex-shrink-0"></i>
           <div>
-            <p className="text-sm font-semibold text-amber-300">{pending} resena{pending > 1 ? 's' : ''} pendiente{pending > 1 ? 's' : ''} de moderacion</p>
-            <p className="text-xs text-amber-500/70">Revisa y aprueba o rechaza las resenas pendientes.</p>
+            <p className="text-sm font-semibold text-amber-300">{pending} reseña{pending > 1 ? 's' : ''} pendiente{pending > 1 ? 's' : ''} de moderación</p>
+            <p className="text-xs text-amber-500/70">Revisa y aprueba o rechaza las reseñas pendientes.</p>
           </div>
           <button
             onClick={() => setStatusFilter('pending')}
@@ -117,13 +160,14 @@ export default function AdminReviews() {
         </div>
       )}
 
+      {/* Barra de búsqueda y filtros */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por usuario, item o contenido..."
+            placeholder="Buscar por usuario, ítem o contenido..."
             className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand/30"
           />
         </div>
@@ -147,6 +191,7 @@ export default function AdminReviews() {
         </div>
       </div>
 
+      {/* Listado de reseñas */}
       <div className="flex flex-col gap-3">
         {filtered.map(review => {
           const cat = CATEGORIES.find(c => c.id === review.category);
@@ -154,13 +199,12 @@ export default function AdminReviews() {
             <div
               key={review.id}
               className={`bg-zinc-900 rounded-2xl border p-5 transition-all ${
-                review.status === 'pending'
-                  ? 'border-amber-500/30'
-                  : review.status === 'rejected'
-                  ? 'border-red-500/20'
-                  : 'border-zinc-800'
+                review.status === 'pending'  ? 'border-amber-500/30' :
+                review.status === 'rejected' ? 'border-red-500/20'   :
+                                               'border-zinc-800'
               }`}
             >
+              {/* Cabecera: autor, ítem y puntuación */}
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3">
                   <div
@@ -200,12 +244,14 @@ export default function AdminReviews() {
                 </div>
               </div>
 
+              {/* Cuerpo de la reseña */}
               <p className={`text-sm leading-relaxed mb-4 ${
                 review.status === 'rejected' ? 'text-zinc-600 line-through' : 'text-zinc-400'
               }`}>
                 &ldquo;{review.body}&rdquo;
               </p>
 
+              {/* Pie con fecha y acciones */}
               <div className="flex items-center justify-between">
                 <span className="text-xs text-zinc-600">{review.date}</span>
                 <div className="flex items-center gap-2">
@@ -242,7 +288,7 @@ export default function AdminReviews() {
         {filtered.length === 0 && (
           <div className="py-16 text-center text-zinc-600">
             <i className="ri-quill-pen-line text-3xl mb-2 block"></i>
-            <p className="text-sm">No se encontraron resenas</p>
+            <p className="text-sm">No se encontraron reseñas</p>
           </div>
         )}
       </div>

@@ -1,13 +1,37 @@
+/**
+ * TrackerHero.tsx — cabecera hero del tracker con avatar/icono de categoría y CTAs.
+ *
+ * Cuando el usuario está en la vista "all", muestra su avatar (o iniciales) y su nombre.
+ * Cuando está en una categoría específica, muestra el icono y el color acento de esa
+ * categoría con el subtítulo correspondiente. Incluye botones para explorar catálogo
+ * y añadir ítems.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
+// (sin imports de React — JSX transform automático)
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useAuth } from '@/hooks/useAuth';
 import { useCategories } from '@/hooks/useCategoryColors';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { TrackerEntry } from '@/hooks/useTracker';
 
-interface Props {
-  entries: Record<string, TrackerEntry>;
-  activeCategory: string;
-}
+// ─── Componentes ────────────────────────────────────────────────────────────────────
 
+import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button"
+
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Subtítulos descriptivos para cada categoría del tracker. */
 const CATEGORY_SUBTITLES: Record<string, string> = {
   videojuegos: 'Juegos que estás siguiendo, completando o tienes pendientes.',
   peliculas:   'Películas que has visto, estás viendo o tienes en lista de espera.',
@@ -16,7 +40,19 @@ const CATEGORY_SUBTITLES: Record<string, string> = {
   conciertos:  'Conciertos que has asistido o planeas asistir.',
 };
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del hero del tracker. */
+interface Props {
+  entries: Record<string, TrackerEntry>;
+  activeCategory: string;
+}
+
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function TrackerHero({ entries, activeCategory }: Props) {
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const { profile, user } = useAuth();
   const CATEGORIES = useCategories();
   const cat = CATEGORIES.find(c => c.id === activeCategory);
@@ -34,9 +70,11 @@ export default function TrackerHero({ entries, activeCategory }: Props) {
     ? CATEGORY_SUBTITLES[activeCategory] ?? `Elementos de ${cat?.label} en tu tracker.`
     : 'Gestiona todo lo que has visto, leído, jugado o escuchado.';
 
+  // ─── Renderizado ──────────────────────────────────────────────────────────
+
   return (
     <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] mb-6">
-      {/* Ambient layers */}
+      {/* Capas de ambiente con color de la categoría activa */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -51,7 +89,7 @@ export default function TrackerHero({ entries, activeCategory }: Props) {
       />
 
       <div className="relative flex flex-col gap-6 p-6 md:flex-row md:items-center md:gap-8 md:p-8">
-        {/* Icon or Avatar */}
+        {/* Icono de categoría o avatar del usuario */}
         <div className="flex items-center gap-5">
           <div className="relative flex-shrink-0">
             {isCategoryPage ? (
@@ -68,7 +106,7 @@ export default function TrackerHero({ entries, activeCategory }: Props) {
                 className="h-16 w-16 rounded-2xl object-cover object-top ring-2 ring-[var(--brand-accent)]/30"
               />
             ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 text-xl font-black text-white ring-2 ring-blue-500/30">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl text-xl font-black text-white ring-2" style={{ background: 'var(--brand-accent)', boxShadow: '0 0 0 4px rgba(5,83,235,0.20)' }}>
                 {initials}
               </div>
             )}
@@ -98,7 +136,7 @@ export default function TrackerHero({ entries, activeCategory }: Props) {
           </div>
         </div>
 
-        {/* CTAs */}
+        {/* Botones de acción */}
         <div className="flex flex-shrink-0 items-center gap-3 md:ml-auto">
           <Link
             to={isCategoryPage ? `/catalog/${activeCategory}` : '/catalog'}

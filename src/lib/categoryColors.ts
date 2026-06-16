@@ -1,3 +1,12 @@
+/**
+ * categoryColors.ts — colores configurables de categorías.
+ *
+ * Valida y resuelve colores personalizados manteniendo valores por defecto seguros.
+ *
+ * Utilizado por ajustes de usuario y vistas que muestran categorías.
+ */
+
+// ─── Framework ─────────────────────────────────────────────────────────
 import type { AppCategoryId } from './categories';
 
 /**
@@ -25,12 +34,12 @@ export type CategoryColorMap = Partial<Record<AppCategoryId, string>>;
 
 const HEX_RE = /^#([0-9a-f]{6}|[0-9a-f]{3})$/i;
 
-/** Validates a user-supplied color string (we only accept 3/6-digit hex). */
+/** Valida colores definidos por el usuario; solo se aceptan hexadecimales de 3 o 6 dígitos. */
 export function isValidHexColor(value: unknown): value is string {
   return typeof value === 'string' && HEX_RE.test(value.trim());
 }
 
-/** Normalises a hex color to its 6-digit lowercase `#rrggbb` form. */
+/** Normaliza un color hexadecimal al formato canónico `#rrggbb` en minúsculas. */
 export function normalizeHexColor(value: string): string {
   const v = value.trim().toLowerCase();
   if (/^#([0-9a-f]{3})$/.test(v)) {
@@ -39,19 +48,19 @@ export function normalizeHexColor(value: string): string {
   return v;
 }
 
-/** Appends an alpha suffix (00-ff) to a 6-digit hex color, e.g. withAlpha('#84cc16', 0x20) → '#84cc1620'. */
+/** Añade un sufijo alfa hexadecimal a un color de 6 dígitos para crear variantes translúcidas. */
 export function withAlpha(hex: string, alphaHex: string): string {
   return `${hex}${alphaHex}`;
 }
 
-/** Resolves the effective accent color for a category: user override → default. */
+/** Resuelve el color efectivo de una categoría priorizando la personalización del usuario sobre el valor por defecto. */
 export function resolveCategoryColor(id: AppCategoryId, overrides: CategoryColorMap | null | undefined): string {
   const override = overrides?.[id];
   if (override && isValidHexColor(override)) return normalizeHexColor(override);
   return DEFAULT_CATEGORY_COLORS[id];
 }
 
-/** Sanitises a raw overrides object (e.g. coming from Supabase/localStorage JSON) into a safe color map. */
+/** Sanea un objeto externo de colores y conserva solo claves y valores válidos para la aplicación. */
 export function sanitizeCategoryColorMap(raw: unknown): CategoryColorMap {
   if (!raw || typeof raw !== 'object') return {};
   const out: CategoryColorMap = {};

@@ -1,36 +1,52 @@
-import { useTracker } from '@/hooks/useTracker';
+/**
+ * ProfileStats.tsx — estadísticas globales y por categoría del perfil.
+ *
+ * Muestra tres bloques: resumen global con barra de tasa de finalización
+ * y desglose de estados, desglose por categoría con barras de progreso
+ * individuales, y tarjetas de "fun facts" (media, reseñas, finalización).
+ * Lee el tracker del usuario para calcular todas las métricas en memoria.
+ */
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+import { useTracker }    from '@/hooks/useTracker';
 import { useCategories } from '@/hooks/useCategoryColors';
+
+// ─── Constantes ──────────────────────────────────────────────────────────────
+
 import { SEMANTIC_GROUPS } from '@/constants/tracker-statuses';
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function ProfileStats() {
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const CATEGORIES = useCategories();
   const { entries } = useTracker();
   const all = Object.values(entries);
 
-  const globalCompleted = all.filter(e => e.status === 'completed').length;
-  const globalInProgress = all.filter(e => (SEMANTIC_GROUPS.active as readonly string[]).includes(e.status)).length;
-  const globalPending = all.filter(e => e.status === 'pending').length;
-  const globalDropped = all.filter(e => (SEMANTIC_GROUPS.abandoned as readonly string[]).includes(e.status)).length;
-  const completionRate = all.length > 0 ? Math.round((globalCompleted / all.length) * 100) : 0;
+  const globalCompleted   = all.filter(e => e.status === 'completed').length;
+  const globalInProgress  = all.filter(e => (SEMANTIC_GROUPS.active as readonly string[]).includes(e.status)).length;
+  const globalPending     = all.filter(e => e.status === 'pending').length;
+  const globalDropped     = all.filter(e => (SEMANTIC_GROUPS.abandoned as readonly string[]).includes(e.status)).length;
+  const completionRate    = all.length > 0 ? Math.round((globalCompleted / all.length) * 100) : 0;
 
-  const rated = all.filter(e => e.rating !== null);
+  const rated     = all.filter(e => e.rating !== null);
   const avgRating = rated.length > 0
     ? (rated.reduce((s, e) => s + (e.rating ?? 0), 0) / rated.length).toFixed(1)
     : '—';
 
-  // Top rated item
-  const topRated = [...all].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0];
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Global overview */}
+      {/* Resumen global con barra de finalización */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
         <h3 className="font-bold text-zinc-900 dark:text-white mb-5 flex items-center gap-2">
           <i className="ri-pie-chart-line text-brand dark:text-brand-dark"></i>
           Resumen global
         </h3>
 
-        {/* Completion bar */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-zinc-600 dark:text-zinc-400">Tasa de finalización</span>
@@ -44,13 +60,13 @@ export default function ProfileStats() {
           </div>
         </div>
 
-        {/* Status breakdown */}
+        {/* Tarjetas de desglose por estado */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Completados', value: globalCompleted, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', icon: 'ri-checkbox-circle-line' },
-            { label: 'En progreso', value: globalInProgress, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/30', icon: 'ri-loader-4-line' },
-            { label: 'Pendientes',  value: globalPending,    color: 'text-zinc-500',   bg: 'bg-zinc-100 dark:bg-zinc-800',       icon: 'ri-bookmark-line' },
-            { label: 'Abandonados', value: globalDropped,    color: 'text-red-500',   bg: 'bg-red-50 dark:bg-red-950/30',     icon: 'ri-close-circle-line' },
+            { label: 'Completados', value: globalCompleted,  color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', icon: 'ri-checkbox-circle-line' },
+            { label: 'En progreso', value: globalInProgress, color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/30',     icon: 'ri-loader-4-line'        },
+            { label: 'Pendientes',  value: globalPending,    color: 'text-zinc-500',     bg: 'bg-zinc-100 dark:bg-zinc-800',         icon: 'ri-bookmark-line'        },
+            { label: 'Abandonados', value: globalDropped,    color: 'text-red-500',      bg: 'bg-red-50 dark:bg-red-950/30',         icon: 'ri-close-circle-line'    },
           ].map(s => (
             <div key={s.label} className={`flex flex-col items-center gap-1.5 py-4 rounded-xl ${s.bg}`}>
               <i className={`${s.icon} ${s.color} text-xl`}></i>
@@ -61,7 +77,7 @@ export default function ProfileStats() {
         </div>
       </div>
 
-      {/* Per-category breakdown */}
+      {/* Desglose por categoría con barras de progreso */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6">
         <h3 className="font-bold text-zinc-900 dark:text-white mb-5 flex items-center gap-2">
           <i className="ri-bar-chart-box-line text-brand dark:text-brand-dark"></i>
@@ -69,11 +85,11 @@ export default function ProfileStats() {
         </h3>
         <div className="flex flex-col gap-4">
           {CATEGORIES.map(cat => {
-            const catEntries = all.filter(e => e.category === cat.id);
+            const catEntries   = all.filter(e => e.category === cat.id);
             if (catEntries.length === 0) return null;
             const catCompleted = catEntries.filter(e => e.status === 'completed').length;
-            const catRated = catEntries.filter(e => e.rating !== null);
-            const catAvg = catRated.length > 0
+            const catRated     = catEntries.filter(e => e.rating !== null);
+            const catAvg       = catRated.length > 0
               ? (catRated.reduce((s, e) => s + (e.rating ?? 0), 0) / catRated.length).toFixed(1)
               : '—';
             const pct = catEntries.length > 0 ? Math.round((catCompleted / catEntries.length) * 100) : 0;
@@ -109,7 +125,7 @@ export default function ProfileStats() {
         </div>
       </div>
 
-      {/* Fun facts */}
+      {/* Tarjetas de datos destacados */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-5 text-center">
           <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-950/30 mx-auto mb-3">
@@ -138,4 +154,3 @@ export default function ProfileStats() {
     </div>
   );
 }
-

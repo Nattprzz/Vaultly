@@ -1,10 +1,33 @@
+/**
+ * TrackerEmpty.tsx — estado vacío del tracker.
+ *
+ * Muestra un mensaje contextual diferente según si el vacío se debe a un filtro
+ * de estado activo (sin resultados para ese filtro) o a que el tracker de esa
+ * categoría no tiene ítems todavía. En el caso de tracker vacío, ofrece un
+ * enlace al catálogo para añadir contenido.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useCategories } from '@/hooks/useCategoryColors';
 
+// ─── Componentes ────────────────────────────────────────────────────────────────────
+
+import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button"
+
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del estado vacío del tracker. */
 interface Props {
   category: string;
   statusFilter: string;
 }
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function TrackerEmpty({ category, statusFilter }: Props) {
   const CATEGORIES = useCategories();
@@ -39,4 +62,3 @@ export default function TrackerEmpty({ category, statusFilter }: Props) {
     </div>
   );
 }
-

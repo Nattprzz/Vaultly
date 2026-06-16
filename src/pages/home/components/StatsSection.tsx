@@ -1,13 +1,33 @@
+/**
+ * StatsSection.tsx — sección de métricas globales de la plataforma en la landing page.
+ *
+ * Carga conteos reales de Supabase (catálogo, usuarios, reseñas, entradas de tracker)
+ * y los muestra como estadísticas. Los valores arrancán en 0 y se reemplazan
+ * con los datos reales al resolverse las cuatro consultas en paralelo.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useEffect, useState } from 'react';
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
 import { supabase } from '@/lib/supabase';
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+/** Entrada individual del grid de estadísticas globales. */
 interface StatItem {
   label: string;
   value: string;
   icon: string;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function StatsSection() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const [stats, setStats] = useState<StatItem[]>([
     { label: 'Ítems en catálogo', value: '0', icon: 'ri-database-2-line' },
     { label: 'Usuarios activos', value: '0', icon: 'ri-user-heart-line' },
@@ -15,13 +35,15 @@ export default function StatsSection() {
     { label: 'Trackers creados', value: '0', icon: 'ri-bar-chart-box-line' },
   ]);
 
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     const load = async () => {
       const [items, users, reviews, trackers] = await Promise.all([
         supabase.from('catalog_items').select('id', { count: 'exact', head: true }),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('user_item_tracking').select('id', { count: 'exact', head: true }).not('review', 'is', null).neq('review', ''),
-        supabase.from('user_item_tracking').select('id', { count: 'exact', head: true }),
+        supabase.from('public_profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('public_user_item_tracking').select('id', { count: 'exact', head: true }).not('review', 'is', null).neq('review', ''),
+        supabase.from('public_user_item_tracking').select('id', { count: 'exact', head: true }),
       ]);
 
       setStats([
@@ -34,6 +56,8 @@ export default function StatsSection() {
 
     void load();
   }, []);
+
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
 
   return (
     <section className="py-20 px-4 md:px-6 bg-zinc-900 dark:bg-zinc-950">

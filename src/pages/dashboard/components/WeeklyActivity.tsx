@@ -1,9 +1,24 @@
+/**
+ * WeeklyActivity.tsx — gráfico de barras de actividad semanal del dashboard.
+ *
+ * Renderiza un gráfico de barras vertical con los 7 días de la semana.
+ * La altura de cada barra es proporcional al día con más actividad (max normalization).
+ * Si no hay datos, muestra barras en 0 con opacidad reducida.
+ */
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { WeeklyActivityPoint } from '@/hooks/useDashboardStats';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del componente de actividad semanal. */
 interface Props {
   data: WeeklyActivityPoint[];
   loading: boolean;
 }
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function WeeklyActivity({ data, loading }: Props) {
   const max = Math.max(...data.map(d => d.count), 1);

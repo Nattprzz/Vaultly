@@ -1,35 +1,84 @@
+/**
+ * public-profile/page.tsx — perfil público de otro usuario de Vaultly.
+ *
+ * Carga el perfil del usuario cuyo username aparece en la URL (/u/:username).
+ * Si el perfil no existe o `is_public` es false, muestra un estado 404 inline.
+ * Las opciones de privacidad (share_tracker, show_ratings, etc.) se propagan
+ * a los sub-componentes para que cada uno decida qué mostrar.
+ * El flag `show_item_status` se lee de la tabla separada `user_tracker_settings`
+ * porque forma parte de configuración del tracker, no del perfil principal.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { useParams, Link } from 'react-router-dom';
+
+// ─── Componentes ──────────────────────────────────────────────────────────────
+
 import Sidebar from '@/components/feature/Sidebar';
 import SeoHead from '@/components/feature/SeoHead';
-import { supabase } from '@/lib/supabase';
+import { LogoMark } from '@/components/branding/Logo';
 import PublicProfileHero from './components/PublicProfileHero';
 import PublicTrackerList from './components/PublicTrackerList';
 import PublicProfileStats from './components/PublicProfileStats';
 import PublicProfileReviews from './components/PublicProfileReviews';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { PublicPrivacyFlags } from '@/types/privacy';
 
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
+import { supabase } from '@/lib/supabase';
+
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Identificadores de las pestañas del perfil público. */
 type Tab = 'tracker' | 'stats' | 'reviews';
 
+/** Perfil público enriquecido con las flags de privacidad. */
+interface PublicUser extends PublicPrivacyFlags {
+  /** ID de Supabase Auth del usuario. */
+  id: string;
+  /** Nombre de usuario único (slug en la URL). */
+  username: string;
+  /** Nombre para mostrar en el perfil. */
+  display_name: string;
+  /** Iniciales para el avatar cuando no hay foto. */
+  initials: string;
+  /** Biografía pública del usuario. */
+  bio?: string | null;
+  /** Rol del usuario: 'admin' o 'user'. */
+  role?: string;
+  /** URL de imagen de portada del perfil. */
+  backdrop_url?: string | null;
+}
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Definición de las pestañas con etiqueta e icono. */
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'tracker',  label: 'Lista de seguimiento', icon: 'ri-stack-line' },
   { id: 'stats',    label: 'Estadísticas',          icon: 'ri-bar-chart-box-line' },
   { id: 'reviews',  label: 'Reseñas',               icon: 'ri-quill-pen-line' },
 ];
 
-interface PublicUser extends PublicPrivacyFlags {
-  id: string;
-  username: string;
-  display_name: string;
-  initials: string;
-}
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function PublicProfilePage() {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const { username } = useParams<{ username: string }>();
   const [activeTab, setActiveTab] = useState<Tab>('tracker');
   const [publicUser, setPublicUser] = useState<PublicUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // ─── Efectos ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!username) return;
@@ -39,8 +88,8 @@ export default function PublicProfilePage() {
       setPublicUser(null);
 
       const { data } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, initials, is_public, share_tracker, show_ratings, show_reviews')
+        .from('public_profiles')
+        .select('id, username, display_name, initials, is_public, share_tracker, show_ratings, show_reviews, bio, role, backdrop_url')
         .eq('username', username)
         .maybeSingle();
 
@@ -50,7 +99,7 @@ export default function PublicProfilePage() {
         return;
       }
 
-      // show_item_status lives in user_tracker_settings (readable for public profiles via RLS)
+      // show_item_status vive en user_tracker_settings, accesible vía RLS para perfiles públicos
       const { data: ts } = await supabase
         .from('user_tracker_settings')
         .select('show_item_status')
@@ -66,13 +115,15 @@ export default function PublicProfilePage() {
     fetchUser();
   }, [username]);
 
+  // ─── Renderizado — estados de carga y error ───────────────────────────────
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)] flex items-center justify-center">
         <Sidebar />
         <div className="flex flex-col items-center gap-3 pt-14 md:pt-0 md:pl-64">
           <div className="w-10 h-10 rounded-xl bg-brand dark:bg-brand-dark flex items-center justify-center animate-pulse">
-            <i className="ri-archive-2-line text-white"></i>
+            <LogoMark size={24} />
           </div>
           <p className="text-sm text-zinc-400">Cargando perfil...</p>
         </div>
@@ -104,6 +155,8 @@ export default function PublicProfilePage() {
     );
   }
 
+  // ─── Datos derivados ─────────────────────────────────────────────────────────
+
   const displayName = publicUser?.display_name ?? username ?? '';
   const initials = publicUser?.initials ?? displayName.slice(0, 2).toUpperCase();
   const privacy: PublicPrivacyFlags = {
@@ -113,6 +166,8 @@ export default function PublicProfilePage() {
     show_reviews: publicUser?.show_reviews ?? false,
     show_item_status: publicUser?.show_item_status ?? true,
   };
+
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-[var(--bg)] dark:bg-[var(--bg)]">
@@ -124,14 +179,18 @@ export default function PublicProfilePage() {
       <Sidebar />
       <main className="pt-14 md:pt-0 md:pl-64">
         <div className="bg-[var(--bg)] dark:bg-[var(--bg)] pb-0">
-          <PublicProfileHero username={username ?? ''} userId={publicUser?.id ?? null} displayName={displayName} initials={initials} privacy={privacy} />
+          <PublicProfileHero username={username ?? ''} userId={publicUser?.id ?? null} displayName={displayName} initials={initials} privacy={privacy} bio={publicUser?.bio ?? null} role={publicUser?.role} backdropUrl={publicUser?.backdrop_url ?? null} />
         </div>
+
+        {/* Pestañas — sticky bajo el top bar de la app */}
         <div className="bg-[var(--surface)] dark:bg-[var(--bg)] border-b border-zinc-100 dark:border-zinc-800 sticky top-16 z-30 mt-6">
           <div className="max-w-screen-xl mx-auto px-4 md:px-8">
-            <div className="flex items-center gap-1 overflow-x-auto">
+            <div role="tablist" className="flex items-center gap-1 overflow-x-auto">
               {TABS.map(tab => (
                 <button
                   key={tab.id}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-5 py-4 text-sm font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === tab.id
@@ -146,7 +205,9 @@ export default function PublicProfilePage() {
             </div>
           </div>
         </div>
-        <div className="max-w-screen-xl mx-auto px-4 md:px-8 py-8">
+
+        {/* Contenido de la pestaña activa */}
+        <div role="tabpanel" className="max-w-screen-xl mx-auto px-4 md:px-8 py-8">
           {activeTab === 'tracker'  && <PublicTrackerList userId={publicUser?.id ?? null} privacy={privacy} />}
           {activeTab === 'stats'    && <PublicProfileStats userId={publicUser?.id ?? null} privacy={privacy} />}
           {activeTab === 'reviews'  && (

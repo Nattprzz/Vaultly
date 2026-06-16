@@ -1,9 +1,29 @@
+/**
+ * CatalogFilters.tsx — panel lateral de filtros avanzados del catálogo.
+ *
+ * Se presenta como un bottom sheet en móvil y un drawer lateral en escritorio.
+ * Bloquea el scroll del body mientras está abierto y se cierra con Escape.
+ * Ofrece filtros de ordenación, puntuación mínima, rango de año y opciones
+ * dinámicas por categoría: géneros y plataformas (videojuegos), duración e
+ * idioma (películas/series/libros), ciudad (conciertos) y estado de emisión
+ * (series). Las listas largas de géneros y plataformas se truncan a 8 ítems
+ * y se pueden expandir.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useEffect } from 'react';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { FilterState, SortOption } from '@/hooks/useCatalogFilters';
 import { DEFAULT_FILTERS } from '@/hooks/useCatalogFilters';
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
 const CURRENT_YEAR = new Date().getFullYear();
 
+/** Opciones de ordenación disponibles en el panel. */
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'relevance',   label: 'Relevancia' },
   { value: 'rating_desc', label: 'Mejor valorados' },
@@ -12,6 +32,7 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'title_asc',   label: 'A → Z' },
 ];
 
+/** Chips de puntuación mínima. */
 const RATING_CHIPS = [
   { value: 0, label: 'Cualquiera' },
   { value: 6, label: '6+' },
@@ -20,6 +41,7 @@ const RATING_CHIPS = [
   { value: 9, label: '9+' },
 ];
 
+/** Chips de duración para películas. */
 const DURATION_CHIPS: { value: FilterState['duration']; label: string }[] = [
   { value: 'all',    label: 'Todas' },
   { value: 'short',  label: '< 90 min' },
@@ -27,6 +49,7 @@ const DURATION_CHIPS: { value: FilterState['duration']; label: string }[] = [
   { value: 'long',   label: '140+ min' },
 ];
 
+/** Chips de extensión para libros. */
 const PAGE_CHIPS: { value: FilterState['pageCount']; label: string }[] = [
   { value: 'all',    label: 'Todas' },
   { value: 'short',  label: '< 250 pág.' },
@@ -34,8 +57,12 @@ const PAGE_CHIPS: { value: FilterState['pageCount']; label: string }[] = [
   { value: 'long',   label: '500+ pág.' },
 ];
 
+/** Número de ítems visible antes de mostrar "Ver más". */
 const VISIBLE_LIMIT = 8;
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del panel de filtros del catálogo. */
 interface Props {
   filters: FilterState;
   availableGenres: string[];
@@ -44,6 +71,7 @@ interface Props {
   availableCities: string[];
   availableSeriesStatuses: string[];
   activeCategory: string;
+  /** Número de filtros activos (distintos a los valores por defecto). */
   activeCount: number;
   onYearMin: (v: number) => void;
   onYearMax: (v: number) => void;
@@ -60,6 +88,9 @@ interface Props {
   onClose: () => void;
 }
 
+// ─── Sub-componentes ─────────────────────────────────────────────────────────
+
+/** Chip toggle reutilizable para seleccionar opciones de filtro. */
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
   return (
     <button
@@ -75,9 +106,12 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   );
 }
 
+/** Etiqueta de sección con estilo uppercase para encabezados del panel. */
 function Label({ text }: { text: string }) {
   return <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">{text}</p>;
 }
+
+// ─── Componente principal ────────────────────────────────────────────────────
 
 export default function CatalogFilters({
   filters,
@@ -102,33 +136,39 @@ export default function CatalogFilters({
   onReset,
   onClose,
 }: Props) {
-  const [genreSearch, setGenreSearch]         = useState('');
-  const [genresExpanded, setGenresExpanded]   = useState(false);
-  const [platformSearch, setPlatformSearch]   = useState('');
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
+  const [genreSearch, setGenreSearch]             = useState('');
+  const [genresExpanded, setGenresExpanded]       = useState(false);
+  const [platformSearch, setPlatformSearch]       = useState('');
   const [platformsExpanded, setPlatformsExpanded] = useState(false);
 
-  // Local year state so user can type freely; syncs to filter on blur/reset
+  // Estado local del año para permitir escritura libre; se sincroniza al hacer blur
   const [localYearMin, setLocalYearMin] = useState(String(filters.yearMin));
   const [localYearMax, setLocalYearMax] = useState(String(filters.yearMax));
   useEffect(() => { setLocalYearMin(String(filters.yearMin)); }, [filters.yearMin]);
   useEffect(() => { setLocalYearMax(String(filters.yearMax)); }, [filters.yearMax]);
 
-  // Esc to close
+  // ─── Efectos ──────────────────────────────────────────────────────────────
+
+  // Cierra el panel con Escape
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', h);
     return () => document.removeEventListener('keydown', h);
   }, [onClose]);
 
-  // Lock body scroll
+  // Bloquea el scroll del body mientras el panel está abierto
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  const filteredGenres  = availableGenres.filter(g => !genreSearch || g.toLowerCase().includes(genreSearch.toLowerCase()));
-  const visibleGenres   = genresExpanded ? filteredGenres : filteredGenres.slice(0, VISIBLE_LIMIT);
-  const moreGenres      = filteredGenres.length - VISIBLE_LIMIT;
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
+  const filteredGenres    = availableGenres.filter(g => !genreSearch || g.toLowerCase().includes(genreSearch.toLowerCase()));
+  const visibleGenres     = genresExpanded ? filteredGenres : filteredGenres.slice(0, VISIBLE_LIMIT);
+  const moreGenres        = filteredGenres.length - VISIBLE_LIMIT;
 
   const filteredPlatforms = availablePlatforms.filter(p => !platformSearch || p.toLowerCase().includes(platformSearch.toLowerCase()));
   const visiblePlatforms  = platformsExpanded ? filteredPlatforms : filteredPlatforms.slice(0, VISIBLE_LIMIT);
@@ -136,29 +176,47 @@ export default function CatalogFilters({
 
   const yearIsDefault = filters.yearMin === DEFAULT_FILTERS.yearMin && filters.yearMax === DEFAULT_FILTERS.yearMax;
 
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  /**
+   * Valida y confirma el año mínimo al salir del input.
+   * Si el valor no es válido, restaura el valor actual del filtro.
+   */
   const commitYearMin = (raw: string) => {
     const v = parseInt(raw, 10);
     if (!isNaN(v) && v >= 1970 && v < filters.yearMax) { onYearMin(v); }
     else { setLocalYearMin(String(filters.yearMin)); }
   };
+
+  /**
+   * Valida y confirma el año máximo al salir del input.
+   * Si el valor no es válido, restaura el valor actual del filtro.
+   */
   const commitYearMax = (raw: string) => {
     const v = parseInt(raw, 10);
     if (!isNaN(v) && v > filters.yearMin && v <= CURRENT_YEAR) { onYearMax(v); }
     else { setLocalYearMax(String(filters.yearMax)); }
   };
 
+  // ─── Renderizado ──────────────────────────────────────────────────────────
+
   return (
     <>
-      {/* Backdrop */}
+      {/* Fondo oscuro que cierra el panel al hacer click */}
       <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Panel — bottom sheet on mobile, right drawer on sm+ */}
-      <div className="fixed inset-x-0 bottom-0 z-50 flex max-h-[90vh] flex-col rounded-t-2xl bg-zinc-950 border-t border-zinc-800 shadow-2xl sm:inset-y-0 sm:bottom-auto sm:right-0 sm:left-auto sm:w-[420px] sm:max-h-full sm:rounded-none sm:border-t-0 sm:border-l">
+      {/* Panel: bottom sheet en móvil, drawer derecho en pantallas medianas+ */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="catalog-filters-title"
+        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[90vh] flex-col rounded-t-2xl bg-zinc-950 border-t border-zinc-800 shadow-2xl sm:inset-y-0 sm:bottom-auto sm:right-0 sm:left-auto sm:w-[420px] sm:max-h-full sm:rounded-none sm:border-t-0 sm:border-l"
+      >
 
-        {/* Header */}
+        {/* Cabecera del panel */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <span className="text-base font-bold text-white">Filtros</span>
+            <span id="catalog-filters-title" className="text-base font-bold text-white">Filtros</span>
             {activeCount > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-xs font-bold leading-none">
                 {activeCount} activos
@@ -174,7 +232,7 @@ export default function CatalogFilters({
           </button>
         </div>
 
-        {/* Scrollable body */}
+        {/* Cuerpo con scroll */}
         <div className="flex-1 overflow-y-auto px-5 py-6 space-y-7">
 
           {/* Ordenar por */}
@@ -201,7 +259,7 @@ export default function CatalogFilters({
             </div>
           </section>
 
-          {/* Año */}
+          {/* Rango de año */}
           <section>
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Año</p>
@@ -269,7 +327,7 @@ export default function CatalogFilters({
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-zinc-600">Sin géneros para "{genreSearch}"</p>
+                <p className="text-xs text-zinc-600">Sin géneros para &quot;{genreSearch}&quot;</p>
               )}
               {!genresExpanded && moreGenres > 0 && (
                 <button onClick={() => setGenresExpanded(true)} className="mt-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer">
@@ -284,7 +342,7 @@ export default function CatalogFilters({
             </section>
           )}
 
-          {/* Videojuegos: Plataformas */}
+          {/* Videojuegos: plataformas */}
           {activeCategory === 'videojuegos' && availablePlatforms.length > 0 && (
             <section>
               <Label text="Plataformas" />
@@ -314,7 +372,7 @@ export default function CatalogFilters({
             </section>
           )}
 
-          {/* Películas: Duración + Idioma */}
+          {/* Películas: duración e idioma */}
           {activeCategory === 'peliculas' && (
             <>
               <section>
@@ -342,7 +400,7 @@ export default function CatalogFilters({
             </>
           )}
 
-          {/* Series: Estado + Idioma */}
+          {/* Series: estado e idioma */}
           {activeCategory === 'series' && (
             <>
               {availableSeriesStatuses.length > 0 && (
@@ -375,7 +433,7 @@ export default function CatalogFilters({
             </>
           )}
 
-          {/* Libros: Extensión + Idioma */}
+          {/* Libros: extensión e idioma */}
           {activeCategory === 'libros' && (
             <>
               <section>
@@ -403,7 +461,7 @@ export default function CatalogFilters({
             </>
           )}
 
-          {/* Conciertos: Ciudad */}
+          {/* Conciertos: ciudad */}
           {activeCategory === 'conciertos' && availableCities.length > 0 && (
             <section>
               <Label text="Ciudad" />
@@ -419,7 +477,7 @@ export default function CatalogFilters({
 
         </div>
 
-        {/* Footer */}
+        {/* Pie del panel: limpiar y aplicar */}
         <div className="flex items-center justify-between px-5 py-4 border-t border-zinc-800 flex-shrink-0">
           <button
             onClick={onReset}

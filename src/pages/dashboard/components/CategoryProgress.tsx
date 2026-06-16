@@ -1,10 +1,28 @@
+/**
+ * CategoryProgress.tsx — barras de progreso por categoría del dashboard.
+ *
+ * Para cada categoría activa del usuario, muestra una barra bicolor:
+ * la parte sólida representa el % completado y la parte semitransparente
+ * el % en progreso. También muestra la puntuación media si la hay.
+ */
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { CategoryStat } from '@/hooks/useDashboardStats';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del componente de progreso por categoría. */
 interface Props {
   categories: CategoryStat[];
   loading: boolean;
 }
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function CategoryProgress({ categories, loading }: Props) {
   return (
@@ -21,6 +39,7 @@ export default function CategoryProgress({ categories, loading }: Props) {
 
       <div className="p-6 flex flex-col gap-5">
         {loading ? (
+          /* Esqueleto de carga */
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
@@ -31,6 +50,7 @@ export default function CategoryProgress({ categories, loading }: Props) {
             </div>
           ))
         ) : categories.length === 0 ? (
+          /* Estado vacío */
           <div className="flex flex-col items-center justify-center py-8 gap-2">
             <i className="ri-bar-chart-box-line text-2xl text-zinc-300 dark:text-zinc-600"></i>
             <p className="text-xs text-zinc-400 text-center">Añade ítems al tracker para ver tu progreso por categoría.</p>
@@ -58,6 +78,7 @@ export default function CategoryProgress({ categories, loading }: Props) {
                     )}
                   </div>
                 </div>
+                {/* Barra bicolor: sólido = completado, semitransparente = en progreso */}
                 <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div className="h-full flex">
                     <div className="h-full rounded-full transition-all duration-700" style={{ width: `${completedPct}%`, background: cat.accent }}></div>

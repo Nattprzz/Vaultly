@@ -1,59 +1,133 @@
+/**
+ * EntityFilmography.tsx — filmografía y obras de una entidad del catálogo.
+ *
+ * Muestra todos los ítems vinculados a la entidad con filtro por categoría,
+ * ordenación por año/rating/título y cambio de vista entre cuadrícula y lista.
+ * En vista de cuadrícula muestra portadas con badges de rating y categoría.
+ * En vista de lista muestra una tabla con miniatura, título, año y rating.
+ * Si hay más de 12 (cuadrícula) / 15 (lista) ítems, ofrece un botón "Ver más".
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useMemo } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import type { EntityItem } from '@/hooks/useEntity';
 import { useCategories } from '@/hooks/useCategoryColors';
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
 import { toAppCategory } from '@/lib/categories';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del componente principal. */
 interface Props {
+  /** Lista de ítems vinculados a la entidad. */
   items: EntityItem[];
+  /** Nombre de la entidad, usado en el subtítulo "X obras de Y". */
   entityName: string;
 }
 
+/** Clave de ordenación disponible. */
 type SortKey = 'year_desc' | 'year_asc' | 'rating_desc' | 'rating_asc' | 'title_asc';
+
+/** Modo de visualización: cuadrícula de portadas o lista con rango. */
 type ViewMode = 'grid' | 'list';
 
+// ─── Constantes ──────────────────────────────────────────────────────────────
+
+/** Opciones de ordenación con etiqueta e icono Remix. */
+const SORT_OPTIONS: { key: SortKey; label: string; icon: string }[] = [
+  { key: 'year_desc',   label: 'Más reciente',   icon: 'ri-sort-desc' },
+  { key: 'year_asc',    label: 'Más antiguo',     icon: 'ri-sort-asc' },
+  { key: 'rating_desc', label: 'Mejor valorado',  icon: 'ri-star-fill' },
+  { key: 'rating_asc',  label: 'Menor rating',    icon: 'ri-star-line' },
+  { key: 'title_asc',   label: 'A → Z',           icon: 'ri-sort-alphabet-asc' },
+];
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+
+/**
+ * Extrae el rating numérico de un ítem.
+ *
+ * @param item - Ítem del catálogo.
+ * @returns Número del rating o `null` si no existe.
+ */
 function getItemRating(item: EntityItem): number | null {
   const r = item.metadata?.rating;
   return r != null ? Number(r) : null;
 }
+
+/**
+ * Extrae el año de lanzamiento de un ítem como cadena de 4 dígitos.
+ *
+ * @param item - Ítem del catálogo.
+ * @returns Año como string o cadena vacía.
+ */
 function getItemYear(item: EntityItem): string {
   return item.release_date?.slice(0, 4) ?? '';
 }
+
+/**
+ * Extrae el primer género del ítem desde `metadata.genres` o `metadata.genre`.
+ *
+ * @param item - Ítem del catálogo.
+ * @returns Nombre del género o cadena vacía.
+ */
 function getItemGenre(item: EntityItem): string {
   const g = item.metadata?.genres ?? item.metadata?.genre;
   if (Array.isArray(g)) return g[0] ?? '';
   return String(g ?? '');
 }
 
-const SORT_OPTIONS: { key: SortKey; label: string; icon: string }[] = [
-  { key: 'year_desc', label: 'Más reciente', icon: 'ri-sort-desc' },
-  { key: 'year_asc', label: 'Más antiguo', icon: 'ri-sort-asc' },
-  { key: 'rating_desc', label: 'Mejor valorado', icon: 'ri-star-fill' },
-  { key: 'rating_asc', label: 'Menor rating', icon: 'ri-star-line' },
-  { key: 'title_asc', label: 'A → Z', icon: 'ri-sort-alphabet-asc' },
-];
-
+/**
+ * Ordena una copia del array de ítems según la clave de ordenación indicada.
+ *
+ * @param items - Lista original (no se muta).
+ * @param sort  - Clave de ordenación.
+ * @returns Nueva lista ordenada.
+ */
 function sortItems(items: EntityItem[], sort: SortKey): EntityItem[] {
   return [...items].sort((a, b) => {
     switch (sort) {
-      case 'year_desc': return (Number(getItemYear(b)) || 0) - (Number(getItemYear(a)) || 0);
-      case 'year_asc': return (Number(getItemYear(a)) || 0) - (Number(getItemYear(b)) || 0);
+      case 'year_desc':   return (Number(getItemYear(b)) || 0) - (Number(getItemYear(a)) || 0);
+      case 'year_asc':    return (Number(getItemYear(a)) || 0) - (Number(getItemYear(b)) || 0);
       case 'rating_desc': return (getItemRating(b) ?? -1) - (getItemRating(a) ?? -1);
-      case 'rating_asc': return (getItemRating(a) ?? 11) - (getItemRating(b) ?? 11);
-      case 'title_asc': return a.title.localeCompare(b.title);
-      default: return 0;
+      case 'rating_asc':  return (getItemRating(a) ?? 11) - (getItemRating(b) ?? 11);
+      case 'title_asc':   return a.title.localeCompare(b.title);
+      default:            return 0;
     }
   });
 }
 
-// ── Grid card ──────────────────────────────────────────────────────────────────
-function GridCard({ item }: { item: EntityItem }) {
+// ─── Sub-componentes ─────────────────────────────────────────────────────────
+
+/** Props de la tarjeta de cuadrícula. */
+interface GridCardProps {
+  /** Ítem a mostrar. */
+  item: EntityItem;
+}
+
+/**
+ * Tarjeta vertical con portada (aspect 2:3), badge de categoría, badge de rating
+ * y superposición de hover con flecha de navegación.
+ *
+ * @param item - Ítem del catálogo.
+ */
+function GridCard({ item }: GridCardProps) {
   const CATEGORIES = useCategories();
-  const rating = getItemRating(item);
-  const year = getItemYear(item);
-  const genre = getItemGenre(item);
+  const rating     = getItemRating(item);
+  const year       = getItemYear(item);
+  const genre      = getItemGenre(item);
   const categoryId = toAppCategory(item.category) ?? item.category;
-  const cat = CATEGORIES.find(c => c.id === categoryId);
+  const cat        = CATEGORIES.find(c => c.id === categoryId);
 
   return (
     <Link to={`/catalog/${categoryId}/${item.slug}`} className="group cursor-pointer">
@@ -71,14 +145,14 @@ function GridCard({ item }: { item: EntityItem }) {
           </div>
         )}
 
-        {/* Hover overlay */}
+        {/* Superposición de hover */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 flex items-center justify-center">
           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center">
             <i className="ri-arrow-right-line text-zinc-900 text-sm"></i>
           </div>
         </div>
 
-        {/* Rating badge */}
+        {/* Badge de rating */}
         {rating != null && (
           <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-sm">
             <i className="ri-star-fill text-amber-400 text-xs"></i>
@@ -86,7 +160,7 @@ function GridCard({ item }: { item: EntityItem }) {
           </div>
         )}
 
-        {/* Category badge */}
+        {/* Badge de categoría */}
         {cat && (
           <div
             className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-lg text-white text-[10px] font-semibold"
@@ -112,14 +186,28 @@ function GridCard({ item }: { item: EntityItem }) {
   );
 }
 
-// ── List row ───────────────────────────────────────────────────────────────────
-function ListRow({ item, rank }: { item: EntityItem; rank: number }) {
+/** Props de la fila de lista. */
+interface ListRowProps {
+  /** Ítem a mostrar. */
+  item: EntityItem;
+  /** Posición en el ranking actual (1-indexado). */
+  rank: number;
+}
+
+/**
+ * Fila horizontal con número de rango, miniatura, título, año y rating.
+ * El color del rating varía según su valor: verde ≥9, ámbar ≥7, gris el resto.
+ *
+ * @param item - Ítem del catálogo.
+ * @param rank - Posición ordinal en la lista mostrada.
+ */
+function ListRow({ item, rank }: ListRowProps) {
   const CATEGORIES = useCategories();
-  const rating = getItemRating(item);
-  const year = getItemYear(item);
-  const genre = getItemGenre(item);
+  const rating     = getItemRating(item);
+  const year       = getItemYear(item);
+  const genre      = getItemGenre(item);
   const categoryId = toAppCategory(item.category) ?? item.category;
-  const cat = CATEGORIES.find(c => c.id === categoryId);
+  const cat        = CATEGORIES.find(c => c.id === categoryId);
 
   const ratingColor = rating != null
     ? rating >= 9 ? 'text-emerald-500' : rating >= 7 ? 'text-amber-500' : 'text-zinc-400'
@@ -130,12 +218,12 @@ function ListRow({ item, rank }: { item: EntityItem; rank: number }) {
       to={`/catalog/${categoryId}/${item.slug}`}
       className="group flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
     >
-      {/* Rank */}
+      {/* Posición */}
       <span className="text-xs font-bold text-zinc-300 dark:text-zinc-600 w-5 text-center flex-shrink-0">
         {rank}
       </span>
 
-      {/* Thumbnail */}
+      {/* Miniatura */}
       <div className="w-10 h-14 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 flex-shrink-0">
         {item.image_url ? (
           <img
@@ -151,7 +239,7 @@ function ListRow({ item, rank }: { item: EntityItem; rank: number }) {
         )}
       </div>
 
-      {/* Info */}
+      {/* Título, categoría, género y rol */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-zinc-900 dark:text-white leading-tight line-clamp-1 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 transition-colors">
           {item.title}
@@ -170,7 +258,7 @@ function ListRow({ item, rank }: { item: EntityItem; rank: number }) {
         </div>
       </div>
 
-      {/* Year */}
+      {/* Año */}
       <span className="text-xs text-zinc-400 flex-shrink-0 hidden sm:block">{year}</span>
 
       {/* Rating */}
@@ -185,7 +273,7 @@ function ListRow({ item, rank }: { item: EntityItem; rank: number }) {
         )}
       </div>
 
-      {/* Arrow */}
+      {/* Flecha de navegación */}
       <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         <i className="ri-arrow-right-s-line text-zinc-400 text-sm"></i>
       </div>
@@ -193,42 +281,45 @@ function ListRow({ item, rank }: { item: EntityItem; rank: number }) {
   );
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// ─── Componente principal ─────────────────────────────────────────────────────
+
 export default function EntityFilmography({ items, entityName }: Props) {
   const CATEGORIES = useCategories();
-  const [sort, setSort] = useState<SortKey>('year_desc');
-  const [view, setView] = useState<ViewMode>('grid');
-  const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [showAll, setShowAll] = useState(false);
 
-  // Available categories
+  // ─── Estado ───────────────────────────────────────────────────────────────
+
+  const [sort,           setSort]           = useState<SortKey>('year_desc');
+  const [view,           setView]           = useState<ViewMode>('grid');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [showAll,        setShowAll]        = useState(false);
+
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const availableCategories = useMemo(() => {
     const cats = new Set(items.map(i => toAppCategory(i.category) ?? i.category));
     return Array.from(cats);
   }, [items]);
 
-  // Filter by category
   const filtered = useMemo(() => {
     if (activeCategory === 'all') return items;
     return items.filter(i => (toAppCategory(i.category) ?? i.category) === activeCategory);
   }, [items, activeCategory]);
 
-  // Sort
   const sorted = useMemo(() => sortItems(filtered, sort), [filtered, sort]);
 
   const GRID_LIMIT = 12;
   const LIST_LIMIT = 15;
-  const limit = view === 'grid' ? GRID_LIMIT : LIST_LIMIT;
+  const limit    = view === 'grid' ? GRID_LIMIT : LIST_LIMIT;
   const displayed = showAll ? sorted : sorted.slice(0, limit);
-  const hasMore = sorted.length > limit && !showAll;
+  const hasMore   = sorted.length > limit && !showAll;
 
   if (items.length === 0) return null;
 
-  const currentSortLabel = SORT_OPTIONS.find(o => o.key === sort)?.label ?? '';
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden">
-      {/* Header */}
+      {/* Cabecera con controles */}
       <div className="px-6 pt-6 pb-4 border-b border-zinc-100 dark:border-zinc-800">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -244,7 +335,7 @@ export default function EntityFilmography({ items, entityName }: Props) {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Sort dropdown */}
+            {/* Selector de ordenación */}
             <div className="relative">
               <select
                 value={sort}
@@ -260,7 +351,7 @@ export default function EntityFilmography({ items, entityName }: Props) {
               </div>
             </div>
 
-            {/* View toggle */}
+            {/* Alternador de vista cuadrícula / lista */}
             <div className="flex items-center rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
               <button
                 onClick={() => setView('grid')}
@@ -286,7 +377,7 @@ export default function EntityFilmography({ items, entityName }: Props) {
           </div>
         </div>
 
-        {/* Category filter tabs */}
+        {/* Pestañas de filtro por categoría */}
         {availableCategories.length > 1 && (
           <div className="flex items-center gap-2 mt-4 flex-wrap">
             <button
@@ -300,7 +391,7 @@ export default function EntityFilmography({ items, entityName }: Props) {
               Todas ({items.length})
             </button>
             {availableCategories.map(catId => {
-              const cat = CATEGORIES.find(c => c.id === catId);
+              const cat   = CATEGORIES.find(c => c.id === catId);
               const count = items.filter(i => (toAppCategory(i.category) ?? i.category) === catId).length;
               return (
                 <button
@@ -322,7 +413,7 @@ export default function EntityFilmography({ items, entityName }: Props) {
         )}
       </div>
 
-      {/* Content */}
+      {/* Contenido principal */}
       <div className="p-6">
         {sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
@@ -345,7 +436,7 @@ export default function EntityFilmography({ items, entityName }: Props) {
           </div>
         )}
 
-        {/* Show more */}
+        {/* Botón "Ver más" */}
         {hasMore && (
           <div className="flex justify-center mt-6">
             <button
@@ -361,4 +452,3 @@ export default function EntityFilmography({ items, entityName }: Props) {
     </div>
   );
 }
-

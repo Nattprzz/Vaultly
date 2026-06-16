@@ -1,6 +1,30 @@
+/**
+ * TrackerFilters.tsx — panel combinado de búsqueda, orden, categoría y estado del tracker.
+ *
+ * Agrupa en una sola barra los controles de filtrado avanzado:
+ * - Búsqueda de texto libre sobre el título.
+ * - Selector de ordenación (actualización, fecha de añadido, puntuación, título).
+ * - Chips de categoría para cambiar la vista activa.
+ * - Chips de estado dinámicos según la categoría seleccionada: si se elige una
+ *   categoría concreta, muestra los estados válidos para ella via `getCategoryStatuses()`;
+ *   si se está en "todas", muestra sólo los estados que aparecen en los entries
+ *   en orden canónico.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useMemo } from 'react';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useCategories } from '@/hooks/useCategoryColors';
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { TrackerEntry, TrackerStatus } from '@/hooks/useTracker';
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
 import {
   getCategoryStatuses,
   STATUS_CONFIG,
@@ -8,8 +32,12 @@ import {
 } from '@/constants/tracker-statuses';
 import type { CategoryStatus } from '@/constants/tracker-statuses';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Opciones de ordenación disponibles en el selector. */
 type SortOption = 'updated' | 'added' | 'rating' | 'title';
 
+/** Props del panel de filtros del tracker. */
 interface Props {
   activeCategory: string;
   onCategoryChange: (id: string) => void;
@@ -20,9 +48,13 @@ interface Props {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   entries: Record<string, TrackerEntry>;
+  /** IDs de categorías que el usuario tiene configuradas. */
   activeCategories: string[];
+  /** Mapa de estado → cantidad para mostrar en los chips. */
   counts: Record<string, number>;
 }
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function TrackerFilters({
   activeCategory,
@@ -37,38 +69,39 @@ export default function TrackerFilters({
   activeCategories,
   counts,
 }: Props) {
+  // ─── Datos derivados ──────────────────────────────────────────────────────
+
   const CATEGORIES = useCategories();
   const visibleCats = CATEGORIES.filter(c => activeCategories.includes(c.id));
 
-  // Status pills: valid statuses for the active category, or only those present in entries
+  /**
+   * Estados válidos para los chips de estado.
+   * Si hay una categoría activa, devuelve los estados específicos de ella.
+   * En vista "todos", devuelve sólo los estados que existen en los entries,
+   * ordenados por posición canónica.
+   */
   const statusOptions = useMemo<CategoryStatus[]>(() => {
     if (activeCategory !== 'all') {
       return getCategoryStatuses(activeCategory);
     }
-    // For "all categories" view, show only statuses that actually appear in entries
     const present = new Set(Object.values(entries).map(e => e.status as CategoryStatus));
-    // Preserve canonical order: iterate all possible statuses in order
-    const allOrdered: CategoryStatus[] = [];
-    for (const cat of Object.keys(getCategoryStatuses) as string[]) {
-      // fallback: build unique ordered list from all categories
-      void cat;
-    }
-    // simpler: just return present statuses sorted by canonical position
-    const canonical = [
+    const canonical: CategoryStatus[] = [
       'wishlist', 'pending', 'playing', 'watching', 'reading',
       'played', 'watched', 'read', 'attended',
       'completed', 'platinum',
       'waiting_season', 'waiting_episode',
       'abandoned', 'missed',
-    ] as CategoryStatus[];
+    ];
     return canonical.filter(s => present.has(s));
   }, [activeCategory, entries]);
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
 
   return (
     <div className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
       <div className="flex flex-col gap-4">
 
-        {/* Row 1: Search + Sort */}
+        {/* Fila 1: búsqueda y selector de orden */}
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
@@ -92,10 +125,9 @@ export default function TrackerFilters({
           </select>
         </div>
 
-        {/* Divider */}
         <div className="h-px bg-[var(--border)]" />
 
-        {/* Row 2: Categories */}
+        {/* Fila 2: chips de categoría */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
             Categoría
@@ -131,14 +163,13 @@ export default function TrackerFilters({
           })}
         </div>
 
-        {/* Row 3: Status (dynamic per category) */}
+        {/* Fila 3: chips de estado (dinámicos según categoría) */}
         {statusOptions.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
               Estado
             </span>
 
-            {/* "Todos" pill */}
             <button
               onClick={() => onStatusChange('all')}
               className={`flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all whitespace-nowrap ${

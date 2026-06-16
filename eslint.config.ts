@@ -46,7 +46,7 @@ const autoImportGlobals = {
 }
 
 export default [
-  { ignores: ['dist', 'node_modules'] },
+  { ignores: ['dist', 'out', 'node_modules'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

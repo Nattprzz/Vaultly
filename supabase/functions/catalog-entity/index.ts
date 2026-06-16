@@ -1,4 +1,19 @@
+/**
+ * Función Edge: catalog-entity
+ *
+ * Endpoint encargado de gestionar la operación serverless asociada dentro del backend de Vaultly.
+ *
+ * Flujo:
+ * 1. Lee el slug de entidad solicitado.
+ * 2. Consulta la entidad en base de datos.
+ * 3. Recupera obras relacionadas mediante joins.
+ * 4. Calcula métricas agregadas.
+ * 5. Devuelve el detalle normalizado.
+ */
+
+// ─── Framework ─────────────────────────────────────────────────────────
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkRateLimit, clientIdentifier, parsePage, publicError, safeText } from '../_shared/security.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,14 +26,21 @@ Deno.serve(async (req) => {
   }
 
   try {
+    if (req.method !== 'GET') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const url = new URL(req.url);
 
-    const slug = url.searchParams.get('slug') ?? '';
-    const id = url.searchParams.get('id') ?? '';
-    const page = parseInt(url.searchParams.get('page') ?? '1', 10);
+    const slug = safeText(url.searchParams.get('slug'), 120);
+    const id = safeText(url.searchParams.get('id'), 36);
+    const page = parsePage(url.searchParams.get('page'), 50);
     const limit = 20;
 
-    if (!slug && !id) {
+    if ((!slug && !id) || !page) {
       return new Response(JSON.stringify({ error: 'Provide slug or id' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -29,8 +51,15 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+    const allowed = await checkRateLimit(db, 'catalog-entity', clientIdentifier(req), 60, 60);
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Too many requests' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    // ── 1. Fetch entity ────────────────────────────────────────────────
+    // ─── Operaciones principales: obtener entidad ──────────────────────────────
     const entityQuery = db.from('entities').select('*');
 
     const { data: entity, error: entityError } = await (
@@ -44,7 +73,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── 2. Fetch related items (JOIN) ─────────────────────────────────
+    // ─── Operaciones principales: obtener obras relacionadas ───────────────────
     const from = (page - 1) * limit;
     const to = page * limit - 1;
 
@@ -72,15 +101,15 @@ Deno.serve(async (req) => {
       console.error('Relations error:', relError);
     }
 
-    // ── 3. Transform items ────────────────────────────────────────────
+    // ─── Helpers: transformar obras relacionadas ───────────────────────────────
     const items = (relations ?? []).map((r: any) => ({
       role: r.role,
       ...r.catalog_items,
     }));
 
-    // ── 4. Stats ──────────────────────────────────────────────────────
+    // ─── Helpers: calcular estadísticas de entidad ─────────────────────────────
 
-    // ratings
+    // Métricas de valoración usadas para resumir recepción de las obras.
     const ratings = items
       .map(i => i.metadata?.rating)
       .filter((r: number) => typeof r === 'number');
@@ -93,7 +122,7 @@ Deno.serve(async (req) => {
     const bestRating = ratings.length > 0 ? Math.max(...ratings) : null;
     const worstRating = ratings.length > 0 ? Math.min(...ratings) : null;
 
-    // categorías
+    // Distribución de categorías para mostrar el alcance de la entidad.
     const byCategory: Record<string, number> = {};
 
     for (const item of items) {
@@ -102,7 +131,7 @@ Deno.serve(async (req) => {
       byCategory[cat] = (byCategory[cat] || 0) + 1;
     }
 
-    // ── 5. Respuesta final ────────────────────────────────────────────
+    // ─── Exportaciones: respuesta final ───────────────────────────────────────
     return new Response(
       JSON.stringify({
         entity,
@@ -128,7 +157,7 @@ Deno.serve(async (req) => {
     console.error('catalog-entity error:', err);
 
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify(publicError()),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

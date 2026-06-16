@@ -1,15 +1,27 @@
+/**
+ * StatsCards.tsx — grid de tarjetas KPI del dashboard.
+ *
+ * Muestra seis métricas clave del tracker del usuario. Las tarjetas usan un
+ * lenguaje visual neutro (superficie + icono azul) sin un color diferente por
+ * tarjeta, para mantener una lectura rápida similar a la de Linear o GitHub,
+ * donde la diferenciación viene del icono y la etiqueta, no del color.
+ */
+
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
 import type { DashboardStats } from '@/hooks/useDashboardStats';
 
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del grid de tarjetas de estadísticas. */
 interface Props {
   stats: DashboardStats | null;
   loading: boolean;
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function StatsCards({ stats, loading }: Props) {
-  // KPI cards intentionally share ONE visual language — neutral surface +
-  // a single blue icon accent — rather than a "rainbow" of per-card colors.
-  // Differentiation comes from icon + label, the way Linear/GitHub dashboards
-  // keep a calm, scannable strip of numbers instead of competing hues.
   const cards = [
     { label: 'Total en tracker', value: stats?.total_tracked ?? 0, icon: 'ri-stack-line' },
     { label: 'Completados', value: stats?.completed ?? 0, icon: 'ri-checkbox-circle-line' },

@@ -1,14 +1,38 @@
+/**
+ * DashboardNotifications.tsx — panel de notificaciones contextuales del dashboard.
+ *
+ * Genera notificaciones dinámicas basadas en el estado actual del tracker del usuario:
+ * ítems completados sin puntuar/reseñar, demasiados en progreso, hitos de completado
+ * y listas de pendientes acumuladas. Cada notificación puede descartarse y el estado
+ * de descarte se persiste en localStorage bajo `vaultly_dismissed_notifications`.
+ */
+
+// ─── React ───────────────────────────────────────────────────────────────────
+
 import { useState, useMemo, useCallback } from 'react';
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
 import { Link } from 'react-router-dom';
-import type { DashboardStats, RecentActivityItem } from '@/hooks/useDashboardStats';
+
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 import { useTracker } from '@/hooks/useTracker';
 
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+
+import type { DashboardStats, RecentActivityItem } from '@/hooks/useDashboardStats';
+
+// ─── Tipos de módulo ─────────────────────────────────────────────────────────
+
+/** Props del panel de notificaciones del dashboard. */
 interface Props {
   stats: DashboardStats | null;
   recentActivity: RecentActivityItem[];
   loading: boolean;
 }
 
+/** Notificación contextual generada a partir del estado del tracker. */
 interface Notification {
   id: string;
   type: 'warning' | 'info' | 'success' | 'tip';
@@ -19,6 +43,9 @@ interface Notification {
   dismissible: boolean;
 }
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+/** Clases de estilo por tipo de notificación. */
 const TYPE_STYLES = {
   warning: {
     bg: 'bg-amber-50 dark:bg-amber-950/20',
@@ -46,7 +73,11 @@ const TYPE_STYLES = {
   },
 };
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 export default function DashboardNotifications({ stats, recentActivity, loading }: Props) {
+  // ─── Estado ─────────────────────────────────────────────────────────────────
+
   const { entries } = useTracker();
 
   const [dismissed, setDismissed] = useState<Set<string>>(() => {
@@ -58,6 +89,8 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
     }
   });
 
+  // ─── Handlers ────────────────────────────────────────────────────────────────
+
   const dismiss = useCallback((id: string) => {
     setDismissed(prev => {
       const next = new Set([...prev, id]);
@@ -68,13 +101,15 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
     });
   }, []);
 
+  // ─── Datos derivados ─────────────────────────────────────────────────────────
+
   const notifications = useMemo((): Notification[] => {
     if (!stats || loading) return [];
 
     const allEntries = Object.values(entries);
     const result: Notification[] = [];
 
-    // 1. Completed items without rating
+    // Ítems completados sin puntuar
     const completedNoRating = allEntries.filter(
       e => e.status === 'completed' && e.rating === null
     );
@@ -90,7 +125,7 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
       });
     }
 
-    // 2. Completed items without review
+    // Ítems completados sin reseña (solo si hay 3 o más)
     const completedNoReview = allEntries.filter(
       e => e.status === 'completed' && (!e.review || e.review.trim().length === 0)
     );
@@ -106,7 +141,7 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
       });
     }
 
-    // 3. Many items in progress (more than 5)
+    // Demasiados ítems en progreso (más de 5)
     if (stats.in_progress > 5) {
       result.push({
         id: 'too-many-in-progress',
@@ -119,7 +154,7 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
       });
     }
 
-    // 4. Milestone: first completion
+    // Hito: primer ítem completado
     if (stats.completed === 1) {
       result.push({
         id: 'first-completion',
@@ -131,7 +166,7 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
       });
     }
 
-    // 5. Milestone: 10 completions
+    // Hito: 10 ítems completados
     if (stats.completed === 10) {
       result.push({
         id: 'ten-completions',
@@ -144,7 +179,7 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
       });
     }
 
-    // 6. High pending count
+    // Lista de pendientes acumulada
     if (stats.pending > 10) {
       result.push({
         id: 'high-pending',
@@ -157,7 +192,7 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
       });
     }
 
-    // 7. Profile tip (if no reviews at all)
+    // Sin ninguna reseña escrita (con 3+ completados)
     if (stats.reviews_written === 0 && stats.completed >= 3) {
       result.push({
         id: 'write-first-review',
@@ -174,6 +209,8 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
   }, [stats, entries, loading]);
 
   const visible = notifications.filter(n => !dismissed.has(n.id));
+
+  // ─── Renderizado ─────────────────────────────────────────────────────────────
 
   if (loading || visible.length === 0) return null;
 
@@ -196,12 +233,12 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
             key={notif.id}
             className={`flex items-start gap-4 px-5 py-4 rounded-2xl border ${styles.bg} ${styles.border} transition-all`}
           >
-            {/* Icon */}
+            {/* Icono */}
             <div className={`w-9 h-9 flex items-center justify-center rounded-xl flex-shrink-0 ${styles.badge}`}>
               <i className={`${notif.icon} text-base`}></i>
             </div>
 
-            {/* Content */}
+            {/* Contenido */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-zinc-900 dark:text-white">{notif.title}</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">{notif.description}</p>
@@ -216,7 +253,7 @@ export default function DashboardNotifications({ stats, recentActivity, loading 
               )}
             </div>
 
-            {/* Dismiss */}
+            {/* Botón de descartar */}
             {notif.dismissible && (
               <button
                 onClick={() => dismiss(notif.id)}

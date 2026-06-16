@@ -1,3 +1,18 @@
+-- ============================================================================
+-- Nombre: initial_schema.sql
+-- Descripción:
+-- Crea el esquema inicial de Vaultly: perfiles, catálogo, seguimiento, reseñas y notificaciones.
+--
+-- Tablas afectadas:
+-- - profiles
+-- - catalog_items
+-- - tracker_entries
+-- - reviews
+-- - notifications
+--
+-- Autor: Vaultly
+-- ============================================================================
+
 -- Vaultly initial Supabase schema.
 -- Apply with: supabase db push
 

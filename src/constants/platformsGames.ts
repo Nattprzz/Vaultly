@@ -6,6 +6,9 @@
  * y luego por subcadena (gana la clave más larga para evitar falsos positivos).
  */
 
+import { ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
 export interface PlatformStyle {
   /** Clase remixicon */
   icon: string;
@@ -186,3 +189,16 @@ export function getPlatformStyle(name: string): PlatformStyle {
 }
 
 export { DEFAULT_STYLE as DEFAULT_PLATFORM_STYLE };
+
+/**
+ * Returns black or white depending on which has sufficient contrast against `hex`.
+ * Uses WCAG relative luminance with threshold 0.179 (≈ 4.5:1 on white).
+ */
+export function getReadableTextColor(hex: string): '#000000' | '#ffffff' {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const lin = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  return L > 0.179 ? '#000000' : '#ffffff';
+}
